@@ -25,17 +25,17 @@ function FromMySQL2PostgreSQL() {
  */
 FromMySQL2PostgreSQL.prototype.boot = function(self) {
     return new Promise(function(resolve, reject) {
-        self.log(self, '\t--Boot...');
+        console.log('\t--Boot...');
         
         if (self._config.source === undefined) {
-            self.log(self, '\t--Cannot perform a migration due to missing source database (MySQL) connection string');
-            self.log(self, '\t--Please, specify source database (MySQL) connection string, and run the tool again');
+            console.log('\t--Cannot perform a migration due to missing source database (MySQL) connection string');
+            console.log('\t--Please, specify source database (MySQL) connection string, and run the tool again');
             reject();
         }
         
         if (self._config.target === undefined) {
-            self.log(self, '\t--Cannot perform a migration due to missing target database (PostgreSQL) connection string');
-            self.log(self, '\t--Please, specify target database (PostgreSQL) connection string, and run the tool again');
+            console.log('\t--Cannot perform a migration due to missing target database (PostgreSQL) connection string');
+            console.log('\t--Please, specify target database (PostgreSQL) connection string, and run the tool again');
             reject();
         }
         
@@ -68,7 +68,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
             }
         }
         
-        self.log(self, '\t--Boot accomplished');
+        console.log('\t--Boot accomplished...');
         resolve(self);
     });
 };
@@ -82,7 +82,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
 FromMySQL2PostgreSQL.prototype.createTemporaryDirectory = function(self) {
     return new Promise(function(resolve, reject) {
         self.log(self, '\t--Creating temporary directory...');
-        fs.stat(self._tempDirPath, function (directoryDoesNotExist, stat) {
+        fs.stat(self._tempDirPath, function(directoryDoesNotExist, stat) {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._tempDirPath, self._0777, function(e) {
                     if (e) {
@@ -117,12 +117,12 @@ FromMySQL2PostgreSQL.prototype.createTemporaryDirectory = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
     return new Promise(function(resolve, reject) {
-        self.log(self, '\t--Creating logs directory');
-        fs.stat(self._logsDirPath, function (directoryDoesNotExist, stat) {
+        console.log('\t--Creating logs directory...');
+        fs.stat(self._logsDirPath, function(directoryDoesNotExist, stat) {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._logsDirPath, self._0777, function(e) {
                     if (e) {
-                        self.log(self, 
+                        console.log( 
                             '\t--Cannot perform a migration due to impossibility to create ' 
                             + '"logs_directory": ' + self._logsDirPath
                         );
@@ -134,7 +134,7 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
                 });
                 
             } else if (!stat.isDirectory()) {
-                self.log(self, '\t--Cannot perform a migration due to unexpected error');
+                console.log('\t--Cannot perform a migration due to unexpected error');
                 reject();
                 
             } else {
@@ -164,10 +164,15 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
         
         if (self._allLogsPathFd === undefined) {
             fs.open(self._allLogsPath, 'a', self._0777, function(error, fd) {
-                self._allLogsPathFd = fd;
-                fs.write(self._allLogsPathFd, buffer, 0, buffer.length, null, function(error) {
+                if (!error) {
+                    self._allLogsPathFd = fd;
+                    fs.write(self._allLogsPathFd, buffer, 0, buffer.length, null, function(error) {
+                            resolve(self);
+                    });
+                    
+                } else {
                     resolve(self);
-                });
+                }
             });
             
         } else {
@@ -194,10 +199,15 @@ FromMySQL2PostgreSQL.prototype.generateError = function(self, message, sql) {
         
         if (self._errorLogsPathFd === undefined) {
             fs.open(self._errorLogsPath, 'a', self._0777, function(error, fd) {
-                self._errorLogsPathFd = fd;
-                fs.write(self._errorLogsPathFd, buffer, 0, buffer.length, null, function(error) {
+                if (!error) {
+                    self._errorLogsPathFd = fd;
+                    fs.write(self._errorLogsPathFd, buffer, 0, buffer.length, null, function(error) {
+                        resolve(self);
+                    });
+                    
+                } else {
                     resolve(self);
-                });
+                }
             });
             
         } else {
@@ -239,8 +249,8 @@ FromMySQL2PostgreSQL.prototype.connect = function(self) {
                     credentials['database'] = arrPair[1];
                 }
             }
-	    
-            // Omit arrConStr.
+			
+            // Skip arrConStr.
             for (var i = 1; i < arrSourceConnectionString.length; i++) {
                 if (arrSourceConnectionString[i] === 'charset') {
                     credentials['charset'] = arrSourceConnectionString[i];
@@ -250,7 +260,7 @@ FromMySQL2PostgreSQL.prototype.connect = function(self) {
                     credentials['password'] = arrSourceConnectionString[i];
                 }
             }
-	    
+			
             var pool = mysql.createPool(credentials);
             
             if (pool) {
@@ -258,39 +268,34 @@ FromMySQL2PostgreSQL.prototype.connect = function(self) {
                 self._mysql = pool;
                 //resolve(self); // PASS RESOLVE() ONLY WHEN BOTH MYSQL & PGSQL WILL BE ESTABLISHED.
             }
-            
-            // TEST.
-            /*self._mysql.getConnection(function(error, connection) {
-                if (error) {
-                    self.log(self, '\t--Cannot connect to MySQL server...');
-                    rejectOuter();
-                } else {
-                    var sql = 'SELECT * FROM `admins`';
-                    connection.query(sql, function(strErr, rows) {
-                        if (strErr) {
-                            self.generateError(self, strErr, sql);
-                        } else {
-                            console.log(rows);
-                            
-                            rows.forEach(function(objRow) {
-                                console.log(JSON.stringify(objRow));
-                            });
-                        }
-                        
-                        // Release connection back to the pool.
-                        connection.release();
-                    });
-
-                }
-            });*/
-            
         }
         
         // Check if PostgreSQL server is connected.
         // If not connected - connect.
         if (!self._pgsql) {
-            self.log(self, '\t--Connecting to PostgreSQL');
+            self.log(self, '\t--Connecting to PostgreSQL...');
+            
+            // TEST
+            pg.connect(self._targetConString, function(error, client, done) {
+                if (error) {
+                    return console.error('error fetching client from pool', error);
+                }
+                
+                // TEST.
+                client.query('SELECT $1::int AS number', ['3'], function(err, result) {
+                    //call `done()` to release the client back to the pool
+                    done();
+                    
+                    if (err) {
+                        return console.error('error running query', err);
+                    }
+                    
+                    console.log('Output3: ' + result.rows[0].number);
+                });
+                
+            });
         }
+		
     });
 };
 
@@ -310,18 +315,19 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
     promise.then(
         self.boot,
         function() {
-            self.log(self, '\t--Failed to boot migration');
+            console.log('\t--Failed to boot migration');
         }
+		
     ).then(
-        self.createTemporaryDirectory, 
+        self.createLogsDirectory,
         function() {
-            self.log(self, '\t--Temporary directory was not created...');
+            self.log(self, '\t--Logs directory was not created...');
         }
         
     ).then(
-        self.createLogsDirectory, 
+        self.createTemporaryDirectory,
         function() {
-            self.log(self, '\t--Logs directory was not created...');
+            self.log(self, '\t--Temporary directory was not created...');
         }
 	
     ).then(self.connect);
@@ -347,3 +353,27 @@ fs.open(path, 'w', function(err, fd) {
     });
 }); 
  */
+
+// TEST.
+/*self._mysql.getConnection(function(error, connection) {
+    if (error) {
+        self.log(self, '\t--Cannot connect to MySQL server...');
+        rejectOuter();
+    } else {
+        var sql = 'SELECT * FROM `admins`';
+        connection.query(sql, function(strErr, rows) {
+            if (strErr) {
+                self.generateError(self, strErr, sql);
+            } else {
+                console.log(rows);
+
+                rows.forEach(function(objRow) {
+                    console.log(JSON.stringify(objRow));
+                });
+            }
+
+            // Release connection back to the pool.
+            connection.release();
+        });
+    }
+});*/
