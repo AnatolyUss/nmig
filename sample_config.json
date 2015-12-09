@@ -1,20 +1,20 @@
 {
     "source_description" : [
-        "Connection string to your MySql database",
+        "Connection string to your MySQL database",
         "Please ensure, that you have defined your connection string properly.",
         "Ensure, that details like 'charset=UTF8' are included in your connection string (if necessary)."
     ],
-    "source" : "mysql:host=localhost;port=3306;dbname=test_db;charset=UTF8,root,",
+    "source" : "host=localhost;port=3306;dbname=test_db;charset=UTF8,root,",
     
     "target_description" : [
-        "Connection string to your PostgreSql database",
+        "Connection string to your PostgreSQL database",
         "Please ensure, that you have defined your connection string properly.",
         "Ensure, that details like options='[double dash]client_encoding=UTF8' are included in your connection string (if necessary)."
     ],
-    "target" : "pgsql:host=localhost;port=5432;dbname=test_db;options=--client_encoding=UTF8,postgres,12345678",
+    "target" : "postgresql://postgres:0123456789@localhost:5432/test_db?client_encoding=UTF8",
     
     "encoding_description" : [
-        "PHP encoding type.",
+        "JavaScript encoding type.",
         "If not supplied, then utf-8 will be used as a default."
     ],
     "encoding" : "utf-8",
