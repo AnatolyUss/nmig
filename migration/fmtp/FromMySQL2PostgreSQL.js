@@ -55,6 +55,8 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._tablesToMigrate     = [];
         self._viewsToMigrate      = [];
         self._summaryReport       = [];
+        self._tablesCnt           = 0;
+        self._viewsCnt            = 0;
         self._mySqlDbName         = self._sourceConString.database;
         self._schema              = self._config.schema === undefined || 
                                     self._config.schema === '' 
@@ -174,8 +176,8 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
  * Writes given string to the "/all.log" file.
  * 
  * @param   {FromMySQL2PostgreSQL} self
- * @param   {string}               log
- * @param   {boolean}              isErrorLog
+ * @param   {String}               log
+ * @param   {Boolean}              isErrorLog
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
@@ -211,8 +213,8 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
  * Writes a ditailed error message to the "/errors-only.log" file
  * 
  * @param   {FromMySQL2PostgreSQL} self
- * @param   {string}               message
- * @param   {string}               sql
+ * @param   {String}               message
+ * @param   {String}               sql
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.generateError = function(self, message, sql) {
@@ -287,7 +289,7 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
     promise.then(
         self.connect, 
         function() {
-            self.log(self, '\t--Cannot establish DB connections...');
+            self.log(self, '\t--[createSchema] Cannot establish DB connections...');
         }
         
     ).then(
@@ -303,7 +305,7 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
                         client.query(sql, function(err, result) {
                             if (err) {
                                 done();
-                                self.generateError(self, '\t--[createSchema] Error running PostgreSQL query: ', sql);
+                                self.generateError(self, '\t--[createSchema] Error running PostgreSQL query:', sql);
                                 reject();
                             } else if (result.rows.length === 0) {
                                 // If 'self._schema !== 0' (schema is defined and already exists), then no need to create it.
@@ -336,13 +338,94 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
-    //
+    var promise = new Promise(function(resolve, reject) {
+        resolve(self);
+    });
+    
+    promise.then(
+        self.connect, 
+        function() {
+            self.log(self, '\t--[loadStructureToMigrate] Cannot establish DB connections...');
+        }
+        
+    ).then(
+        function(self) {
+            return new Promise(function(resolve, reject) {
+                var sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
+                self._mysql.getConnection(function(error, connection) {
+                    if (error) {
+                        self.log(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...');
+                        reject();
+                    } else {
+                        connection.query(sql, function(strErr, rows) {
+                            if (strErr) {
+                                connection.release();
+                                self.generateError(self, '\t--[loadStructureToMigrate] Error running MySQL query:', sql);
+                                reject();
+                            } else {
+                                connection.release();
+                                var tablesCnt = 0;
+                                var viewsCnt  = 0;
+                                
+                                rows.forEach(function(row) {
+                                    if (row.Table_type === 'BASE TABLE') {
+                                        self._tablesToMigrate.push(row);
+                                        tablesCnt++;
+                                    } else if (row.Table_type === 'VIEW') {
+                                        self._viewsToMigrate.push(row);
+                                        viewsCnt++;
+                                    }
+                                });
+                                
+                                self._tablesCnt = tablesCnt;
+                                self._viewsCnt  = viewsCnt;
+                                var message     = '\t--Source DB structure is loaded...\n' 
+                                                + '\t--Tables to migrate: ' + tablesCnt + '\n' 
+                                                + '\t--Views to migrate: ' + viewsCnt;
+                                
+                                self.log(self, message);
+                                resolve(self);
+                            }
+                        });
+                    }
+                });
+            });
+        }
+    );
+    
+    return promise;
+};
+
+/**
+ * Migrates structure of a single table to PostgreSql server.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.createTable = function(self) {
+    var promise = new Promise(function(resolve, reject) {
+        resolve(self);
+    });
+    
+    promise.then(
+        self.connect, 
+        function() {
+            self.log(self, '\t--[createTable] Cannot establish DB connections...');
+        }
+        
+    ).then(function(self) {
+        return new Promise(function(resolve, reject) {
+            self.log(self, '\t--Currently processing table: '); // How to pass current table's name?
+        });
+    });
+    
+    return promise;
 };
 
 /**
  * Runs migration according to user's configuration.
  * 
- * @param   {object} config
+ * @param   {Object} config
  * @returns {undefined} 
  */
 FromMySQL2PostgreSQL.prototype.run = function(config) {
