@@ -48,7 +48,6 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._errorLogsPath       = self._logsDirPath + '/errors-only.log';
         self._notCreatedViewsPath = self._logsDirPath + '/not_created_views';
         self._encoding            = self._config.encoding === undefined ? 'utf-8' : self._config.encoding;
-        self._schema              = self._config.schema === undefined ? '' : self._config.schema;
         self._dataChunkSize       = self._config.data_chunk_size === undefined ? 10 : +self._config.data_chunk_size;
         self._dataChunkSize       = self._dataChunkSize < 1 ? 1 : self._dataChunkSize;
         self._mysql               = null;
@@ -57,18 +56,30 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._viewsToMigrate      = [];
         self._summaryReport       = [];
         self._mySqlDbName         = self._sourceConString.database;
+        self._schema              = self._config.schema === undefined || 
+                                    self._config.schema === '' 
+                                    ? self._mySqlDbName 
+                                    : self._config.schema;
+        
         self._maxPoolSizeSource   = self._config.max_pool_size_source !== undefined && 
                                     self.isIntNumeric(self._config.max_pool_size_source) 
                                     ? +self._config.max_pool_size_source 
                                     : 10;
-                                    
+        
         self._maxPoolSizeTarget   = self._config.max_pool_size_target !== undefined && 
                                     self.isIntNumeric(self._config.max_pool_size_target) 
                                     ? +self._config.max_pool_size_target 
                                     : 10;
-                                    
+        
         self._maxPoolSizeSource   = self._maxPoolSizeSource > 0 ? self._maxPoolSizeSource : 10;
         self._maxPoolSizeTarget   = self._maxPoolSizeTarget > 0 ? self._maxPoolSizeTarget : 10;
+        
+        var targetConString = 'postgresql://' + self._targetConString.user + ':' + self._targetConString.password 
+                            + '@' + self._targetConString.host + ':' + self._targetConString.port + '/' 
+                            + self._targetConString.database + '?client_encoding=' + self._targetConString.charset;
+        
+        self._targetConString = targetConString;
+        pg.defaults.poolSize  = self._maxPoolSizeTarget;
 	
         console.log('\t--Boot accomplished...');
         resolve(self);
@@ -78,7 +89,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
 /**
  * Checks if given value is integer number.
  * 
- * @param   {string|number} value
+ * @param   {String|Number} value
  * @returns {Boolean}
  */
 FromMySQL2PostgreSQL.prototype.isIntNumeric = function(value) {
@@ -139,6 +150,7 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
                             + '"logs_directory": ' + self._logsDirPath
                         );
                         reject();
+						
                     } else {
                         self.log(self, '\t--Logs directory is created...');
                         resolve(self);
@@ -205,7 +217,7 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
  */
 FromMySQL2PostgreSQL.prototype.generateError = function(self, message, sql) {
     return new Promise(function(resolve, reject) {
-        message    += sql === undefined ? '' : '\nSQL: ' + sql + '\n\n';
+        message    += sql === undefined ? '' : '\n\tSQL: ' + sql + '\n\n';
         var buffer  = new Buffer(message);
         self.log(self, message, true);
         
@@ -239,100 +251,92 @@ FromMySQL2PostgreSQL.prototype.generateError = function(self, message, sql) {
  */
 FromMySQL2PostgreSQL.prototype.connect = function(self) {
     return new Promise(function(resolve, reject) {
-        self.log(self, '\t--Check DB connections...');
-        
-        var mysqlPromise = new Promise(function(mysqlResolve, mysqlReject) {
-            // Check if MySQL server is connected.
-            // If not connected - connect.
-            if (!self._mysql) {
-                self.log(self, '\t--Connecting to MySQL...');
-                self._sourceConString.connectionLimit = self._maxPoolSizeSource;
-                
-                var pool = mysql.createPool(self._sourceConString);
-                
-                if (pool) {
-                    self.log(self, '\t--MySQL server is connected...');
-                    self._mysql = pool;
-                    
-                    // TEST MySQL START ///////////////////////////////////////////////////////////////
-self._mysql.getConnection(function(error, connection) {
-	if (error) {
-		self.log(self, '\t--Cannot connect to MySQL server...');
-		mysqlReject();
-	} else {
-		var sql = 'SELECT * FROM `admins`';
-		connection.query(sql, function(strErr, rows) {
-			if (strErr) {
-				self.generateError(self, strErr, sql);
-			} else {
-				rows.forEach(function(objRow) {
-					console.log('MYSQL');
-					console.log(JSON.stringify(objRow));
-				});
-			}
-			// Release connection back to the pool.
-			connection.release();
-			mysqlResolve(self);
-		});
-	}
-});
-// TEST MySQL END ///////////////////////////////////////////////////////
-                    
-                    
-                    mysqlResolve(self);
-                } else {
-                    self.log(self, '\t--Cannot connect to MySQL server...');
-                    mysqlReject(self);
-                }
-                
-            } else {
-                mysqlResolve(self);
-            }
-        });
-        
-        var pgsqlPromise = new Promise(function(pgsqlResolve, pgsqlReject) {
-            // pg - keeps connection to the pool.
-            // pg - creates a pool automatically, pg.connect - fetching client from pool.
-            self.log(self, '\t--PostgreSQL server is connected...');
-            var targetConString = 'postgresql://' + self._targetConString.user + ':' + self._targetConString.password 
-                                + '@' + self._targetConString.host + ':' + self._targetConString.port + '/' 
-                                + self._targetConString.database + '?client_encoding=' + self._targetConString.charset;
+        // Check if MySQL server is connected.
+        // If not connected - connect.
+        if (!self._mysql) {
+            self._sourceConString.connectionLimit = self._maxPoolSizeSource;
             
-            self._targetConString = targetConString;
-            pg.defaults.poolSize  = self._maxPoolSizeTarget;
+            var pool = mysql.createPool(self._sourceConString);
             
-            
-            // TEST PostgreSQL START ///////////////////////////////////////////////////////////////////
-pg.connect(self._targetConString, function(error, client, done) {
-	if (error) {
-		return console.error('error fetching client from pool', error);
-	}
-
-	// TEST.
-	client.query('SELECT $1::int AS number', ['3'], function(err, result) {
-		//call `done()` to release the client back to the pool
-		done();
-		if (err) {
-			return console.error('error running query', err);
-		}
-		console.log('PGSQL Output3: ' + result.rows[0].number);
-	});
-});
-// TEST PostgreSQL END //////////////////////////////////////////////////////////////////
-            
-            
-            pgsqlResolve(self);
-        });
-	
-        Promise.all([mysqlPromise, pgsqlPromise]).then(
-            function() {
+            if (pool) {
+                self._mysql = pool;
                 resolve(self);
-            }, 
-            function() {
-                reject();
+            } else {
+                self.log(self, '\t--Cannot connect to MySQL server...');
+                reject(self);
             }
-        );
+            
+        } else {
+            resolve(self);
+        }
     });
+};
+
+/**
+ * Create a new database schema.
+ * Insure a uniqueness of a new schema name.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
+    var promise = new Promise(function(resolve, reject) {
+        resolve(self);
+    });
+    
+    promise.then(
+        self.connect, 
+        function() {
+            self.log(self, '\t--Cannot establish DB connections...');
+        }
+        
+    ).then(
+        function(self) {
+            return new Promise(function(resolve, reject) {
+                var sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
+                pg.connect(self._targetConString, function(error, client, done) {
+                    if (error) {
+                        done();
+                        self.generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...', sql);
+                        reject();
+                    } else {
+                        client.query(sql, function(err, result) {
+                            if (err) {
+                                done();
+                                self.generateError(self, '\t--[createSchema] Error running PostgreSQL query: ', sql);
+                                reject();
+                            } else if (result.rows.length === 0) {
+                                // If 'self._schema !== 0' (schema is defined and already exists), then no need to create it.
+                                // Such schema will be just used...
+                                sql = 'CREATE SCHEMA "' + self._schema + '";';
+                                client.query(sql, function(err) {
+                                    done();
+                                    
+                                    if (err) {
+                                        self.generateError(self, '\t--[createSchema] Error running PostgreSQL query: ', sql);
+                                    } else {
+                                        resolve(self);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+        }
+    );
+    
+    return promise;
+};
+
+/**
+ * Load source tables and views, that need to be migrated.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
+    //
 };
 
 /**
@@ -344,7 +348,7 @@ pg.connect(self._targetConString, function(error, client, done) {
 FromMySQL2PostgreSQL.prototype.run = function(config) {
     var self     = this;
     self._config = config;
-	
+    
     var promise  = new Promise(function(resolve, reject) {
         resolve(self);
     });
@@ -368,11 +372,17 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
         }
 	
     ).then(
-        self.connect, 
+        self.createSchema, 
         function() {
-            self.log(self, '\t--Cannot establish DB connections...');
+            self.log(self, '\t--Cannot create a new DB schema...');
         }
 	
+    ).then(
+        self.loadStructureToMigrate, 
+        function() {
+            self.log(self, '\t--Cannot load source database structure...');
+        }
+        
     ).then(
         function() { 
             self.log(self, '\t--NMIG migration is accomplished.'); 
@@ -383,7 +393,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
 
 
-// node C:\xampp\htdocs\nmig\main.js C:\xampp\htdocs\nmig\sample_config.json  
+// node C:\xampp\htdocs\nmig\main.js C:\xampp\htdocs\nmig\sample_config.json
 // http://stackoverflow.com/questions/6731214/node-mysql-connection-pooling 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -400,7 +410,6 @@ var pool  = mysql.createPool({
 
 /*var pg = require('pg');
 pg.defaults.poolSize = 25;
-
 //pool is created on first call to pg.connect
 pg.connect(function(err, client, done) {
     done();
@@ -437,7 +446,6 @@ pg.connect(function(err, client, done) {
 	if (error) {
 		return console.error('error fetching client from pool', error);
 	}
-
 	// TEST.
 	client.query('SELECT $1::int AS number', ['3'], function(err, result) {
 		//call `done()` to release the client back to the pool
@@ -465,7 +473,3 @@ fs.open(path, 'w', function(err, fd) {
     });
 }); 
  */
-
-
-
-
