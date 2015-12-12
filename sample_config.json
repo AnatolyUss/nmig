@@ -51,7 +51,7 @@
         "schema - a name of the schema, that will contain all migrated tables.",
         "If not supplied, then a new schema will be created automatically."
     ],
-    "schema" : "",
+    "schema" : "test_schema",
     
     "data_chunk_size_description" : [
         "During migration each table's data will be split into chunks of data_chunk_size (in MB).",
