@@ -25,17 +25,17 @@ function FromMySQL2PostgreSQL() {
  */
 FromMySQL2PostgreSQL.prototype.boot = function(self) {
     return new Promise(function(resolve, reject) {
-        console.log('\t--Boot...');
+        console.log('\t--[boot] Boot...');
         
         if (self._config.source === undefined) {
-            console.log('\t--Cannot perform a migration due to missing source database (MySQL) connection string');
-            console.log('\t--Please, specify source database (MySQL) connection string, and run the tool again');
+            console.log('\t--[boot] Cannot perform a migration due to missing source database (MySQL) connection string');
+            console.log('\t--[boot] Please, specify source database (MySQL) connection string, and run the tool again');
             reject();
         }
         
         if (self._config.target === undefined) {
-            console.log('\t--Cannot perform a migration due to missing target database (PostgreSQL) connection string');
-            console.log('\t--Please, specify target database (PostgreSQL) connection string, and run the tool again');
+            console.log('\t--[boot] Cannot perform a migration due to missing target database (PostgreSQL) connection string');
+            console.log('\t--[boot] Please, specify target database (PostgreSQL) connection string, and run the tool again');
             reject();
         }
         
@@ -82,8 +82,8 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         
         self._targetConString = targetConString;
         pg.defaults.poolSize  = self._maxPoolSizeTarget;
-	
-        console.log('\t--Boot accomplished...');
+		
+        console.log('\t--[boot] Boot accomplished...');
         resolve(self);
     });
 };
@@ -106,28 +106,28 @@ FromMySQL2PostgreSQL.prototype.isIntNumeric = function(value) {
  */
 FromMySQL2PostgreSQL.prototype.createTemporaryDirectory = function(self) {
     return new Promise(function(resolve, reject) {
-        self.log(self, '\t--Creating temporary directory...');
+        self.log(self, '\t--[createTemporaryDirectory] Creating temporary directory...');
         fs.stat(self._tempDirPath, function(directoryDoesNotExist, stat) {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._tempDirPath, self._0777, function(e) {
                     if (e) {
                         self.log(self, 
-                            '\t--Cannot perform a migration due to impossibility to create ' 
+                            '\t--[createTemporaryDirectory] Cannot perform a migration due to impossibility to create ' 
                             + '"temporary_directory": ' + self._tempDirPath
                         );
                         reject();
                     } else {
-                        self.log(self, '\t--Temporary directory is created...');
+                        self.log(self, '\t--[createTemporaryDirectory] Temporary directory is created...');
                         resolve(self);
                     }
                 });
                 
             } else if (!stat.isDirectory()) {
-                self.log(self, '\t--Cannot perform a migration due to unexpected error');
+                self.log(self, '\t--[createTemporaryDirectory] Cannot perform a migration due to unexpected error');
                 reject();
                 
             } else {
-                self.log(self, '\t--Temporary directory already exists...');
+                self.log(self, '\t--[createTemporaryDirectory] Temporary directory already exists...');
                 resolve(self);
             }
         });
@@ -142,29 +142,29 @@ FromMySQL2PostgreSQL.prototype.createTemporaryDirectory = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
     return new Promise(function(resolve, reject) {
-        console.log('\t--Creating logs directory...');
+        console.log('\t--[createLogsDirectory] Creating logs directory...');
         fs.stat(self._logsDirPath, function(directoryDoesNotExist, stat) {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._logsDirPath, self._0777, function(e) {
                     if (e) {
                         console.log( 
-                            '\t--Cannot perform a migration due to impossibility to create ' 
+                            '\t--[createLogsDirectory] Cannot perform a migration due to impossibility to create ' 
                             + '"logs_directory": ' + self._logsDirPath
                         );
                         reject();
-			
+						
                     } else {
-                        self.log(self, '\t--Logs directory is created...');
+                        self.log(self, '\t--[createLogsDirectory] Logs directory is created...');
                         resolve(self);
                     }
                 });
                 
             } else if (!stat.isDirectory()) {
-                console.log('\t--Cannot perform a migration due to unexpected error');
+                console.log('\t--[createLogsDirectory] Cannot perform a migration due to unexpected error');
                 reject();
                 
             } else {
-                self.log(self, '\t--Logs directory already exists...');
+                self.log(self, '\t--[createLogsDirectory] Logs directory already exists...');
                 resolve(self);
             }
         });
@@ -193,7 +193,7 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
                 if (!error) {
                     self._allLogsPathFd = fd;
                     fs.write(self._allLogsPathFd, buffer, 0, buffer.length, null, function(error) {
-                        resolve(self);
+						resolve(self);
                     });
                     
                 } else {
@@ -257,14 +257,13 @@ FromMySQL2PostgreSQL.prototype.connect = function(self) {
         // If not connected - connect.
         if (!self._mysql) {
             self._sourceConString.connectionLimit = self._maxPoolSizeSource;
-            
-            var pool = mysql.createPool(self._sourceConString);
+            var pool                              = mysql.createPool(self._sourceConString);
             
             if (pool) {
                 self._mysql = pool;
                 resolve(self);
             } else {
-                self.log(self, '\t--Cannot connect to MySQL server...');
+                self.log(self, '\t--[connect] Cannot connect to MySQL server...');
                 reject(self);
             }
             
@@ -350,11 +349,17 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 connection.release();
                                 var tablesCnt = 0;
                                 var viewsCnt  = 0;
-                                
+                                //var processTablePromises = [];
+				//var createViewPromises   = [];
+				
                                 rows.forEach(function(row) {
                                     if (row.Table_type === 'BASE TABLE') {
                                         self._tablesToMigrate.push(row);
                                         tablesCnt++;
+                                        /*processTablePromises.push(new Promise(function(processTableResolve, processTableReject) {
+                                                self.processTable(self);
+                                        }));*/
+					
                                     } else if (row.Table_type === 'VIEW') {
                                         self._viewsToMigrate.push(row);
                                         viewsCnt++;
@@ -363,11 +368,21 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 
                                 self._tablesCnt = tablesCnt;
                                 self._viewsCnt  = viewsCnt;
-                                var message     = '\t--Source DB structure is loaded...\n' 
-                                                + '\t--Tables to migrate: ' + tablesCnt + '\n' 
-                                                + '\t--Views to migrate: ' + viewsCnt;
+                                var message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n' 
+                                                + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n' 
+                                                + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
                                 
                                 self.log(self, message);
+                                
+                                /*Promise.all(processTablePromises).then(
+                                    function(self) {
+                                            resolve(self);
+                                    }, 
+                                    function() {
+                                            reject();
+                                    }
+                                );*/
+                                
                                 resolve(self);
                             }
                         });
@@ -399,7 +414,33 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
         
     ).then(function(self) {
         return new Promise(function(resolve, reject) {
-            self.log(self, '\t--Currently processing table: '); // How to pass current table's name?
+            self.log(self, '\t--[createTable] Currently creating table: '); // How to pass current table's name?
+        });
+    });
+    
+    return promise;
+};
+
+/**
+ * Runs migration process for given table.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.processTable = function(self) {
+    var promise = new Promise(function(resolve, reject) {
+        resolve(self);
+    });
+    
+    promise.then(
+        self.connect,
+        function() {
+            self.log(self, '\t--[processTable] Cannot establish DB connections...');
+        }
+        
+    ).then(function(self) {
+        return new Promise(function(resolve, reject) {
+            self.log(self, '\t--[processTable] Currently processing table: '); // How to pass current table's name?
         });
     });
     
@@ -423,36 +464,36 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
     promise.then(
         self.boot,
         function() {
-            console.log('\t--Failed to boot migration');
+            console.log('\t--[run] Failed to boot migration');
         }
 		
     ).then(
         self.createLogsDirectory,
         function() {
-            self.log(self, '\t--Logs directory was not created...');
+            self.log(self, '\t--[run] Logs directory was not created...');
         }
         
     ).then(
         self.createTemporaryDirectory,
         function() {
-            self.log(self, '\t--Temporary directory was not created...');
+            self.log(self, '\t--[run] Temporary directory was not created...');
         }
 	
     ).then(
         self.createSchema, 
         function() {
-            self.log(self, '\t--Cannot create a new DB schema...');
+            self.log(self, '\t--[run] Cannot create a new DB schema...');
         }
 	
     ).then(
         self.loadStructureToMigrate, 
         function() {
-            self.log(self, '\t--Cannot load source database structure...');
+            self.log(self, '\t--[run] Cannot load source database structure...');
         }
         
     ).then(
         function() { 
-            self.log(self, '\t--NMIG migration is accomplished.'); 
+            self.log(self, '\t--[run] NMIG migration is accomplished.'); 
         }
     );
 };
@@ -540,3 +581,5 @@ fs.open(path, 'w', function(err, fd) {
     });
 }); 
  */
+
+
