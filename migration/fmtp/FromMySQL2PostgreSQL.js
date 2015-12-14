@@ -152,7 +152,7 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
                             + '"logs_directory": ' + self._logsDirPath
                         );
                         reject();
-						
+			
                     } else {
                         self.log(self, '\t--Logs directory is created...');
                         resolve(self);
@@ -193,7 +193,7 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
                 if (!error) {
                     self._allLogsPathFd = fd;
                     fs.write(self._allLogsPathFd, buffer, 0, buffer.length, null, function(error) {
-                            resolve(self);
+                        resolve(self);
                     });
                     
                 } else {
@@ -282,53 +282,37 @@ FromMySQL2PostgreSQL.prototype.connect = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
-    var promise = new Promise(function(resolve, reject) {
-        resolve(self);
-    });
-    
-    promise.then(
-        self.connect, 
-        function() {
-            self.log(self, '\t--[createSchema] Cannot establish DB connections...');
-        }
-        
-    ).then(
-        function(self) {
-            return new Promise(function(resolve, reject) {
-                var sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
-                pg.connect(self._targetConString, function(error, client, done) {
-                    if (error) {
+    return new Promise(function(resolve, reject) {
+        var sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
+        pg.connect(self._targetConString, function(error, client, done) {
+            if (error) {
+                done();
+                self.generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...', sql);
+                reject();
+            } else {
+                client.query(sql, function(err, result) {
+                    if (err) {
                         done();
-                        self.generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...', sql);
+                        self.generateError(self, '\t--[createSchema] Error running PostgreSQL query:', sql);
                         reject();
-                    } else {
-                        client.query(sql, function(err, result) {
+                    } else if (result.rows.length === 0) {
+                        // If 'self._schema !== 0' (schema is defined and already exists), then no need to create it.
+                        // Such schema will be just used...
+                        sql = 'CREATE SCHEMA "' + self._schema + '";';
+                        client.query(sql, function(err) {
+                            done();
+                            
                             if (err) {
-                                done();
-                                self.generateError(self, '\t--[createSchema] Error running PostgreSQL query:', sql);
-                                reject();
-                            } else if (result.rows.length === 0) {
-                                // If 'self._schema !== 0' (schema is defined and already exists), then no need to create it.
-                                // Such schema will be just used...
-                                sql = 'CREATE SCHEMA "' + self._schema + '";';
-                                client.query(sql, function(err) {
-                                    done();
-                                    
-                                    if (err) {
-                                        self.generateError(self, '\t--[createSchema] Error running PostgreSQL query: ', sql);
-                                    } else {
-                                        resolve(self);
-                                    }
-                                });
+                                self.generateError(self, '\t--[createSchema] Error running PostgreSQL query: ', sql);
+                            } else {
+                                resolve(self);
                             }
                         });
                     }
                 });
-            });
-        }
-    );
-    
-    return promise;
+            }
+        });
+    });
 };
 
 /**
