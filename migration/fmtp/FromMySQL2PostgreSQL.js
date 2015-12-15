@@ -303,10 +303,14 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
                             
                             if (err) {
                                 self.generateError(self, '\t--[createSchema] Error running PostgreSQL query: ', sql);
+                                reject();
                             } else {
                                 resolve(self);
                             }
                         });
+                        
+                    } else {
+                        resolve(self);
                     }
                 });
             }
@@ -321,11 +325,9 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
-    var promise = new Promise(function(resolve, reject) {
-        resolve(self);
-    });
-    
-    promise.then(
+    return new Promise(function(resolve, reject) {
+        resolve(self);   
+    }).then(
         self.connect, 
         function() {
             self.log(self, '\t--[loadStructureToMigrate] Cannot establish DB connections...');
@@ -391,8 +393,6 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
             });
         }
     );
-    
-    return promise;
 };
 
 /**
@@ -402,11 +402,9 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.createTable = function(self) {
-    var promise = new Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
         resolve(self);
-    });
-    
-    promise.then(
+    }).then(
         self.connect, 
         function() {
             self.log(self, '\t--[createTable] Cannot establish DB connections...');
@@ -417,8 +415,6 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
             self.log(self, '\t--[createTable] Currently creating table: '); // How to pass current table's name?
         });
     });
-    
-    return promise;
 };
 
 /**
@@ -428,11 +424,9 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.processTable = function(self) {
-    var promise = new Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject) {
         resolve(self);
-    });
-    
-    promise.then(
+    }).then(
         self.connect,
         function() {
             self.log(self, '\t--[processTable] Cannot establish DB connections...');
@@ -443,8 +437,6 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self) {
             self.log(self, '\t--[processTable] Currently processing table: '); // How to pass current table's name?
         });
     });
-    
-    return promise;
 };
 
 /**
