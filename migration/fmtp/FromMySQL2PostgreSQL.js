@@ -339,28 +339,27 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                 var sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
+                        // No connection.
                         self.log(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...');
                         reject();
                     } else {
                         connection.query(sql, function(strErr, rows) {
+                            connection.release();
+                            
                             if (strErr) {
-                                connection.release();
                                 self.generateError(self, '\t--[loadStructureToMigrate] Error running MySQL query:', sql);
                                 reject();
                             } else {
-                                connection.release();
-                                var tablesCnt = 0;
-                                var viewsCnt  = 0;
-                                //var processTablePromises = [];
-				//var createViewPromises   = [];
+                                var tablesCnt            = 0;
+                                var viewsCnt             = 0;
+                                var processTablePromises = [];
+                                var createViewPromises   = [];
 				
                                 rows.forEach(function(row) {
                                     if (row.Table_type === 'BASE TABLE') {
                                         self._tablesToMigrate.push(row);
                                         tablesCnt++;
-                                        /*processTablePromises.push(new Promise(function(processTableResolve, processTableReject) {
-                                                self.processTable(self);
-                                        }));*/
+                                        processTablePromises.push(self.processTable(self, row['Tables_in_' + self._mySqlDbName]));
 					
                                     } else if (row.Table_type === 'VIEW') {
                                         self._viewsToMigrate.push(row);
@@ -376,16 +375,14 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 
                                 self.log(self, message);
                                 
-                                /*Promise.all(processTablePromises).then(
+                                Promise.all(processTablePromises).then(
                                     function(self) {
-                                            resolve(self);
+					resolve(self);
                                     }, 
                                     function() {
-                                            reject();
+					reject();
                                     }
-                                );*/
-                                
-                                resolve(self);
+                                );
                             }
                         });
                     }
@@ -410,33 +407,38 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
             self.log(self, '\t--[createTable] Cannot establish DB connections...');
         }
         
-    ).then(function(self) {
-        return new Promise(function(resolve, reject) {
-            self.log(self, '\t--[createTable] Currently creating table: '); // How to pass current table's name?
-        });
-    });
+    ).then(
+        function(self) {
+            return new Promise(function(resolveCreateTable, rejectCreateTable) {
+                self.log(self, '\t--[createTable] Currently creating table: '); // TODO: pass "tableName".
+            });
+        }
+    );
 };
 
 /**
  * Runs migration process for given table.
  * 
- * @param   {FromMySQL2PostgreSQL} self
- * @returns {Promise}
+ * @param   {FromMySQL2PostgreSQL} self 
+ * @param   {String}               tableName 
+ * @returns {Promise} 
  */
-FromMySQL2PostgreSQL.prototype.processTable = function(self) {
+FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
     return new Promise(function(resolve, reject) {
+        // TODO: clone "self", and add "_selfCloneTableName" attribute.
         resolve(self);
     }).then(
         self.connect,
         function() {
             self.log(self, '\t--[processTable] Cannot establish DB connections...');
         }
-        
-    ).then(function(self) {
-        return new Promise(function(resolve, reject) {
-            self.log(self, '\t--[processTable] Currently processing table: '); // How to pass current table's name?
-        });
-    });
+	
+    ).then(
+        self.createTable, 
+        function() {
+            self.log(self, '\t--[processTable] Cannot establish DB connections...');
+        }
+    );
 };
 
 /**
@@ -448,7 +450,6 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self) {
 FromMySQL2PostgreSQL.prototype.run = function(config) {
     var self     = this;
     self._config = config;
-    
     var promise  = new Promise(function(resolve, reject) {
         resolve(self);
     });
@@ -458,13 +459,13 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
         function() {
             console.log('\t--[run] Failed to boot migration');
         }
-		
+	
     ).then(
         self.createLogsDirectory,
         function() {
             self.log(self, '\t--[run] Logs directory was not created...');
         }
-        
+	
     ).then(
         self.createTemporaryDirectory,
         function() {
@@ -573,5 +574,3 @@ fs.open(path, 'w', function(err, fd) {
     });
 }); 
  */
-
-
