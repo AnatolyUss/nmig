@@ -1,0 +1,62 @@
+{
+    "source_description" : [
+        "Connection parameters to your MySQL database",
+        "Please ensure, that you have defined all parameters properly.",
+        "Ensure, that details like 'charset' are included (if necessary)."
+    ],
+    
+    "source" : {
+            "host"     : "localhost",
+            "port"     : 3306,
+            "database" : "test_db",
+            "charset"  : "UTF8",
+            "user"     : "root",
+            "password" : "0123456789"
+    },
+    
+    "max_pool_size_source_description" : [
+        "Maximal amount of simultaneous connections to your MySQL database during migration"
+    ],
+    
+    "max_pool_size_source" : 10,
+    
+    "target_description" : [
+        "Connection parameters to your PostgreSQL database",
+        "Please ensure, that you have defined all parameters properly.",
+        "Ensure, that details like 'charset' are included (if necessary)."
+    ],
+    
+    "target" : {
+            "host"     : "localhost",
+            "port"     : 5432,
+            "database" : "test_db",
+            "charset"  : "UTF8",
+            "user"     : "postgres",
+            "password" : "0123456789"
+    },
+    
+    "max_pool_size_target_description" : [
+        "Maximal amount of simultaneous connections to your PostgreSQL database during migration"
+    ],
+    
+    "max_pool_size_target" : 10,
+    
+    "encoding_description" : [
+        "JavaScript encoding type.",
+        "If not supplied, then utf-8 will be used as a default."
+    ],
+    "encoding" : "utf-8",
+    
+    "schema_description" : [
+        "schema - a name of the schema, that will contain all migrated tables.",
+        "If not supplied, then a new schema will be created automatically."
+    ],
+    "schema" : "rightcom_schema",
+    
+    "data_chunk_size_description" : [
+        "During migration each table's data will be split into chunks of data_chunk_size (in MB).",
+        "If not supplied, then 10 MB will be used as a default."
+    ],
+    "data_chunk_size" : 2
+}
+
