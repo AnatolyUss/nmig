@@ -82,7 +82,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         
         self._targetConString = targetConString;
         pg.defaults.poolSize  = self._maxPoolSizeTarget;
-		
+	
         console.log('\t--[boot] Boot accomplished...');
         resolve(self);
     });
@@ -96,6 +96,22 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.isIntNumeric = function(value) {
     return !isNaN(parseInt(value)) && isFinite(value);
+};
+
+/**
+ * Returns a clone of given object.
+ * 
+ * @param   {Object} obj
+ * @returns {Object}
+ */
+FromMySQL2PostgreSQL.prototype.clone = function(obj) {
+    var clone = {};
+    
+    for (var attr in obj) {
+        clone[attr] = obj[attr];
+    }
+    
+    return clone;
 };
 
 /**
@@ -152,7 +168,7 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
                             + '"logs_directory": ' + self._logsDirPath
                         );
                         reject();
-						
+			
                     } else {
                         self.log(self, '\t--[createLogsDirectory] Logs directory is created...');
                         resolve(self);
@@ -193,7 +209,7 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
                 if (!error) {
                     self._allLogsPathFd = fd;
                     fs.write(self._allLogsPathFd, buffer, 0, buffer.length, null, function(error) {
-						resolve(self);
+                        resolve(self);
                     });
                     
                 } else {
@@ -326,7 +342,7 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
     return new Promise(function(resolve, reject) {
-        resolve(self);   
+        resolve(self);
     }).then(
         self.connect, 
         function() {
@@ -360,13 +376,13 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                         self._tablesToMigrate.push(row);
                                         tablesCnt++;
                                         processTablePromises.push(self.processTable(self, row['Tables_in_' + self._mySqlDbName]));
-					
+										
                                     } else if (row.Table_type === 'VIEW') {
                                         self._viewsToMigrate.push(row);
                                         viewsCnt++;
                                     }
                                 });
-                                
+				
                                 self._tablesCnt = tablesCnt;
                                 self._viewsCnt  = viewsCnt;
                                 var message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n' 
@@ -377,10 +393,10 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 
                                 Promise.all(processTablePromises).then(
                                     function(self) {
-					resolve(self);
+                                        resolve(self);
                                     }, 
                                     function() {
-					reject();
+                                        reject();
                                     }
                                 );
                             }
@@ -402,16 +418,16 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
     return new Promise(function(resolve, reject) {
         resolve(self);
     }).then(
-        self.connect, 
-        function() {
-            self.log(self, '\t--[createTable] Cannot establish DB connections...');
-        }
-        
+        self.connect 
     ).then(
         function(self) {
             return new Promise(function(resolveCreateTable, rejectCreateTable) {
-                self.log(self, '\t--[createTable] Currently creating table: '); // TODO: pass "tableName".
+                self.log(self, '\t--[createTable] Currently creating table: `' + self._clonedSelfTableName + '`');
+                resolveCreateTable(self); // TODO...
             });
+        }, 
+        function() {
+            self.log(self, '\t--[createTable] Cannot establish DB connections...');
         }
     );
 };
@@ -425,18 +441,24 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
     return new Promise(function(resolve, reject) {
-        // TODO: clone "self", and add "_selfCloneTableName" attribute.
+        self                      = self.clone(self);
+        self._clonedSelfTableName = tableName;
         resolve(self);
+	
     }).then(
-        self.connect,
+        self.connect 
+    ).then(
+        self.createTable, 
         function() {
             self.log(self, '\t--[processTable] Cannot establish DB connections...');
         }
 	
     ).then(
-        self.createTable, 
+        function(self) {
+            delete self._clonedSelfTableName;
+        }, 
         function() {
-            self.log(self, '\t--[processTable] Cannot establish DB connections...');
+            self.log(self, '\t--[processTable] Temporary error hadler...');
         }
     );
 };
@@ -455,38 +477,37 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
     });
     
     promise.then(
-        self.boot,
+        self.boot
+    ).then(
+        self.createLogsDirectory,
         function() {
             console.log('\t--[run] Failed to boot migration');
         }
 	
     ).then(
-        self.createLogsDirectory,
+        self.createTemporaryDirectory,
         function() {
             self.log(self, '\t--[run] Logs directory was not created...');
         }
 	
     ).then(
-        self.createTemporaryDirectory,
+        self.createSchema, 
         function() {
             self.log(self, '\t--[run] Temporary directory was not created...');
         }
 	
     ).then(
-        self.createSchema, 
+        self.loadStructureToMigrate, 
         function() {
             self.log(self, '\t--[run] Cannot create a new DB schema...');
         }
-	
-    ).then(
-        self.loadStructureToMigrate, 
-        function() {
-            self.log(self, '\t--[run] Cannot load source database structure...');
-        }
         
     ).then(
-        function() { 
-            self.log(self, '\t--[run] NMIG migration is accomplished.'); 
+        function() {
+            self.log(self, '\t--[run] NMIG migration is accomplished.');
+        }, 
+        function() {
+            self.log(self, '\t--[run] Cannot load source database structure...');
         }
     );
 };
@@ -574,3 +595,5 @@ fs.open(path, 'w', function(err, fd) {
     });
 }); 
  */
+
+
