@@ -18,6 +18,33 @@ function FromMySQL2PostgreSQL() {
 }
 
 /**
+ * Reads "./DataTypesMap.json" and converts its json content to js object.
+ * Appends this object to "FromMySQL2PostgreSQL" instance.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.readDataTypesMap = function(self) {
+    return new Promise(function(resolve, reject) {
+        fs.readFile(self._dataTypesMapAddr, function(error, data) {
+            if (error) {
+                console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from ' + self._dataTypesMapAddr);
+                reject();
+            } else {
+                try {
+                    self._dataTypesMap = JSON.parse(data.toString());
+                    console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
+                    resolve(self);
+                } catch (err) {
+                    console.log('\t--[readDataTypesMap] Cannot parse JSON from' + self._dataTypesMapAddr);
+                    reject();
+                }
+            }
+        });
+    });
+};
+
+/**
  * Sets configuration parameters.
  * 
  * @param   {FromMySQL2PostgreSQL} self 
@@ -25,7 +52,7 @@ function FromMySQL2PostgreSQL() {
  */
 FromMySQL2PostgreSQL.prototype.boot = function(self) {
     return new Promise(function(resolve, reject) {
-        console.log('\t--[boot] Boot...');
+        console.log('\n\t--[boot] Boot...');
         
         if (self._config.source === undefined) {
             console.log('\t--[boot] Cannot perform a migration due to missing source database (MySQL) connection string');
@@ -43,6 +70,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._targetConString     = self._config.target;
         self._tempDirPath         = self._config.tempDirPath;
         self._logsDirPath         = self._config.logsDirPath;
+        self._dataTypesMapAddr    = self._config.dataTypesMapAddr;
         self._allLogsPath         = self._logsDirPath + '/all.log';
         self._reportOnlyPath      = self._logsDirPath + '/report-only.log';
         self._errorLogsPath       = self._logsDirPath + '/errors-only.log';
@@ -82,10 +110,20 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         
         self._targetConString = targetConString;
         pg.defaults.poolSize  = self._maxPoolSizeTarget;
-	
-        console.log('\t--[boot] Boot accomplished...');
         resolve(self);
-    });
+    }).then(
+        self.readDataTypesMap
+    ).then(
+        function() {
+            return new Promise(function(resolveBoot, rejectBoot) {
+                console.log('\t--[boot] Boot is accomplished...');
+                resolveBoot(self);
+            });
+        }, 
+        function() {
+            console.log('\t--[boot] Cannot parse JSON from' + self._dataTypesMapAddr + '\t--[Boot] Boot failed.');
+        }
+    );
 };
 
 /**
@@ -119,11 +157,53 @@ FromMySQL2PostgreSQL.prototype.clone = function(obj) {
  * This conversion performs in accordance to mapping rules in './DataTypesMap.json'.
  * './DataTypesMap.json' can be customized.
  * 
- * @param   {String} type
+ * @param   {Object} objDataTypesMap
+ * @param   {String} mySqlDataType
  * @returns {String}
  */
-FromMySQL2PostgreSQL.prototype.mapDataTypes = function(type) {
-    //
+FromMySQL2PostgreSQL.prototype.mapDataTypes = function(objDataTypesMap, mySqlDataType) {
+    var retVal               = '';
+    var arrDataTypeDetails   = mySqlDataType.split(' ');
+    mySqlDataType            = arrDataTypeDetails[0].toLowerCase();
+    var increaseOriginalSize = arrDataTypeDetails.indexOf('unsigned') !== -1 
+                               || arrDataTypeDetails.indexOf('zerofill') !== -1;
+    
+    if (mySqlDataType.indexOf('(') === -1) {
+        // No parentheses detected.   
+        retVal = increaseOriginalSize 
+                 ? objDataTypesMap[mySqlDataType].increased_size 
+                 : objDataTypesMap[mySqlDataType].type;
+        
+    } else {
+        // Parentheses detected.
+        var arrDataType = mySqlDataType.split('(');
+        var strDataType = arrDataType[0].toLowerCase();
+        
+        if ('enum' === strDataType) {
+            retVal = 'varchar(255)';
+        } else if ('decimal' === strDataType || 'numeric' === strDataType) {
+            retVal = objDataTypesMap[strDataType].type + '(' + arrDataType[1];
+        } else if ('decimal(19,2)' === mySqlDataType || objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen) {
+            // Should be converted without a length definition.
+            retVal = increaseOriginalSize 
+                     ? objDataTypesMap[strDataType].increased_size 
+                     : objDataTypesMap[strDataType].type;
+        } else {
+            // Should be converted with a length definition.
+            retVal = increaseOriginalSize 
+                     ? objDataTypesMap[strDataType].increased_size + '(' + arrDataType[1] 
+                     : objDataTypesMap[strDataType].type + '(' + arrDataType[1];
+        }
+    }
+    
+    // Prevent incompatible length (CHARACTER(0) or CHARACTER VARYING(0)).
+    if (retVal === 'character(0)') {
+            retVal = 'character(1)';
+    } else if (retVal === 'character varying(0)') {
+            retVal = 'character varying(1)';
+    }
+    
+    return retVal.toUpperCase();
 };
 
 /**
@@ -390,7 +470,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                         processTablePromises.push(
                                             self.processTable(self, rows[i]['Tables_in_' + self._mySqlDbName])
                                         );
-				    
+                                        
                                     } else if (rows[i].Table_type === 'VIEW') {
                                         self._viewsToMigrate.push(rows[i]);
                                         viewsCnt++;
@@ -454,10 +534,12 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                                 sql = 'CREATE TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '"(';
                                 
                                 for (var i = 0; i < rows.length; i++) {
-                                    sql += '"' + rows[i].Field + '" ' + self.mapDataTypes(rows[i].Type) + ',';
+                                    sql += '"' + rows[i].Field + '" ' 
+                                        +  self.mapDataTypes(self._dataTypesMap, rows[i].Type) + ',';
                                 }
                                 
                                 sql = sql.slice(0, -1) + ');';
+				
                                 pg.connect(self._targetConString, function(error, client, done) {
                                     if (error) {
                                         done();
@@ -471,6 +553,7 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                                                 self.generateError(self, '\t--[createTable] Error running PostgreSQL query: ', sql);
                                                 rejectCreateTable();
                                             } else {
+                                                self.log(self, '\t--[createTable] Table "' + self._schema + '"."' + self._clonedSelfTableName + '" is created...');
                                                 resolveCreateTable(self);
                                             }
                                         });
@@ -555,7 +638,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
     ).then(
         self.loadStructureToMigrate, 
         function() {
-            self.log(self, '\t--[run] Cannot create a new DB schema...');
+            self.log(self, '\t--[run] Cannot create new DB schema...');
         }
         
     ).then(
@@ -571,7 +654,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
 
 
-// node C:\xampp\htdocs\nmig\main.js C:\xampp\htdocs\nmig\sample_config.json
+// node C:\xampp\htdocs\nmig\main.js 
 // http://stackoverflow.com/questions/6731214/node-mysql-connection-pooling 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -651,5 +734,4 @@ fs.open(path, 'w', function(err, fd) {
     });
 }); 
  */
-
 
