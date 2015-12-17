@@ -18,7 +18,7 @@ fs.readFile(__dirname + '/config.json', function(error, data) {
             var config              = JSON.parse(data.toString());
             config.tempDirPath      = __dirname + '/temporary_directory';
             config.logsDirPath      = __dirname + '/logs_directory';
-			config.dataTypesMapAddr = __dirname + '/DataTypesMap.json'; 
+	    config.dataTypesMapAddr = __dirname + '/DataTypesMap.json';
             nmig.run(config);
         } catch (err) {
             console.log('\n\t--Cannot parse JSON from' + __dirname + '/config.json');
