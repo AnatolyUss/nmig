@@ -115,6 +115,18 @@ FromMySQL2PostgreSQL.prototype.clone = function(obj) {
 };
 
 /**
+ * Converts MySQL data types to corresponding PostgreSQL data types.
+ * This conversion performs in accordance to mapping rules in './DataTypesMap.json'.
+ * './DataTypesMap.json' can be customized.
+ * 
+ * @param   {String} type
+ * @returns {String}
+ */
+FromMySQL2PostgreSQL.prototype.mapDataTypes = function(type) {
+    //
+};
+
+/**
  * Creates temporary directory.
  *  
  * @param   {FromMySQL2PostgreSQL} self 
@@ -371,18 +383,20 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 var processTablePromises = [];
                                 var createViewPromises   = [];
 				
-                                rows.forEach(function(row) {
-                                    if (row.Table_type === 'BASE TABLE') {
-                                        self._tablesToMigrate.push(row);
+                                for (var i = 0; i < rows.length; i++) {
+                                    if (rows[i].Table_type === 'BASE TABLE') {
+                                        self._tablesToMigrate.push(rows[i]);
                                         tablesCnt++;
-                                        processTablePromises.push(self.processTable(self, row['Tables_in_' + self._mySqlDbName]));
-										
-                                    } else if (row.Table_type === 'VIEW') {
-                                        self._viewsToMigrate.push(row);
+                                        processTablePromises.push(
+                                            self.processTable(self, rows[i]['Tables_in_' + self._mySqlDbName])
+                                        );
+				    
+                                    } else if (rows[i].Table_type === 'VIEW') {
+                                        self._viewsToMigrate.push(rows[i]);
                                         viewsCnt++;
                                     }
-                                });
-				
+                                }
+                                
                                 self._tablesCnt = tablesCnt;
                                 self._viewsCnt  = viewsCnt;
                                 var message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n' 
@@ -423,7 +437,49 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
         function(self) {
             return new Promise(function(resolveCreateTable, rejectCreateTable) {
                 self.log(self, '\t--[createTable] Currently creating table: `' + self._clonedSelfTableName + '`');
-                resolveCreateTable(self); // TODO...
+                var sql = 'SHOW COLUMNS FROM `' + self._clonedSelfTableName + '`;';
+                self._mysql.getConnection(function(error, connection) {
+                    if (error) {
+                        // No connection.
+                        self.log(self, '\t--[createTable] Cannot connect to MySQL server...');
+                        rejectCreateTable();
+                    } else {
+                        connection.query(sql, function(err, rows) {
+                            connection.release();
+                            
+                            if (err) {
+                                self.generateError(self, '\t--[createTable] Error running MySQL query:', sql);
+                                rejectCreateTable();
+                            } else {
+                                sql = 'CREATE TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '"(';
+                                
+                                for (var i = 0; i < rows.length; i++) {
+                                    sql += '"' + rows[i].Field + '" ' + self.mapDataTypes(rows[i].Type) + ',';
+                                }
+                                
+                                sql = sql.slice(0, -1) + ');';
+                                pg.connect(self._targetConString, function(error, client, done) {
+                                    if (error) {
+                                        done();
+                                        self.generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...', sql);
+                                        rejectCreateTable();
+                                    } else {
+                                        client.query(sql, function(err) {
+                                            done();
+                                            
+                                            if (err) {
+                                                self.generateError(self, '\t--[createTable] Error running PostgreSQL query: ', sql);
+                                                rejectCreateTable();
+                                            } else {
+                                                resolveCreateTable(self);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
             });
         }, 
         function() {
