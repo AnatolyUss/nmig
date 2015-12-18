@@ -596,6 +596,106 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
 };
 
 /**
+ * Populates given table.
+ *  
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
+    return new Promise(function(resolve, reject) {
+        resolve(self);
+    }).then(
+        self.connect 
+    ).then(
+        function(self) {
+            return new Promise(function(resolvePopulateTable, rejectPopulateTable) {
+                self.log(self, '\t--[populateTable] Currently populating table: `' + self._clonedSelfTableName + '`');
+                
+                // Determine current table size, apply "chunking".
+                var sql = "SELECT ((data_length + index_length) / 1024 / 1024) AS size_in_mb "
+                        + "FROM information_schema.TABLES "
+                        + "WHERE table_schema = '" + self._mySqlDbName + "' "
+                        + "AND table_name = '" + self._clonedSelfTableName + "';";
+                
+                self._mysql.getConnection(function(error, connection) {
+                    if (error) {
+                        // No connection.
+                        self.log(self, '\t--[populateTable] Cannot connect to MySQL server...\n' + error);
+                        rejectPopulateTable();
+                    } else {
+                        connection.query(sql, function(err, rows) {
+                            if (err) {
+                                connection.release();
+                                self.generateError(self, '\t--[populateTable] ' + err, sql);
+                                rejectPopulateTable();
+                            } else {
+                                var tableSizeInMb = rows[0].size_in_mb;
+                                tableSizeInMb     = tableSizeInMb < 1 ? 1 : tableSizeInMb;
+                                
+                                sql = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
+                                connection.query(sql, function(err2, rows2) {
+                                    if (err2) {
+                                        connection.release();
+                                        self.generateError(self, '\t--[populateTable] ' + err2, sql);
+                                        rejectPopulateTable();
+                                    } else {
+                                        var rowsCnt              = rows2[0].rows_count;
+                                        var chunksCnt            = tableSizeInMb / self._dataChunkSize;
+                                        chunksCnt                = chunksCnt < 1 ? 1 : chunksCnt;
+                                        var rowsInChunk          = Math.ceil(rowsCnt / chunksCnt);
+                                        var populateTableWorkers = [];
+                                        var msg                  = '\t--[populateTable] Total rows to insert into ' 
+                                                                 + '"' + self._schema + '"."' 
+                                                                 + self._clonedSelfTableName + '": ' + rowsCnt;
+                                        
+                                        self.log(self, msg);
+                                        
+                                        for (var offset = 0; offset < rowsCnt; offset += rowsInChunk) {
+                                            populateTableWorkers.push(
+                                                self.populateTableWorker(self, offset, rowsInChunk, rowsCnt)
+                                            );
+                                        }
+                                        
+                                        Promise.all(populateTableWorkers).then(
+                                            function(self) {
+                                                resolvePopulateTable(self);
+                                            }, 
+                                            function() {
+                                                rejectPopulateTable();
+                                            }
+                                        );
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+        }, 
+        function() {
+            self.log(self, '\t--[populateTable] Cannot establish DB connections...');
+        }
+    );
+};
+
+/**
+ * Load a chunk of data using "PostgreSQL COPY".
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @param   {Number}               offset
+ * @param   {Number}               rowsInChunk
+ * @param   {Number}               rowsCnt
+ * @param   {Number}               forNowInserted
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rowsInChunk, rowsCnt, forNowInserted) {
+    return new Promise(function(resolve, reject) {
+        // self._totalRowsInserted = totalRowsInserted;
+        //
+    });
+};
+
+/**
  * Runs migration process for given table.
  * 
  * @param   {FromMySQL2PostgreSQL} self 
@@ -617,11 +717,16 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         }
 	
     ).then(
+        self.populateTable, 
+        function() {
+            self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + self._clonedSelfTableName + '"...');
+        }
+    ).then(
         function(self) {
             delete self._clonedSelfTableName;
         }, 
         function() {
-            self.log(self, '\t--[processTable] Temporary error hadler...');
+            self.log(self, '\t--[processTable] Temporary error handler...');
         }
     );
 };
@@ -665,11 +770,8 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
             return new Promise(function(resolveError, rejectError) {
                 resolveError(self);
             }).then(
-                function(self) {
+                function() {
                     self.log(self, '\t--[run] Cannot create new DB schema...');
-                }
-            ).then(
-                function(self) {
                     self.removeTemporaryDirectory(self);
                 }
             );
@@ -680,9 +782,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
             return new Promise(function(resolve, reject) {
                 resolve(self);
             }).then(
-                function(self) {
-                    self.removeTemporaryDirectory(self);
-                }
+                self.removeTemporaryDirectory
             ).then(
                 function(self) {
                     var timeTaken = (new Date()) - self._timeBegin;
@@ -704,13 +804,10 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
             return new Promise(function(resolveErr, rejectErr) {
                 resolveErr(self);
             }).then(
-                function(self) {
+                function() {
+                    self.removeTemporaryDirectory(self);
                     self.log(self, '\t--[run] NMIG cannot load source database structure.');
                 } 
-            ).then(
-                function(self) {
-                    self.removeTemporaryDirectory(self);
-                }
             );
         }
     );
