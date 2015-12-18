@@ -199,9 +199,9 @@ FromMySQL2PostgreSQL.prototype.mapDataTypes = function(objDataTypesMap, mySqlDat
     
     // Prevent incompatible length (CHARACTER(0) or CHARACTER VARYING(0)).
     if (retVal === 'character(0)') {
-            retVal = 'character(1)';
+        retVal = 'character(1)';
     } else if (retVal === 'character varying(0)') {
-            retVal = 'character varying(1)';
+        retVal = 'character varying(1)';
     }
     
     return retVal.toUpperCase();
@@ -239,6 +239,29 @@ FromMySQL2PostgreSQL.prototype.createTemporaryDirectory = function(self) {
                 self.log(self, '\t--[createTemporaryDirectory] Temporary directory already exists...');
                 resolve(self);
             }
+        });
+    });
+};
+
+/**
+ * Removes temporary directory.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.removeTemporaryDirectory = function(self) {
+    return new Promise(function(resolve, reject) {
+        fs.rmdir(self._tempDirPath, function(error) {
+            var msg;
+            
+            if (error) {
+                msg = '\t--[removeTemporaryDirectory] Note, TemporaryDirectory located at "' + self._tempDirPath + '" is nor removed';
+            } else {
+                msg = '\t--[removeTemporaryDirectory] TemporaryDirectory located at "' + self._tempDirPath + '" is removed';
+            }
+            
+            self.log(self, msg);
+            resolve(self);
         });
     });
 };
@@ -639,32 +662,59 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
     ).then(
         self.loadStructureToMigrate, 
         function() {
-            self.log(self, '\t--[run] Cannot create new DB schema...');
+            return new Promise(function(resolveError, rejectError) {
+                resolveError(self);
+            }).then(
+                function(self) {
+                    self.log(self, '\t--[run] Cannot create new DB schema...');
+                }
+            ).then(
+                function(self) {
+                    self.removeTemporaryDirectory(self);
+                }
+            );
         }
         
     ).then(
         function() {
-            var timeTaken = (new Date()) - self._timeBegin;
-            var hours     = Math.floor(timeTaken / 1000 / 3600);
-            var minutes   = Math.floor(timeTaken / 1000 / 60);
-            var seconds   = Math.ceil(timeTaken / 1000);
-            hours         = hours < 10 ? '0' + hours : hours;
-            minutes       = minutes < 10 ? '0' + minutes : minutes;
-            seconds       = seconds < 10 ? '0' + seconds : seconds;
-            var endMsg    = '\t--[run] NMIG migration is accomplished.' 
-                          + '\n\t--[run] Total time: ' + hours + ':' + minutes + ':' + seconds 
-                          + '\n\t--[run] (hours:minutes:seconds)';
-            
-            self.log(self, endMsg);
+            return new Promise(function(resolve, reject) {
+                resolve(self);
+            }).then(
+                function(self) {
+                    self.removeTemporaryDirectory(self);
+                }
+            ).then(
+                function(self) {
+                    var timeTaken = (new Date()) - self._timeBegin;
+                    var hours     = Math.floor(timeTaken / 1000 / 3600);
+                    var minutes   = Math.floor(timeTaken / 1000 / 60);
+                    var seconds   = Math.ceil(timeTaken / 1000);
+                    hours         = hours < 10 ? '0' + hours : hours;
+                    minutes       = minutes < 10 ? '0' + minutes : minutes;
+                    seconds       = seconds < 10 ? '0' + seconds : seconds;
+                    var endMsg    = '\t--[run] NMIG migration is accomplished.' 
+                                  + '\n\t--[run] Total time: ' + hours + ':' + minutes + ':' + seconds 
+                                  + '\n\t--[run] (hours:minutes:seconds)';
+                    
+                    self.log(self, endMsg);
+                }
+            );
         }, 
         function() {
-            console.log('\t--[run] NMIG cannot load source database structure.');
+            return new Promise(function(resolveErr, rejectErr) {
+                resolveErr(self);
+            }).then(
+                function(self) {
+                    self.log(self, '\t--[run] NMIG cannot load source database structure.');
+                } 
+            ).then(
+                function(self) {
+                    self.removeTemporaryDirectory(self);
+                }
+            );
         }
     );
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
-
-
-// node C:\xampp\htdocs\nmig\main.js 
 
