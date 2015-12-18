@@ -75,6 +75,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._reportOnlyPath      = self._logsDirPath + '/report-only.log';
         self._errorLogsPath       = self._logsDirPath + '/errors-only.log';
         self._notCreatedViewsPath = self._logsDirPath + '/not_created_views';
+        self._timeBegin           = new Date();
         self._encoding            = self._config.encoding === undefined ? 'utf-8' : self._config.encoding;
         self._dataChunkSize       = self._config.data_chunk_size === undefined ? 10 : +self._config.data_chunk_size;
         self._dataChunkSize       = self._dataChunkSize < 1 ? 1 : self._dataChunkSize;
@@ -394,13 +395,13 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
         pg.connect(self._targetConString, function(error, client, done) {
             if (error) {
                 done();
-                self.generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...', sql);
+                self.generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...\n' + error, sql);
                 reject();
             } else {
                 client.query(sql, function(err, result) {
                     if (err) {
                         done();
-                        self.generateError(self, '\t--[createSchema] Error running PostgreSQL query:', sql);
+                        self.generateError(self, '\t--[createSchema] ' + err, sql);
                         reject();
                     } else if (result.rows.length === 0) {
                         // If 'self._schema !== 0' (schema is defined and already exists), then no need to create it.
@@ -410,7 +411,7 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
                             done();
                             
                             if (err) {
-                                self.generateError(self, '\t--[createSchema] Error running PostgreSQL query: ', sql);
+                                self.generateError(self, '\t--[createSchema] ' + err, sql);
                                 reject();
                             } else {
                                 resolve(self);
@@ -448,14 +449,14 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
                         // No connection.
-                        self.log(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...');
+                        self.log(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
                         reject();
                     } else {
                         connection.query(sql, function(strErr, rows) {
                             connection.release();
                             
                             if (strErr) {
-                                self.generateError(self, '\t--[loadStructureToMigrate] Error running MySQL query:', sql);
+                                self.generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
                                 reject();
                             } else {
                                 var tablesCnt            = 0;
@@ -521,14 +522,14 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
                         // No connection.
-                        self.log(self, '\t--[createTable] Cannot connect to MySQL server...');
+                        self.log(self, '\t--[createTable] Cannot connect to MySQL server...\n' + error);
                         rejectCreateTable();
                     } else {
                         connection.query(sql, function(err, rows) {
                             connection.release();
                             
                             if (err) {
-                                self.generateError(self, '\t--[createTable] Error running MySQL query:', sql);
+                                self.generateError(self, '\t--[createTable] ' + err, sql);
                                 rejectCreateTable();
                             } else {
                                 sql = 'CREATE TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '"(';
@@ -543,14 +544,14 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                                 pg.connect(self._targetConString, function(error, client, done) {
                                     if (error) {
                                         done();
-                                        self.generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...', sql);
+                                        self.generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...\n' + error, sql);
                                         rejectCreateTable();
                                     } else {
                                         client.query(sql, function(err) {
                                             done();
                                             
                                             if (err) {
-                                                self.generateError(self, '\t--[createTable] Error running PostgreSQL query: ', sql);
+                                                self.generateError(self, '\t--[createTable] ' + err, sql);
                                                 rejectCreateTable();
                                             } else {
                                                 self.log(self, '\t--[createTable] Table "' + self._schema + '"."' + self._clonedSelfTableName + '" is created...');
@@ -643,10 +644,21 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
         
     ).then(
         function() {
-            self.log(self, '\t--[run] NMIG migration is accomplished.');
+            var timeTaken = (new Date()) - self._timeBegin;
+            var hours     = Math.floor(timeTaken / 1000 / 3600);
+            var minutes   = Math.floor(timeTaken / 1000 / 60);
+            var seconds   = Math.ceil(timeTaken / 1000);
+            hours         = hours < 10 ? '0' + hours : hours;
+            minutes       = minutes < 10 ? '0' + minutes : minutes;
+            seconds       = seconds < 10 ? '0' + seconds : seconds;
+            var endMsg    = '\t--[run] NMIG migration is accomplished.' 
+                          + '\n\t--[run] Total time: ' + hours + ':' + minutes + ':' + seconds 
+                          + '\n\t--[run] (hours:minutes:seconds)';
+            
+            self.log(self, endMsg);
         }, 
         function() {
-            self.log(self, '\t--[run] Cannot load source database structure...');
+            console.log('\t--[run] NMIG cannot load source database structure.');
         }
     );
 };
@@ -655,83 +667,4 @@ module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
 
 
 // node C:\xampp\htdocs\nmig\main.js 
-// http://stackoverflow.com/questions/6731214/node-mysql-connection-pooling 
-
-///////////////////////////////////////////////////////////////////////////////////
-
-/*var mysql = require('mysql');
-var pool  = mysql.createPool({
-    connectionLimit : 10,
-    host            : 'example.org',
-    user            : 'bob',
-    password        : 'secret'
-});*/
-
-///////////////////////////////////////////////////////////////////////////////////
-
-/*var pg = require('pg');
-pg.defaults.poolSize = 25;
-//pool is created on first call to pg.connect
-pg.connect(function(err, client, done) {
-    done();
-});*/
-
-///////////////////////////////////////////////////////////////////////////////////
-
-// TEST MySQL START ///////////////////////////////////////////////////////////////
-/*self._mysql.getConnection(function(error, connection) {
-	if (error) {
-		self.log(self, '\t--Cannot connect to MySQL server...');
-		mysqlReject();
-	} else {
-		var sql = 'SELECT * FROM `admins`';
-		connection.query(sql, function(strErr, rows) {
-			if (strErr) {
-				self.generateError(self, strErr, sql);
-			} else {
-				rows.forEach(function(objRow) {
-					console.log('MYSQL');
-					console.log(JSON.stringify(objRow));
-				});
-			}
-			// Release connection back to the pool.
-			connection.release();
-			mysqlResolve(self);
-		});
-	}
-});*/
-// TEST MySQL END ///////////////////////////////////////////////////////
-
-// TEST PostgreSQL START ///////////////////////////////////////////////////////////////////
-/*pg.connect(self._targetConString, function(error, client, done) {
-	if (error) {
-		return console.error('error fetching client from pool', error);
-	}
-	// TEST.
-	client.query('SELECT $1::int AS number', ['3'], function(err, result) {
-		//call `done()` to release the client back to the pool
-		done();
-		if (err) {
-			return console.error('error running query', err);
-		}
-		console.log('PGSQL Output3: ' + result.rows[0].number);
-	});
-});*/
-// TEST PostgreSQL END //////////////////////////////////////////////////////////////////
-
-/*
- var path = 'public/uploads/file.txt',
-buffer = new Buffer("some content\n");
-fs.open(path, 'w', function(err, fd) {
-    if (err) {
-        throw 'error opening file: ' + err;
-    }
-    fs.write(fd, buffer, 0, buffer.length, null, function(err) {
-        if (err) throw 'error writing file: ' + err;
-        fs.close(fd, function() {
-            console.log('file written');
-        })
-    });
-}); 
- */
 
