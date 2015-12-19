@@ -634,8 +634,9 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                 
                                 sql = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
                                 connection.query(sql, function(err2, rows2) {
+                                    connection.release();
+                                    
                                     if (err2) {
-                                        connection.release();
                                         self.generateError(self, '\t--[populateTable] ' + err2, sql);
                                         rejectPopulateTable();
                                     } else {
@@ -685,14 +686,29 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
  * @param   {Number}               offset
  * @param   {Number}               rowsInChunk
  * @param   {Number}               rowsCnt
- * @param   {Number}               forNowInserted
  * @returns {Promise}
  */
-FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rowsInChunk, rowsCnt, forNowInserted) {
+FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rowsInChunk, rowsCnt) {
     return new Promise(function(resolve, reject) {
-        // self._totalRowsInserted = totalRowsInserted;
-        //
-    });
+        resolve(self);
+    }).then(
+        self.connect
+    ).then(
+        function(self) {
+            return new Promise(function(resolvePopulateTableWorker, rejectPopulateTableWorker) {
+                // self._totalRowsInserted = totalRowsInserted;
+                var recordsInserted = 0;
+                var csvAddr         = '';
+                var sql             = '';
+
+                //
+                //resolvePopulateTableWorker(self);/////////
+            });
+        }, 
+        function() {
+            self.log(self, '\t--[populateTableWorker] Cannot establish DB connections...');
+        }
+    );
 };
 
 /**
