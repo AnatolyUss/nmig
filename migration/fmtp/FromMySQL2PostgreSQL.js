@@ -698,9 +698,9 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
             return new Promise(function(resolvePopulateTableWorker, rejectPopulateTableWorker) {
                 // self._totalRowsInserted = totalRowsInserted;
                 var recordsInserted = 0;
-                var csvAddr         = '';
-                var sql             = '';
-
+                var csvAddr         = self._tempDirPath + '/' + self._clonedSelfTableName + offset + '.csv';
+                var sql             = 'SELECT * FROM `' + self._clonedSelfTableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
+                
                 //
                 //resolvePopulateTableWorker(self);/////////
             });
