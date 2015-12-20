@@ -748,6 +748,47 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
 };
 
 /**
+ * Closes DB connections.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.closeConnections = function(self) {
+    return new Promise(function(resolve, reject) {
+        if (self._mysql) {
+            self._mysql.end(function(error) {
+                if (error) {
+                    self.log(self, '\t--[closeConnections] ' + error);
+                } else {
+                    self.log(self, '\t--[closeConnections] All connections to MySQL server have been closed...');
+                }
+                
+                resolve(self);
+            });
+            
+        } else {
+            resolve(self);
+        }
+    });
+};
+
+/**
+ * Closes DB connections and removes the "./temporary_directory".
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
+    return new Promise(function(resolve, reject) {
+        resolve(self);
+    }).then(
+        self.removeTemporaryDirectory
+    ).then(
+        self.closeConnections
+    );
+};
+
+/**
  * Runs migration according to user's configuration.
  * 
  * @param   {Object} config
@@ -788,7 +829,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
             }).then(
                 function() {
                     self.log(self, '\t--[run] Cannot create new DB schema...');
-                    self.removeTemporaryDirectory(self);
+                    self.cleanup(self);
                 }
             );
         }
@@ -798,7 +839,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
             return new Promise(function(resolve, reject) {
                 resolve(self);
             }).then(
-                self.removeTemporaryDirectory
+                self.cleanup
             ).then(
                 function(self) {
                     var timeTaken = (new Date()) - self._timeBegin;
@@ -821,7 +862,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                 resolveErr(self);
             }).then(
                 function() {
-                    self.removeTemporaryDirectory(self);
+                    self.cleanup(self);
                     self.log(self, '\t--[run] NMIG cannot load source database structure.');
                 } 
             );
