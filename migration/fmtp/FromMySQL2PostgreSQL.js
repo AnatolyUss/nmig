@@ -759,14 +759,16 @@ FromMySQL2PostgreSQL.prototype.closeConnections = function(self) {
             self._mysql.end(function(error) {
                 if (error) {
                     self.log(self, '\t--[closeConnections] ' + error);
-                } else {
-                    self.log(self, '\t--[closeConnections] All connections to MySQL server have been closed...');
                 }
                 
+                self.log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
+                pg.end();
                 resolve(self);
             });
             
         } else {
+            self.log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
+            pg.end();
             resolve(self);
         }
     });
