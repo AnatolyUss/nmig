@@ -6,9 +6,10 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>  
  */
 'use strict';
-var fs    = require('fs');
-var pg    = require('pg');
-var mysql = require('mysql');
+var fs           = require('fs');
+var pg           = require('pg');
+var mysql        = require('mysql');
+var csvStringify = require('csv-stringify');
 
 /**
  * Constructor.
@@ -16,33 +17,6 @@ var mysql = require('mysql');
 function FromMySQL2PostgreSQL() {
     this._0777 = '0777';
 }
-
-/**
- * Reads "./DataTypesMap.json" and converts its json content to js object.
- * Appends this object to "FromMySQL2PostgreSQL" instance.
- * 
- * @param   {FromMySQL2PostgreSQL} self
- * @returns {Promise}
- */
-FromMySQL2PostgreSQL.prototype.readDataTypesMap = function(self) {
-    return new Promise(function(resolve, reject) {
-        fs.readFile(self._dataTypesMapAddr, function(error, data) {
-            if (error) {
-                console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from ' + self._dataTypesMapAddr);
-                reject();
-            } else {
-                try {
-                    self._dataTypesMap = JSON.parse(data.toString());
-                    console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
-                    resolve(self);
-                } catch (err) {
-                    console.log('\t--[readDataTypesMap] Cannot parse JSON from' + self._dataTypesMapAddr);
-                    reject();
-                }
-            }
-        });
-    });
-};
 
 /**
  * Sets configuration parameters.
@@ -205,6 +179,33 @@ FromMySQL2PostgreSQL.prototype.mapDataTypes = function(objDataTypesMap, mySqlDat
     }
     
     return retVal.toUpperCase();
+};
+
+/**
+ * Reads "./DataTypesMap.json" and converts its json content to js object.
+ * Appends this object to "FromMySQL2PostgreSQL" instance.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.readDataTypesMap = function(self) {
+    return new Promise(function(resolve, reject) {
+        fs.readFile(self._dataTypesMapAddr, function(error, data) {
+            if (error) {
+                console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from ' + self._dataTypesMapAddr);
+                reject();
+            } else {
+                try {
+                    self._dataTypesMap = JSON.parse(data.toString());
+                    console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
+                    resolve(self);
+                } catch (err) {
+                    console.log('\t--[readDataTypesMap] Cannot parse JSON from' + self._dataTypesMapAddr);
+                    reject();
+                }
+            }
+        });
+    });
 };
 
 /**
@@ -417,7 +418,6 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
         var sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
         pg.connect(self._targetConString, function(error, client, done) {
             if (error) {
-                done();
                 self.generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...\n' + error, sql);
                 reject();
             } else {
@@ -566,7 +566,6 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
 				
                                 pg.connect(self._targetConString, function(error, client, done) {
                                     if (error) {
-                                        done();
                                         self.generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...\n' + error, sql);
                                         rejectCreateTable();
                                     } else {
@@ -620,7 +619,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
                         // No connection.
-                        self.log(self, '\t--[populateTable] Cannot connect to MySQL server...\n' + error);
+                        self.log(self, '\t--[populateTable] Cannot connect to MySQL server...\n\t' + error);
                         rejectPopulateTable();
                     } else {
                         connection.query(sql, function(err, rows) {
@@ -696,12 +695,79 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
     ).then(
         function(self) {
             return new Promise(function(resolvePopulateTableWorker, rejectPopulateTableWorker) {
-                // self._totalRowsInserted = totalRowsInserted;
-                var recordsInserted = 0;
-                var csvAddr         = self._tempDirPath + '/' + self._clonedSelfTableName + offset + '.csv';
-                var sql             = 'SELECT * FROM `' + self._clonedSelfTableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
+                var csvAddr = self._tempDirPath + '/' + self._clonedSelfTableName + offset + '.csv';
+                var sql     = 'SELECT * FROM `' + self._clonedSelfTableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
                 
-                //
+                self._mysql.getConnection(function(error, connection) {
+                    if (error) {
+                        // No connection.
+                        self.log(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
+                        resolvePopulateTableWorker(self);
+                    } else {
+                        connection.query(sql, function(err, rows) {
+                            if (err) {
+                                connection.release();
+                                self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
+                                resolvePopulateTableWorker(self);
+                            } else {
+                                // Loop through current result set.
+                                // Sanitize records.
+                                // When sanitized - write them to a csv file.
+                                rowsInChunk = rows.length;
+                                csvStringify(rows, function(csvError, csvString) {
+                                    
+                                    var buffer = new Buffer(csvString);
+                                    
+                                    if (csvError) {
+                                        self.generateError(self, '\t--[populateTableWorker] ' + csvError);
+                                        resolvePopulateTableWorker(self);
+                                    } else {
+                                        fs.open(csvAddr, 'a', self._0777, function(csvErrorFputcsvOpen, fd) {
+                                            if (csvErrorFputcsvOpen) {
+                                                self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
+                                                resolvePopulateTableWorker(self);
+                                            } else {
+                                                fs.write(fd, buffer, 0, buffer.length, null, function(csvErrorFputcsvWrite) {
+                                                    if (csvErrorFputcsvWrite) {
+                                                        self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
+                                                        resolvePopulateTableWorker(self);
+                                                    } else {
+                                                        pg.connect(self._targetConString, function(error, client, done) {
+                                                            if (error) {
+                                                                self.generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
+                                                                resolvePopulateTableWorker(self);
+                                                            } else {
+                                                                sql = 'COPY "' + self._schema + '"."' + self._clonedSelfTableName + '" FROM '
+                                                                    + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
+                                                                
+								client.query(sql, function(err, result) {
+                                                                    done();
+								    
+                                                                    if (err) {
+									self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
+                                                                        resolvePopulateTableWorker(self);
+                                                                    } else {
+									// self._totalRowsInserted = totalRowsInserted;
+                                                                        var recordsInserted = result.rowCount;
+									var msg = '\t--[populateTableWorker]  For now inserted: ';
+                                                                        
+                                                                        self.log(self, msg);
+                                                                        resolvePopulateTableWorker(self);
+                                                                    }
+								});
+                                                            }
+							});
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+		
                 //resolvePopulateTableWorker(self);/////////
             });
         }, 
@@ -709,6 +775,64 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
             self.log(self, '\t--[populateTableWorker] Cannot establish DB connections...');
         }
     );
+};
+
+/**
+ * Format line as CSV and write to file.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @param   {Array} arrRecord
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.fputcsv = function(self, arrRecord) {
+    return new Promise(function(resolve, reject) {
+        var csv = '';
+        
+        /*for (var i = 0; i < arrRecord.length; i++) {
+            var str = arrRecord[i].replace('\\', '\\\\');
+            // hhh csvStringify 
+            csv += str + (arrRecord.length - 1 === i ? '\n' : ',');
+        }*/
+        
+        var buffer = new Buffer(csv);
+        
+        if (self._csvFilePathFd === undefined) {
+            fs.open(self._allLogsPath, 'a', self._0777, function(error, fd) {
+                if (!error) {
+                    self._csvFilePathFd = fd;
+                    fs.write(self._csvFilePathFd, buffer, 0, buffer.length, null, function(error) {
+                        resolve(self);
+                    });
+                    
+                } else {
+                    resolve(self);
+                }
+            });
+            
+        } else {
+            fs.write(self._csvFilePathFd, buffer, 0, buffer.length, null, function(error) {
+                resolve(self);
+            });
+        }
+    });
+};
+
+/**
+ * Sanitize an input value.
+ * 
+ * @param   {String} value
+ * @returns {String}
+ */
+FromMySQL2PostgreSQL.prototype.sanitizeValue = function(value) {
+    if (value === '0000-00-00' || value === '0000-00-00 00:00:00') {
+        return '-INFINITY';
+    } else if (String.fromCharCode(0)) {
+        return '0';
+    } else if (String.fromCharCode(1)) {
+        return '1';
+    } else {
+        return value;
+    }
 };
 
 /**
@@ -873,4 +997,5 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
+
 
