@@ -668,7 +668,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                         );
                                     }
                                 });
-                            }// No connection.
+                            }
                         });
                     }
                 });
@@ -718,7 +718,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                 // When sanitized - write them to a csv file.
                                 rowsInChunk          = rows.length; // Must check amount of rows BEFORE sanitizing.
 				var sanitizedRecords = [];
-				
+								
                                 for (var cnt = 0; cnt < rows.length; cnt++) {
                                     var sanitizedRecord = Object.create(null);
                                     
@@ -757,7 +757,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                                                 
                                                                 client.query(sql, function(err, result) {
                                                                     done();
-								    
+								    						
                                                                     if (err) {
 									self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
                                                                         resolvePopulateTableWorker(self);
@@ -869,7 +869,6 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         function() {
             self.log(self, '\t--[processTable] Cannot establish DB connections...');
         }
-	
     ).then(
         self.populateTable, 
         function() {
@@ -919,14 +918,27 @@ FromMySQL2PostgreSQL.prototype.closeConnections = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.closeLogFiles = function(self) {
-    return new Promise(function(resolve, reject) {
-        // TODO.
-        fs.close(self._allLogsPathFd, function() {
-            fs.close(self._errorLogsPathFd, function() {
-                resolve(self);
+    return new Promise(function(resolveAllLogs, rejectAllLogs) {
+        if (self._allLogsPathFd) {
+            fs.close(self._allLogsPathFd, function() {
+                resolveAllLogs(self);
             });
-        });
-    });
+        } else {
+            resolveAllLogs(self);
+        }
+    }).then(
+        function(self) {
+            return new Promise(function(resolveErrorLogs, rejectErrorLogs) {
+                if (self._errorLogsPathFd) {
+                    fs.close(self._errorLogsPathFd, function() {
+                        resolveErrorLogs(self);
+                    });
+                } else {
+                    resolveErrorLogs(self);
+                }
+            });
+        }
+    );
 };
 
 /**
@@ -937,6 +949,7 @@ FromMySQL2PostgreSQL.prototype.closeLogFiles = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
     return new Promise(function(resolve, reject) {
+        self.log(self, '\t--[cleanup] Cleanup resources...');
         resolve(self);
     }).then(
         self.removeTemporaryDirectory
@@ -944,6 +957,13 @@ FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
         self.closeConnections
     ).then(
         self.closeLogFiles
+    ).then(
+        function(self) {
+            return new Promise(function(resolve, reject) {
+                self.log(self, '\t--[cleanup] Cleanup finished...');
+                resolve(self);
+            });
+        }
     );
 };
 
@@ -1044,6 +1064,5 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
-
 
 
