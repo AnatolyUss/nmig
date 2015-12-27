@@ -254,7 +254,7 @@ FromMySQL2PostgreSQL.prototype.removeTemporaryDirectory = function(self) {
             var msg;
             
             if (error) {
-                msg = '\t--[removeTemporaryDirectory] Note, TemporaryDirectory located at "' + self._tempDirPath + '" is nor removed';
+                msg = '\t--[removeTemporaryDirectory] Note, TemporaryDirectory located at "' + self._tempDirPath + '" is not removed';
             } else {
                 msg = '\t--[removeTemporaryDirectory] TemporaryDirectory located at "' + self._tempDirPath + '" is removed';
             }
@@ -503,7 +503,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 var createViewPromises   = [];
 				
                                 for (var i = 0; i < rows.length; i++) {
-                                    if (i < 3) // TODO.
+                                    //if (i < 3) // TODO.
                                     if (rows[i].Table_type === 'BASE TABLE') {
                                         self._tablesToMigrate.push(rows[i]);
                                         tablesCnt++;
@@ -1025,6 +1025,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                     var minutes   = Math.floor(timeTaken / 1000 / 60);
                     timeTaken    -= minutes * 1000 * 60;
                     var seconds   = Math.ceil(timeTaken / 1000);
+                    
                     hours         = hours < 10 ? '0' + hours : hours;
                     minutes       = minutes < 10 ? '0' + minutes : minutes;
                     seconds       = seconds < 10 ? '0' + seconds : seconds;
@@ -1051,6 +1052,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                     var minutes   = Math.floor(timeTaken / 1000 / 60);
                     timeTaken    -= minutes * 1000 * 60;
                     var seconds   = Math.ceil(timeTaken / 1000);
+                    
                     hours         = hours < 10 ? '0' + hours : hours;
                     minutes       = minutes < 10 ? '0' + minutes : minutes;
                     seconds       = seconds < 10 ? '0' + seconds : seconds;
