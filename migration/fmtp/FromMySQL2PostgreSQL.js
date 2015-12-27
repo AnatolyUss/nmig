@@ -1021,7 +1021,9 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                 function() {
                     var timeTaken = (new Date()) - self._timeBegin;
                     var hours     = Math.floor(timeTaken / 1000 / 3600);
+                    timeTaken    -= hours * 1000 * 3600;
                     var minutes   = Math.floor(timeTaken / 1000 / 60);
+                    timeTaken    -= minutes * 1000 * 60;
                     var seconds   = Math.ceil(timeTaken / 1000);
                     hours         = hours < 10 ? '0' + hours : hours;
                     minutes       = minutes < 10 ? '0' + minutes : minutes;
@@ -1045,7 +1047,9 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                 function() {
                     var timeTaken = (new Date()) - self._timeBegin;
                     var hours     = Math.floor(timeTaken / 1000 / 3600);
+                    timeTaken    -= hours * 1000 * 3600;
                     var minutes   = Math.floor(timeTaken / 1000 / 60);
+                    timeTaken    -= minutes * 1000 * 60;
                     var seconds   = Math.ceil(timeTaken / 1000);
                     hours         = hours < 10 ? '0' + hours : hours;
                     minutes       = minutes < 10 ? '0' + minutes : minutes;
