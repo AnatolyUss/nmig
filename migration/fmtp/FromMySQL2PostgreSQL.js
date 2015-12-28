@@ -500,7 +500,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                 var sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
-                        connection.release();
+                        // The connection is undefined.
                         self.log(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
                         reject();
                     } else {
@@ -571,7 +571,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
 FromMySQL2PostgreSQL.prototype.cleanupLocal = function(self) {
     return new Promise(function(resolve) {
         if (self._clonedSelfTableNamePathFd === undefined) {
-            self.log(self, '\t--[cleanupLocal] Finished processing table `' + self._clonedSelfTableName + '`...');
+            self.log(self, '\t--[cleanupLocal] Error...');
             resolve(self);
         } else {
             fs.close(self._clonedSelfTableNamePathFd, function() {
@@ -600,7 +600,7 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                 var sql = 'SHOW COLUMNS FROM `' + self._clonedSelfTableName + '`;';
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
-                        connection.release();
+                        // The connection is undefined.
                         self.log(self, '\t--[createTable] Cannot connect to MySQL server...\n' + error);
                         rejectCreateTable();
                     } else {
@@ -675,7 +675,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                 
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
-                        connection.release();
+                        // The connection is undefined.
                         self.log(self, '\t--[populateTable] Cannot connect to MySQL server...\n\t' + error);
                         rejectPopulateTable();
                     } else {
@@ -757,7 +757,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                 
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
-                        connection.release();
+                        // The connection is undefined.
                         self.log(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
                         resolvePopulateTableWorker(self);
                     } else {
@@ -879,17 +879,26 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         resolve(self);
         
     }).then(
-        self.connect 
+        self.connect
+        
     ).then(
         self.createTable, 
         function() {
             self.log(self, '\t--[processTable] Cannot establish DB connections...');
         }
+                
     ).then(
         self.populateTable,
         function() {
-            self.cleanupLocal(self); // Cleanup resources related to given table. TODO.
             self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + tableName + '"...');
+        }
+        
+    ).then(
+        function() {
+            self.cleanupLocal(self); // Cleanup resources related to given table.
+        },
+        function() {
+            self.cleanupLocal(self); // Cleanup resources related to given table.
         }
     );
 };
