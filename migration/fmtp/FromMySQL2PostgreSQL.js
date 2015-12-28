@@ -237,8 +237,7 @@ FromMySQL2PostgreSQL.prototype.createTemporaryDirectory = function(self) {
                 reject();
                 
             } else {
-                self.log(self, '\t--[createTemporaryDirectory] Temporary directory already exists...');
-                resolve(self);
+                reject();
             }
         });
     });
@@ -256,9 +255,11 @@ FromMySQL2PostgreSQL.prototype.removeTemporaryDirectory = function(self) {
             var msg;
             
             if (error) {
-                msg = '\t--[removeTemporaryDirectory] Note, TemporaryDirectory located at "' + self._tempDirPath + '" is nor removed';
+                msg = '\t--[removeTemporaryDirectory] Note, TemporaryDirectory located at "' 
+                    + self._tempDirPath + '" is nor removed';
             } else {
-                msg = '\t--[removeTemporaryDirectory] TemporaryDirectory located at "' + self._tempDirPath + '" is removed';
+                msg = '\t--[removeTemporaryDirectory] TemporaryDirectory located at "' 
+                    + self._tempDirPath + '" is removed';
             }
             
             self.log(self, msg);
@@ -280,12 +281,12 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._logsDirPath, self._0777, function(e) {
                     if (e) {
-                        console.log( 
-                            '\t--[createLogsDirectory] Cannot perform a migration due to impossibility to create ' 
-                            + '"logs_directory": ' + self._logsDirPath
-                        );
+                        var msg = '\t--[createLogsDirectory] Cannot perform a migration due to impossibility to create ' 
+                                + '"logs_directory": ' + self._logsDirPath;
+                        
+                        console.log(msg);
                         reject();
-			
+						
                     } else {
                         self.log(self, '\t--[createLogsDirectory] Logs directory is created...');
                         resolve(self);
@@ -575,7 +576,8 @@ FromMySQL2PostgreSQL.prototype.cleanupLocal = function(self) {
             resolve(self);
         } else {
             fs.close(self._clonedSelfTableNamePathFd, function() {
-                self.log(self, '\t--[cleanupLocal] Finished processing table `' + self._clonedSelfTableName + '`...');
+                // TODO : .csv
+                console.log('\t--[cleanupLocal] Finished processing table `' + self._clonedSelfTableName + '`...');
                 resolve(self);
             });
         }
@@ -773,7 +775,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                 // When sanitized - write them to a csv file.
                                 rowsInChunk          = rows.length; // Must check amount of rows BEFORE sanitizing.
 				var sanitizedRecords = [];
-								
+				
                                 for (var cnt = 0; cnt < rows.length; cnt++) {
                                     var sanitizedRecord = Object.create(null);
                                     
@@ -987,6 +989,30 @@ FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
 };
 
 /**
+ * Generates a summary report.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @param   {String}               endMsg
+ * @returns {undefined}
+ */
+FromMySQL2PostgreSQL.prototype.generateReport = function(self, endMsg) {
+    var timeTaken  = (new Date()) - self._timeBegin;
+    var hours      = Math.floor(timeTaken / 1000 / 3600);
+    timeTaken     -= hours * 1000 * 3600;
+    var minutes    = Math.floor(timeTaken / 1000 / 60);
+    timeTaken     -= minutes * 1000 * 60;
+    var seconds    = Math.ceil(timeTaken / 1000);
+    hours          = hours < 10 ? '0' + hours : hours;
+    minutes        = minutes < 10 ? '0' + minutes : minutes;
+    seconds        = seconds < 10 ? '0' + seconds : seconds;
+    endMsg         = '\t--[run] ' + endMsg 
+                   + '\n\t--[run] Total time: ' + hours + ':' + minutes + ':' + seconds 
+                   + '\n\t--[run] (hours:minutes:seconds)';
+    
+    self.log(self, endMsg);
+};
+
+/**
  * Runs migration according to user's configuration.
  * 
  * @param   {Object} config
@@ -1016,7 +1042,10 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
     ).then(
         self.createSchema, 
         function() {
-            self.log(self, '\t--[run] Temporary directory was not created...');
+            var msg = '\t--[run] The temporary directory [' + self._tempDirPath + '] already exists...' 
+                    + '\n\t  Please, remove this directory and rerun NMIG...';
+	    
+            self.log(self, msg);
         }
 	
     ).then(
@@ -1040,20 +1069,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                 self.cleanup
             ).then(
                 function(self) {
-                    var timeTaken  = (new Date()) - self._timeBegin;
-                    var hours      = Math.floor(timeTaken / 1000 / 3600);
-                    timeTaken     -= hours * 1000 * 3600;
-                    var minutes    = Math.floor(timeTaken / 1000 / 60);
-                    timeTaken     -= minutes * 1000 * 60;
-                    var seconds    = Math.ceil(timeTaken / 1000);
-                    hours          = hours < 10 ? '0' + hours : hours;
-                    minutes        = minutes < 10 ? '0' + minutes : minutes;
-                    seconds        = seconds < 10 ? '0' + seconds : seconds;
-                    var endMsg     = '\t--[run] NMIG migration is accomplished.' 
-                                   + '\n\t--[run] Total time: ' + hours + ':' + minutes + ':' + seconds 
-                                   + '\n\t--[run] (hours:minutes:seconds)';
-                    
-                    self.log(self, endMsg);
+                    self.generateReport(self, 'NMIG migration is accomplished.');
                 }
             );
         }, 
@@ -1066,20 +1082,7 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                 }
             ).then(
                 function() {
-                    var timeTaken  = (new Date()) - self._timeBegin;
-                    var hours      = Math.floor(timeTaken / 1000 / 3600);
-                    timeTaken     -= hours * 1000 * 3600;
-                    var minutes    = Math.floor(timeTaken / 1000 / 60);
-                    timeTaken     -= minutes * 1000 * 60;
-                    var seconds    = Math.ceil(timeTaken / 1000);
-                    hours          = hours < 10 ? '0' + hours : hours;
-                    minutes        = minutes < 10 ? '0' + minutes : minutes;
-                    seconds        = seconds < 10 ? '0' + seconds : seconds;
-                    var endMsg     = '\t--[run] NMIG cannot load source database structure.' 
-                                   + '\n\t--[run] Total time: ' + hours + ':' + minutes + ':' + seconds 
-                                   + '\n\t--[run] (hours:minutes:seconds)';
-                    
-                    self.log(self, endMsg);
+                    self.generateReport(self, 'NMIG cannot load source database structure.');
                 } 
             );
         }
