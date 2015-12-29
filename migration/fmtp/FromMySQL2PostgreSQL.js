@@ -323,46 +323,34 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
             console.log(log);
         }
         
-        if (self._allLogsPathFd === undefined) {
-            fs.open(self._allLogsPath, 'a', self._0777, function(error, fd) {
-                if (!error) {
-                    self._allLogsPathFd = fd;
-                    fs.write(self._allLogsPathFd, buffer, 0, buffer.length, null, function() {
+        fs.open(self._allLogsPath, 'a', self._0777, function(error, fd) {
+            if (error) {
+                resolve(self);
+            } else {
+                fs.write(fd, buffer, 0, buffer.length, null, function() {
+                    fs.close(fd, function() {
                         resolve(self);
                     });
-                    
-                } else {
-                    resolve(self);
-                }
-            });
-            
-        } else {
-            fs.write(self._allLogsPathFd, buffer, 0, buffer.length, null, function() {
-                resolve(self);
-            });
-        }
-		
+                });
+            }
+        });
+	
     }).then(
         function(self) {
             return new Promise(function(resolveTableLog) {
                 if (self._clonedSelfTableNamePath === undefined) {
                     resolveTableLog(self);
-                } else if (self._clonedSelfTableNamePathFd === undefined) {
-                    fs.open(self._clonedSelfTableNamePath, 'a', self._0777, function(error, fd) {
-                        if (!error) {
-                            self._clonedSelfTableNamePathFd = fd;
-                            fs.write(self._clonedSelfTableNamePathFd, buffer, 0, buffer.length, null, function() {
-                                resolveTableLog(self);
-                            });
-                            
-                        } else {
-                            resolveTableLog(self);
-                        }
-                    });
-
                 } else {
-                    fs.write(self._clonedSelfTableNamePathFd, buffer, 0, buffer.length, null, function() {
-                        resolveTableLog(self);
+                    fs.open(self._clonedSelfTableNamePath, 'a', self._0777, function(error, fd) {
+                        if (error) {
+                            resolveTableLog(self);
+                        } else {
+                            fs.write(fd, buffer, 0, buffer.length, null, function() {
+                                fs.close(fd, function() {
+                                    resolveTableLog(self);
+                                });
+                            });
+                        }
                     });
                 }
             });
@@ -385,24 +373,17 @@ FromMySQL2PostgreSQL.prototype.generateError = function(self, message, sql) {
         var buffer  = new Buffer(message);
         self.log(self, message, true);
         
-        if (self._errorLogsPathFd === undefined) {
-            fs.open(self._errorLogsPath, 'a', self._0777, function(error, fd) {
-                if (!error) {
-                    self._errorLogsPathFd = fd;
-                    fs.write(self._errorLogsPathFd, buffer, 0, buffer.length, null, function() {
+        fs.open(self._errorLogsPath, 'a', self._0777, function(error, fd) {
+            if (error) {
+                resolve(self);
+            } else {
+                fs.write(fd, buffer, 0, buffer.length, null, function() {
+                    fs.close(fd, function() {
                         resolve(self);
                     });
-                    
-                } else {
-                    resolve(self);
-                }
-            });
-            
-        } else {
-            fs.write(self._errorLogsPathFd, buffer, 0, buffer.length, null, function() {
-                resolve(self);
-            });
-        }
+                });
+            }
+        });
     });
 };
 
@@ -561,27 +542,6 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
             });
         }
     );
-};
-
-/**
- * Cleanup resources related to given table.
- * 
- * @param   {FromMySQL2PostgreSQL} self
- * @returns {Promise}
- */
-FromMySQL2PostgreSQL.prototype.cleanupLocal = function(self) {
-    return new Promise(function(resolve) {
-        if (self._clonedSelfTableNamePathFd === undefined) {
-            self.log(self, '\t--[cleanupLocal] Error...');
-            resolve(self);
-        } else {
-            fs.close(self._clonedSelfTableNamePathFd, function() {
-                // TODO : .csv
-                console.log('\t--[cleanupLocal] Finished processing table `' + self._clonedSelfTableName + '`...');
-                resolve(self);
-            });
-        }
-    });
 };
 
 /**
@@ -897,10 +857,10 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         
     ).then(
         function() {
-            self.cleanupLocal(self); // Cleanup resources related to given table.
+            // Populate table succedded.
         },
         function() {
-            self.cleanupLocal(self); // Cleanup resources related to given table.
+            // Populate table failed.
         }
     );
 };
@@ -933,36 +893,6 @@ FromMySQL2PostgreSQL.prototype.closeConnections = function(self) {
 };
 
 /**
- * Closes log files.
- * 
- * @param   {FromMySQL2PostgreSQL} self
- * @returns {Promise}
- */
-FromMySQL2PostgreSQL.prototype.closeLogFiles = function(self) {
-    return new Promise(function(resolveAllLogs) {
-        if (self._allLogsPathFd) {
-            fs.close(self._allLogsPathFd, function() {
-                resolveAllLogs(self);
-            });
-        } else {
-            resolveAllLogs(self);
-        }
-    }).then(
-        function(self) {
-            return new Promise(function(resolveErrorLogs) {
-                if (self._errorLogsPathFd) {
-                    fs.close(self._errorLogsPathFd, function() {
-                        resolveErrorLogs(self);
-                    });
-                } else {
-                    resolveErrorLogs(self);
-                }
-            });
-        }
-    );
-};
-
-/**
  * Closes DB connections and removes the "./temporary_directory".
  * 
  * @param   {FromMySQL2PostgreSQL} self
@@ -976,8 +906,6 @@ FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
         self.removeTemporaryDirectory
     ).then(
         self.closeConnections
-    ).then(
-        self.closeLogFiles
     ).then(
         function(self) {
             return new Promise(function(resolve) {
@@ -1005,11 +933,12 @@ FromMySQL2PostgreSQL.prototype.generateReport = function(self, endMsg) {
     hours          = hours < 10 ? '0' + hours : hours;
     minutes        = minutes < 10 ? '0' + minutes : minutes;
     seconds        = seconds < 10 ? '0' + seconds : seconds;
-    endMsg         = '\t--[run] ' + endMsg 
-                   + '\n\t--[run] Total time: ' + hours + ':' + minutes + ':' + seconds 
-                   + '\n\t--[run] (hours:minutes:seconds)';
+    endMsg         = '\t--[generateReport] ' + endMsg 
+                   + '\n\t--[generateReport] Total time: ' + hours + ':' + minutes + ':' + seconds 
+                   + '\n\t--[generateReport] (hours:minutes:seconds)';
     
     self.log(self, endMsg);
+    process.exit();
 };
 
 /**
