@@ -528,7 +528,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                         reject();
                                     }
                                 ).then(
-                                    function(self) {
+                                    function() {
                                         resolve(self);
                                     }, 
                                     function() {
@@ -809,6 +809,74 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
             self.log(self, '\t--[populateTableWorker] Cannot establish DB connections...');
         }
     );
+};
+
+/**
+ * Populates data using INSERT statment.
+ * 
+ * @param   {FromMySQL2PostgreSQL} self
+ * @param   {Array}                rows
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows) {
+    return new Promise(function(resolve) {
+        // Currently, there is no interaction with MySQL.
+        var insertPromises = [];
+        
+        for (var i = 0; i < rows.length; i++) {
+            insertPromises.push(
+                new Promise(function(resolveInsert) {
+                    // Execution of populateTableByInsert() must be successful, that is why no reject handler presented here.
+                    var sql                = 'INSERT INTO "' + self._schema + '"."' + self._clonedSelfTableName + '"';
+                    var columns            = '(';
+                    var valuesPlaceHolders = 'VALUES(';
+                    var valuesData         = [];
+                    var cnt                = 0;
+                    
+                    for (var attr in rows[i]) {
+                        columns             += '"' + attr + '",';
+                        valuesPlaceHolders  += '$' + cnt + ',';
+                        valuesData.push(self.sanitizeValue(rows[i][attr]));
+                        cnt++;
+                    }
+                    
+                    sql += columns.slice(0, -1) + ')' + valuesPlaceHolders.slice(0, -1) + ');';
+                    
+                    pg.connect(self._targetConString, function(error, client, done) {
+                        done();
+                        
+                        if (error) {
+                            var msg = '\t--[populateTableByInsert] Cannot connect to PostgreSQL server...\n' + error;
+                            self.generateError(self, msg, sql);
+                            resolveInsert(self);
+                            // TODO: do I have to pass self before Promise.all()?
+                            // TODO: if not - must remove self in rest of cases.
+                        } else {
+                            client.query(sql, valuesData, function(err) {
+                                if (err) {
+                                    var msg = '\t--[populateTableByInsert] INSERT failed...\n' + err;
+                                    self.generateError(self, msg, sql);
+                                    resolveInsert(self);
+                                } else {
+                                    self._totalRowsInserted++;
+                                    resolveInsert(self);
+                                }
+                            });
+                        }
+                    });
+                });
+            );
+        }
+        
+        Promise.all(insertPromises).then(
+            function() {
+                resolve(self);
+            },
+            function() {
+                resolve(self);
+            }
+        );
+    });
 };
 
 /**
