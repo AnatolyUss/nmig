@@ -50,7 +50,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._errorLogsPath       = self._logsDirPath + '/errors-only.log';
         self._notCreatedViewsPath = self._logsDirPath + '/not_created_views';
         self._timeBegin           = new Date();
-        self._encoding            = self._config.encoding === undefined ? 'utf-8' : self._config.encoding;
+        self._encoding            = self._config.encoding === undefined ? 'utf8' : self._config.encoding;
         self._dataChunkSize       = self._config.data_chunk_size === undefined ? 10 : +self._config.data_chunk_size;
         self._dataChunkSize       = self._dataChunkSize < 1 ? 1 : self._dataChunkSize;
         self._0777                = '0777';
@@ -257,7 +257,7 @@ FromMySQL2PostgreSQL.prototype.removeTemporaryDirectory = function(self) {
             
             if (error) {
                 msg = '\t--[removeTemporaryDirectory] Note, TemporaryDirectory located at "' 
-                    + self._tempDirPath + '" is nor removed';
+                    + self._tempDirPath + '" is not removed';
             } else {
                 msg = '\t--[removeTemporaryDirectory] TemporaryDirectory located at "' 
                     + self._tempDirPath + '" is removed';
@@ -317,7 +317,7 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
-    var buffer = new Buffer(log + '\n\n');
+    var buffer = new Buffer(log + '\n\n', self._encoding);
     
     return new Promise(function(resolve) {
         if (isErrorLog === undefined || isErrorLog === false) {
@@ -371,7 +371,7 @@ FromMySQL2PostgreSQL.prototype.generateError = function(self, message, sql) {
     return new Promise(function(resolve) {
         message    += '\n\n';
         message    += sql === undefined ? '' : '\n\tSQL: ' + sql + '\n\n';
-        var buffer  = new Buffer(message);
+        var buffer  = new Buffer(message, self._encoding);
         self.log(self, message, true);
         
         fs.open(self._errorLogsPath, 'a', self._0777, function(error, fd) {
@@ -722,14 +722,14 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                     if (error) {
                         // The connection is undefined.
                         self.log(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
-                        resolvePopulateTableWorker(self);
+                        resolvePopulateTableWorker();
                     } else {
                         connection.query(sql, function(err, rows) {
                             connection.release();
                             
                             if (err) {
                                 self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
-                                resolvePopulateTableWorker(self);
+                                resolvePopulateTableWorker();
                             } else {
                                 // Loop through current result set.
                                 // Sanitize records.
@@ -748,27 +748,27 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                 }
 				
                                 csvStringify(sanitizedRecords, function(csvError, csvString) {
-                                    var buffer = new Buffer(csvString);
+                                    var buffer = new Buffer(csvString, self._encoding);
                                     
                                     if (csvError) {
                                         self.generateError(self, '\t--[populateTableWorker] ' + csvError);
-                                        resolvePopulateTableWorker(self);
+                                        resolvePopulateTableWorker();
                                     } else {
                                         fs.open(csvAddr, 'a', self._0777, function(csvErrorFputcsvOpen, fd) {
                                             if (csvErrorFputcsvOpen) {
                                                 self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
-                                                resolvePopulateTableWorker(self);
+                                                resolvePopulateTableWorker();
                                             } else {
                                                 fs.write(fd, buffer, 0, buffer.length, null, function(csvErrorFputcsvWrite) {
                                                     if (csvErrorFputcsvWrite) {
                                                         self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
-                                                        resolvePopulateTableWorker(self);
+                                                        resolvePopulateTableWorker();
                                                     } else {
                                                         pg.connect(self._targetConString, function(error, client, done) {
                                                             if (error) {
                                                                 done();
                                                                 self.generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
-                                                                resolvePopulateTableWorker(self);
+                                                                resolvePopulateTableWorker();
                                                             } else {
                                                                 sql = 'COPY "' + self._schema + '"."' + self._clonedSelfTableName + '" FROM '
                                                                     + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
@@ -777,8 +777,19 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                                                     done();
                                                                     
                                                                     if (err) {
-									self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
-                                                                        resolvePopulateTableWorker(self);
+                                                                        self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
+                                                                        self.populateTableByInsert(self, sanitizedRecords, function() {
+                                                                            var msg = '\t--[populateTableWorker]  For now inserted: ' + self._totalRowsInserted + ' rows, '
+                                                                                    + 'Total rows to insert into "' + self._schema + '"."' + self._clonedSelfTableName + '": ' + rowsCnt;
+                                                                            
+                                                                            self.log(self, msg);
+                                                                            fs.unlink(csvAddr, function() {
+                                                                                fs.close(fd, function() {
+                                                                                    resolvePopulateTableWorker();
+                                                                                });
+                                                                            });
+                                                                        });
+                                                                        
                                                                     } else {
                                                                         self._totalRowsInserted += result.rowCount;
                                                                         var msg                  = '\t--[populateTableWorker]  For now inserted: ' + self._totalRowsInserted + ' rows, '
@@ -817,66 +828,63 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
  * 
  * @param   {FromMySQL2PostgreSQL} self
  * @param   {Array}                rows
- * @returns {Promise}
+ * @param   {Function}             callback
+ * @returns {undefined}
  */
-FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows) {
-    return new Promise(function(resolve) {
-        // Currently, there is no interaction with MySQL.
-        var insertPromises = [];
-        
-        for (var i = 0; i < rows.length; i++) {
-            insertPromises.push(
-                new Promise(function(resolveInsert) {
-                    // Execution of populateTableByInsert() must be successful, that is why no reject handler presented here.
-                    var sql                = 'INSERT INTO "' + self._schema + '"."' + self._clonedSelfTableName + '"';
-                    var columns            = '(';
-                    var valuesPlaceHolders = 'VALUES(';
-                    var valuesData         = [];
-                    var cnt                = 0;
-                    
-                    for (var attr in rows[i]) {
-                        columns             += '"' + attr + '",';
-                        valuesPlaceHolders  += '$' + cnt + ',';
-                        valuesData.push(self.sanitizeValue(rows[i][attr]));
-                        cnt++;
-                    }
-                    
-                    sql += columns.slice(0, -1) + ')' + valuesPlaceHolders.slice(0, -1) + ');';
-                    
-                    pg.connect(self._targetConString, function(error, client, done) {
-                        if (error) {
+FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows, callback) {
+    var insertPromises = [];
+    
+    for (var i = 0; i < rows.length; i++) {
+        insertPromises.push(
+            new Promise(function(resolveInsert) {
+                // Execution of populateTableByInsert() must be successful, that is why no reject handler presented here.
+                var sql                = 'INSERT INTO "' + self._schema + '"."' + self._clonedSelfTableName + '"';
+                var columns            = '(';
+                var valuesPlaceHolders = 'VALUES(';
+                var valuesData         = [];
+                var cnt                = 1;
+                
+                for (var attr in rows[i]) {
+                    columns             += '"' + attr + '",';
+                    valuesPlaceHolders  += '$' + cnt + ',';
+                    valuesData.push(rows[i][attr]); // rows are sanitized.
+                    cnt++;
+                }
+                
+                sql += columns.slice(0, -1) + ')' + valuesPlaceHolders.slice(0, -1) + ');';
+                
+                pg.connect(self._targetConString, function(error, client, done) {
+                    if (error) {
+                        done();
+                        var msg = '\t--[populateTableByInsert] Cannot connect to PostgreSQL server...\n' + error;
+                        self.generateError(self, msg, sql);
+                        resolveInsert();
+                    } else {
+                        client.query(sql, valuesData, function(err) {
                             done();
-                            var msg = '\t--[populateTableByInsert] Cannot connect to PostgreSQL server...\n' + error;
-                            self.generateError(self, msg, sql);
-                            resolveInsert();
-                        } else {
-                            client.query(sql, valuesData, function(err) {
-                                done();
-                                
-                                if (err) {
-                                    var msg = '\t--[populateTableByInsert] INSERT failed...\n' + err;
-                                    self.generateError(self, msg, sql);
-                                    resolveInsert();
-                                } else {
-                                    self._totalRowsInserted++;
-                                    resolveInsert();
-                                }
-                            });
-                        }
-                    });
-                })
-            );
-        }
-        
-        Promise.all(insertPromises).then(
-            function() {
-                resolve(self);
-            },
-            function() {
-                resolve(self);
-            }
+                            
+                            if (err) {
+                                self.generateError(self, '\t--[populateTableByInsert] INSERT failed...\n' + err, sql);
+                                resolveInsert();
+                            } else {
+                                self._totalRowsInserted++;
+                                resolveInsert();
+                            }
+                        });
+                    }
+                });
+            })
         );
-    });
+    }
+    
+    Promise.all(insertPromises).then(
+        function() {
+            callback.call(self);
+        },
+        function() {
+            callback.call(self);
+        }
+    );
 };
 
 /**
