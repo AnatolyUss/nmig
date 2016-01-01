@@ -15,7 +15,7 @@ var csvStringify = require('csv-stringify');
  * Constructor.
  */
 function FromMySQL2PostgreSQL() {
-    this._0777 = '0777';
+    // No code should be put here.
 }
 
 /**
@@ -53,6 +53,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._encoding            = self._config.encoding === undefined ? 'utf-8' : self._config.encoding;
         self._dataChunkSize       = self._config.data_chunk_size === undefined ? 10 : +self._config.data_chunk_size;
         self._dataChunkSize       = self._dataChunkSize < 1 ? 1 : self._dataChunkSize;
+        self._0777                = '0777';
         self._mysql               = null;
         self._pgsql               = null;
         self._tablesToMigrate     = [];
@@ -786,7 +787,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                                                         self.log(self, msg);
                                                                         fs.unlink(csvAddr, function() {
                                                                             fs.close(fd, function() {
-                                                                                resolvePopulateTableWorker(self);
+                                                                                resolvePopulateTableWorker();
                                                                             });
                                                                         });
                                                                     }
@@ -843,28 +844,27 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows) {
                     sql += columns.slice(0, -1) + ')' + valuesPlaceHolders.slice(0, -1) + ');';
                     
                     pg.connect(self._targetConString, function(error, client, done) {
-                        done();
-                        
                         if (error) {
+                            done();
                             var msg = '\t--[populateTableByInsert] Cannot connect to PostgreSQL server...\n' + error;
                             self.generateError(self, msg, sql);
-                            resolveInsert(self);
-                            // TODO: do I have to pass self before Promise.all()?
-                            // TODO: if not - must remove self in rest of cases.
+                            resolveInsert();
                         } else {
                             client.query(sql, valuesData, function(err) {
+                                done();
+                                
                                 if (err) {
                                     var msg = '\t--[populateTableByInsert] INSERT failed...\n' + err;
                                     self.generateError(self, msg, sql);
-                                    resolveInsert(self);
+                                    resolveInsert();
                                 } else {
                                     self._totalRowsInserted++;
-                                    resolveInsert(self);
+                                    resolveInsert();
                                 }
                             });
                         }
                     });
-                });
+                })
             );
         }
         
