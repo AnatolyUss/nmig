@@ -58,7 +58,6 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._pgsql               = null;
         self._tablesToMigrate     = [];
         self._viewsToMigrate      = [];
-        self._summaryReport       = [];
         self._tablesCnt           = 0;
         self._viewsCnt            = 0;
         self._mySqlDbName         = self._sourceConString.database;
@@ -627,7 +626,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
         self.connect 
     ).then(
         function(self) {
-            return new Promise(function(resolvePopulateTable, rejectPopulateTable) {
+            return new Promise(function(resolvePopulateTable) {
                 self.log(self, '\t--[populateTable] Currently populating table: `' + self._clonedSelfTableName + '`');
                 
                 // Determine current table size, apply "chunking".
@@ -640,13 +639,13 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                     if (error) {
                         // The connection is undefined.
                         self.log(self, '\t--[populateTable] Cannot connect to MySQL server...\n\t' + error);
-                        rejectPopulateTable();
+                        resolvePopulateTable();
                     } else {
                         connection.query(sql, function(err, rows) {
                             if (err) {
                                 connection.release();
                                 self.generateError(self, '\t--[populateTable] ' + err, sql);
-                                rejectPopulateTable();
+                                resolvePopulateTable();
                             } else {
                                 var tableSizeInMb = rows[0].size_in_mb;
                                 tableSizeInMb     = tableSizeInMb < 1 ? 1 : tableSizeInMb;
@@ -657,7 +656,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                     
                                     if (err2) {
                                         self.generateError(self, '\t--[populateTable] ' + err2, sql);
-                                        rejectPopulateTable();
+                                        resolvePopulateTable();
                                     } else {
                                         var rowsCnt              = rows2[0].rows_count;
                                         var chunksCnt            = tableSizeInMb / self._dataChunkSize;
@@ -679,9 +678,6 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                         Promise.all(populateTableWorkers).then(
                                             function() {
                                                 resolvePopulateTable(self);
-                                            }, 
-                                            function() {
-                                                rejectPopulateTable();
                                             }
                                         );
                                     }
@@ -880,9 +876,6 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows, call
     Promise.all(insertPromises).then(
         function() {
             callback.call(self);
-        },
-        function() {
-            callback.call(self);
         }
     );
 };
@@ -933,10 +926,7 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         
     ).then(
         function() {
-            // Populate table succedded.
-        },
-        function() {
-            // Populate table failed.
+            // Populate table will always succedd.
         }
     );
 };
@@ -1009,11 +999,11 @@ FromMySQL2PostgreSQL.prototype.generateReport = function(self, endMsg) {
     hours          = hours < 10 ? '0' + hours : hours;
     minutes        = minutes < 10 ? '0' + minutes : minutes;
     seconds        = seconds < 10 ? '0' + seconds : seconds;
-    endMsg         = '\t--[generateReport] ' + endMsg 
+    var output     = '\t--[generateReport] ' + endMsg 
                    + '\n\t--[generateReport] Total time: ' + hours + ':' + minutes + ':' + seconds 
                    + '\n\t--[generateReport] (hours:minutes:seconds)';
     
-    self.log(self, endMsg);
+    self.log(self, output);
     process.exit();
 };
 
