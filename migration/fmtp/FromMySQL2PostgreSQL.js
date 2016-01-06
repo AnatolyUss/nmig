@@ -728,7 +728,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                 self._mysql.getConnection(function(error, connection) {
                     if (error) {
                         // The connection is undefined.
-                        self.log(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
+                        self.generateError(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
                         resolvePopulateTableWorker();
                     } else {
                         connection.query(sql, function(err, rows) {
@@ -914,7 +914,7 @@ FromMySQL2PostgreSQL.prototype.sanitizeValue = function(value) {
  */
 FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
     return new Promise(function(resolve) {
-        self.log(self, '\t--[processEnum] Set "ENUMs" for table "' + self._schema + '"."' + self._clonedSelfTableName + '"');
+        self.log(self, '\t--[processEnum] Defines "ENUMs" for table "' + self._schema + '"."' + self._clonedSelfTableName + '"');
         let processEnumPromises = [];
 
         for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
@@ -974,7 +974,7 @@ FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.processNull = function(self) {
     return new Promise(function(resolve) {
-        self.log(self, '\t--[processNull] Define "NULLs" for table: "' + self._schema + '"."' + self._clonedSelfTableName + '"');
+        self.log(self, '\t--[processNull] Defines "NULLs" for table: "' + self._schema + '"."' + self._clonedSelfTableName + '"');
         let processNullPromises = [];
 
         for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
@@ -1030,7 +1030,7 @@ FromMySQL2PostgreSQL.prototype.processNull = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
     return new Promise(function(resolve) {
-        self.log(self, '\t--[processDefault] Set default values for table: "' + self._schema + '"."' + self._clonedSelfTableName + '"');
+        self.log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + self._clonedSelfTableName + '"');
         let processDefaultPromises = [];
         let sqlReservedValues      = {
             'CURRENT_DATE'        : 'CURRENT_DATE',
@@ -1064,9 +1064,9 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
                                 if (sqlReservedValues[self._clonedSelfTableColumns[i].Default]) {
                                     sql += sqlReservedValues[self._clonedSelfTableColumns[i].Default] + ';';
                                 } else {
-                                    sql += self.isFloatNumeric(sqlReservedValues[self._clonedSelfTableColumns[i].Default])
-                                           ? sqlReservedValues[self._clonedSelfTableColumns[i].Default] + ';'
-                                           : "'" + sqlReservedValues[self._clonedSelfTableColumns[i].Default] + "';";
+                                    sql += self.isFloatNumeric(self._clonedSelfTableColumns[i].Default)
+                                           ? self._clonedSelfTableColumns[i].Default + ';'
+                                           : "'" + self._clonedSelfTableColumns[i].Default + "';";
                                 }
 
                                 client.query(sql, function(err) {
@@ -1097,6 +1097,210 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
             }
         );
     });
+};
+
+/**
+ * Define which column in given table has the "auto_increment" attribute.
+ * Create an appropriate sequence.
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
+    return new Promise(function(resolve) {
+        let createSequencePromises = [];
+
+        for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
+            if (self._clonedSelfTableColumns[i].Extra === 'auto_increment') {
+                createSequencePromises.push(
+                    new Promise(function(resolveCreateSequence) {
+                        let seqName = self._clonedSelfTableName + '_' + self._clonedSelfTableColumns[i].Field + '_seq';
+                        self.log(self, '\t--[createSequence] Trying to create sequence : "' + self._schema + '"."' + seqName + '"');
+                        pg.connect(self._targetConString, function(error, client, done) {
+                            if (error) {
+                                done();
+                                let msg = '\t--[createSequence] Cannot connect to PostgreSQL server...\n' + error;
+                                self.generateError(self, msg);
+                                resolveCreateSequence();
+                            } else {
+                                let sql = 'CREATE SEQUENCE "' + self._schema + '"."' + seqName + '";';
+                                client.query(sql, function(err) {
+                                    if (err) {
+                                        done();
+                                        let errMsg = '\t--[createSequence] Failed to create sequence "' + self._schema + '"."' + seqName + '"';
+                                        self.generateError(self, errMsg, sql);
+                                        resolveCreateSequence();
+                                    } else {
+                                         sql = 'ALTER TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '" '
+                                             + 'ALTER COLUMN "' + self._clonedSelfTableColumns[i].Field + '" '
+                                             + 'SET DEFAULT NEXTVAL(\'"' + self._schema + '"."' + seqName + '"\');';
+
+                                         client.query(sql, function(err2) {
+                                             if (err2) {
+                                                 done();
+                                                 let err2Msg = '\t--[createSequence] Failed to set default value for "' + self._schema + '"."'
+                                                            + self._clonedSelfTableName + '"."' + self._clonedSelfTableColumns[i].Field + '"...'
+                                                            + '\n\t--[createSequence] Note: sequence "' + self._schema + '"."' + seqName + '" was created...';
+
+                                                 self.generateError(self, err2Msg, sql);
+                                                 resolveCreateSequence();
+                                             } else {
+                                                   sql = 'ALTER SEQUENCE "' + self._schema + '"."' + seqName + '" '
+                                                       + 'OWNED BY "' + self._schema + '"."' + self._clonedSelfTableName
+                                                       + '"."' + self._clonedSelfTableColumns[i].Field + '";';
+
+                                                   client.query(sql, function(err3) {
+                                                        if (err3) {
+                                                            done();
+                                                            let err3Msg = '\t--[createSequence] Failed to relate sequence "' + self._schema + '"."' + seqName + '" to '
+                                                                       + '"' + self._schema + '"."'
+                                                                       + self._clonedSelfTableName + '"."' + self._clonedSelfTableColumns[i].Field + '"...';
+
+                                                            self.generateError(self, err3Msg, sql);
+                                                            resolveCreateSequence();
+                                                        } else {
+                                                           sql = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
+                                                               + '(SELECT MAX("' + self._clonedSelfTableColumns[i].Field + '") FROM "'
+                                                               + self._schema + '"."' + self._clonedSelfTableName + '"));';
+
+                                                           client.query(sql, function(err4) {
+                                                              done();
+
+                                                              if (err4) {
+                                                                  let err4Msg = '\t--[createSequence] Failed to set max-value of "' + self._schema + '"."'
+                                                                              + self._clonedSelfTableName + '"."' + self._clonedSelfTableColumns[i].Field + '" '
+                                                                              + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
+
+                                                                  self.generateError(self, err4Msg, sql);
+                                                                  resolveCreateSequence();
+                                                              } else {
+                                                                  let success = '\t--[createSequence] Sequence "' + self._schema + '"."' + seqName + '" is created...';
+                                                                  self.log(self, success);
+                                                                  resolveCreateSequence();
+                                                              }
+                                                           });
+                                                        }
+                                                   });
+                                               }
+                                         });
+                                     }
+                                });
+                            }
+                        });
+                    })
+                );
+            }
+        }
+
+        Promise.all(createSequencePromises).then(
+            function() {
+                resolve(self);
+            }
+        );
+    });
+};
+
+/**
+ * Create primary key and indices.
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
+    return new Promise(function(resolve) {
+        resolve(self);
+    }).then(
+        self.connect
+    ).then(
+        function(self) {
+            return new Promise(function(resolveProcessIndexAndKey) {
+                self._mysql.getConnection(function(error, connection) {
+                    if (error) {
+                        // The connection is undefined.
+                        self.generateError(self, '\t--[processIndexAndKey] Cannot connect to MySQL server...\n\t' + error);
+                        resolveProcessIndexAndKey();
+                    } else {
+                        let sql = 'SHOW INDEX FROM `' + self._clonedSelfTableName + '`;';
+                        connection.query(sql, function(err, arrIndices) {
+                            connection.release();
+
+                            if (err) {
+                                self.generateError(self, '\t--[processIndexAndKey] ' + err, sql);
+                                resolveProcessIndexAndKey();
+                            } else {
+                                let objPgIndices               = {};
+                                let cnt                        = 0;
+                                let indexType                  = '';
+                                let processIndexAndKeyPromises = [];
+
+                                for (let i = 0; i < arrIndices.length; i++) {
+                                    if (arrIndices[i].Key_name in objPgIndices) {
+                                        objPgIndices[arrIndices[i].Key_name].column_name.push('"' + arrIndices[i].Column_name + '"');
+                                    } else {
+                                        objPgIndices[arrIndices[i].Key_name] = {
+                                            'is_unique'   : arrIndices[i].Non_unique === 0 ? true : false,
+                                            'column_name' : ['"' + arrIndices[i].Column_name + '"']
+                                        };
+                                    }
+                                }
+                                
+                                for (let attr in objPgIndices) {
+                                    if (attr.toLowerCase() === 'primary') {
+                                        indexType = 'PK';
+                                        sql       = 'ALTER TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '" '
+                                                  + 'ADD PRIMARY KEY(' + objPgIndices[attr].column_name.join(',') + ');';
+
+                                    } else {
+                                        // "schema_idxname_{integer}_idx" - is NOT a mistake.
+                                        let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
+                                        indexType      = 'index';
+                                        sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
+                                                       + self._schema + '_' + self._clonedSelfTableName + '_' + columnName + '_idx" ON "'
+                                                       + self._schema + '"."' + self._clonedSelfTableName
+                                                       + '" (' + objPgIndices[attr].column_name.join(',') + ');';
+                                    }
+
+                                    processIndexAndKeyPromises.push(
+                                        new Promise(function(resolveProcessIndexAndKeySql) {
+                                            pg.connect(self._targetConString, function(pgError, pgClient, done) {
+                                                if (pgError) {
+                                                    done();
+                                                    let msg = '\t--[processIndexAndKey] Cannot connect to PostgreSQL server...\n' + pgError;
+                                                    self.generateError(self, msg);
+                                                    resolveProcessIndexAndKeySql();
+                                                } else {
+                                                    pgClient.query(sql, function(err2) {
+                                                        done();
+
+                                                        if (err2) {
+                                                            self.generateError(self, '\t--[processIndexAndKey] ' + err2, sql);
+                                                            resolveProcessIndexAndKeySql();
+                                                        } else {
+                                                            let success = '\t--[processIndexAndKey] "' + self._schema + '"."'
+                                                                        + self._clonedSelfTableName + '": PK/indices are successfully set...';
+
+                                                            self.log(self, success);
+                                                            resolveProcessIndexAndKeySql();
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        })
+                                    );
+                                }
+
+                                Promise.all(processIndexAndKeyPromises).then(
+                                    function() {
+                                        resolveProcessIndexAndKey(self);
+                                    }
+                                );
+                            }
+                        });
+                    }
+                });
+            });
+        }
+    );
 };
 
 /**
@@ -1131,6 +1335,10 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.processNull
     ).then(
         self.processDefault
+    ).then(
+        self.createSequence
+    ).then(
+        self.processIndexAndKey
     ).then(
         function() {
             //
@@ -1182,7 +1390,7 @@ FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
     ).then(
         function(self) {
             return new Promise(function(resolve) {
-		self.log(self, '\t--[cleanup] Cleanup finished...');
+		            self.log(self, '\t--[cleanup] Cleanup finished...');
                 resolve(self);
             });
         }
