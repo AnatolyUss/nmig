@@ -108,7 +108,17 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
  * @returns {Boolean}
  */
 FromMySQL2PostgreSQL.prototype.isIntNumeric = function(value) {
-    return !isNaN(parseInt(value)) && isFinite(value);
+    return !isNaN(parseInt(value)) && isFinite(value);//isFloatNumeric
+};
+
+/**
+ * Checks if given value is float number.
+ *
+ * @param   {String|Number} value
+ * @returns {Boolean}
+ */
+FromMySQL2PostgreSQL.prototype.isFloatNumeric = function(value) {
+    return !isNaN(parseFloat(value)) && isFinite(value);
 };
 
 /**
@@ -1012,6 +1022,84 @@ FromMySQL2PostgreSQL.prototype.processNull = function(self) {
 };
 
 /**
+ * Define which columns of the given table have default value.
+ * Set default values, if need.
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
+    return new Promise(function(resolve) {
+        self.log(self, '\t--[processDefault] Set default values for table: "' + self._schema + '"."' + self._clonedSelfTableName + '"');
+        let processDefaultPromises = [];
+        let sqlReservedValues      = {
+            'CURRENT_DATE'        : 'CURRENT_DATE',
+            '0000-00-00'          : "'-INFINITY'",
+            'CURRENT_TIME'        : 'CURRENT_TIME',
+            '00:00:00'            : '00:00:00',
+            'CURRENT_TIMESTAMP'   : 'CURRENT_TIMESTAMP',
+            '0000-00-00 00:00:00' : "'-INFINITY'",
+            'LOCALTIME'           : 'LOCALTIME',
+            'LOCALTIMESTAMP'      : 'LOCALTIMESTAMP',
+            'NULL'                : 'NULL',
+            'UTC_DATE'            : "(CURRENT_DATE AT TIME ZONE 'UTC')",
+            'UTC_TIME'            : "(CURRENT_TIME AT TIME ZONE 'UTC')",
+            'UTC_TIMESTAMP'       : "(NOW() AT TIME ZONE 'UTC')",
+        };
+
+        for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
+            if (self._clonedSelfTableColumns[i].Default) {
+                processDefaultPromises.push(
+                    new Promise(function(resolveProcessDefault) {
+                        pg.connect(self._targetConString, function(error, client, done) {
+                            if (error) {
+                                done();
+                                let msg = '\t--[processDefault] Cannot connect to PostgreSQL server...\n' + error;
+                                self.generateError(self, msg);
+                                resolveProcessDefault();
+                            } else {
+                                let sql = 'ALTER TABLE "' + self._schema + '"."' + self._clonedSelfTableName
+                                        + '" ' + 'ALTER COLUMN "' + self._clonedSelfTableColumns[i].Field + '" SET DEFAULT ';
+
+                                if (sqlReservedValues[self._clonedSelfTableColumns[i].Default]) {
+                                    sql += sqlReservedValues[self._clonedSelfTableColumns[i].Default] + ';';
+                                } else {
+                                    sql += self.isFloatNumeric(sqlReservedValues[self._clonedSelfTableColumns[i].Default])
+                                           ? sqlReservedValues[self._clonedSelfTableColumns[i].Default] + ';'
+                                           : "'" + sqlReservedValues[self._clonedSelfTableColumns[i].Default] + "';";
+                                }
+
+                                client.query(sql, function(err) {
+                                    done();
+
+                                    if (err) {
+                                        let msg = '\t--[processDefault] Error while processing default values...\n' + err;
+                                        self.generateError(self, msg, sql);
+                                        resolveProcessDefault();
+                                    } else {
+                                        let success = '\t--[processDefault] Set default value for table "' + self._schema + '"."' + self._clonedSelfTableName
+                                                    + '" column: "' + self._clonedSelfTableColumns[i].Field + '"';
+
+                                        self.log(self, success);
+                                        resolveProcessDefault();
+                                    }
+                                });
+                            }
+                        });
+                    })
+                );
+            }
+        }
+
+        Promise.all(processDefaultPromises).then(
+            function() {
+                resolve(self);
+            }
+        );
+    });
+};
+
+/**
  * Runs migration process for given table.
  *
  * @param   {FromMySQL2PostgreSQL} self
@@ -1041,6 +1129,8 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.processEnum
     ).then(
         self.processNull
+    ).then(
+        self.processDefault
     ).then(
         function() {
             //
@@ -1202,3 +1292,4 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
+
