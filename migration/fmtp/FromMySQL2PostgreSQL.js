@@ -108,7 +108,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
  * @returns {Boolean}
  */
 FromMySQL2PostgreSQL.prototype.isIntNumeric = function(value) {
-    return !isNaN(parseInt(value)) && isFinite(value);//isFloatNumeric
+    return !isNaN(parseInt(value)) && isFinite(value);
 };
 
 /**
