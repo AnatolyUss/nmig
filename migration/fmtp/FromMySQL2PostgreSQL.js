@@ -1252,12 +1252,14 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
 
                                     } else {
                                         // "schema_idxname_{integer}_idx" - is NOT a mistake.
-                                        let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
+                                        let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt;
                                         indexType      = 'index';
                                         sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
                                                        + self._schema + '_' + self._clonedSelfTableName + '_' + columnName + '_idx" ON "'
                                                        + self._schema + '"."' + self._clonedSelfTableName
                                                        + '" (' + objPgIndices[attr].column_name.join(',') + ');';
+
+                                        cnt++;
                                     }
 
                                     processIndexAndKeyPromises.push(
