@@ -1243,7 +1243,7 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                         };
                                     }
                                 }
-                                
+
                                 for (let attr in objPgIndices) {
                                     if (attr.toLowerCase() === 'primary') {
                                         indexType = 'PK';
@@ -1252,14 +1252,12 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
 
                                     } else {
                                         // "schema_idxname_{integer}_idx" - is NOT a mistake.
-                                        let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt;
+                                        let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
                                         indexType      = 'index';
                                         sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
                                                        + self._schema + '_' + self._clonedSelfTableName + '_' + columnName + '_idx" ON "'
                                                        + self._schema + '"."' + self._clonedSelfTableName
                                                        + '" (' + objPgIndices[attr].column_name.join(',') + ');';
-
-                                        cnt++;
                                     }
 
                                     processIndexAndKeyPromises.push(
@@ -1278,10 +1276,6 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                                             self.generateError(self, '\t--[processIndexAndKey] ' + err2, sql);
                                                             resolveProcessIndexAndKeySql();
                                                         } else {
-                                                            let success = '\t--[processIndexAndKey] "' + self._schema + '"."'
-                                                                        + self._clonedSelfTableName + '": PK/indices are successfully set...';
-
-                                                            self.log(self, success);
                                                             resolveProcessIndexAndKeySql();
                                                         }
                                                     });
@@ -1293,6 +1287,10 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
 
                                 Promise.all(processIndexAndKeyPromises).then(
                                     function() {
+                                        let success = '\t--[processIndexAndKey] "' + self._schema + '"."'
+                                                    + self._clonedSelfTableName + '": PK/indices are successfully set...';
+
+                                        self.log(self, success);
                                         resolveProcessIndexAndKey(self);
                                     }
                                 );
@@ -1502,4 +1500,3 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
-
