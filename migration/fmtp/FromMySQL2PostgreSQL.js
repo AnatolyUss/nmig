@@ -333,7 +333,6 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
                 });
             }
         });
-
     }).then(
         self => {
             return new Promise(resolveTableLog => {
@@ -445,7 +444,6 @@ FromMySQL2PostgreSQL.prototype.createSchema = function(self) {
                                 resolve(self);
                             }
                         });
-
                     } else {
                         resolve(self);
                     }
@@ -1446,3 +1444,4 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
+
