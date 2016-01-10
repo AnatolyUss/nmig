@@ -45,7 +45,7 @@
         "JavaScript encoding type.",
         "If not supplied, then utf-8 will be used as a default."
     ],
-    "encoding" : "utf-8",
+    "encoding" : "utf8",
     
     "schema_description" : [
         "schema - a name of the schema, that will contain all migrated tables.",
