@@ -122,22 +122,6 @@ FromMySQL2PostgreSQL.prototype.isFloatNumeric = function(value) {
 };
 
 /**
- * Returns a clone of given object.
- *
- * @param   {Object} obj
- * @returns {Object}
- */
-FromMySQL2PostgreSQL.prototype.clone = function(obj) {
-    let clone = {};
-
-    for (let attr in obj) {
-        clone[attr] = obj[attr];
-    }
-
-    return clone;
-};
-
-/**
  * Converts MySQL data types to corresponding PostgreSQL data types.
  * This conversion performs in accordance to mapping rules in './DataTypesMap.json'.
  * './DataTypesMap.json' can be customized.
@@ -1259,7 +1243,7 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                                        + self._schema + '"."' + self._clonedSelfTableName
                                                        + '" (' + objPgIndices[attr].column_name.join(',') + ');';
                                     }
-
+                                    
                                     processIndexAndKeyPromises.push(
                                         new Promise(function(resolveProcessIndexAndKeySql) {
                                             pg.connect(self._targetConString, function(pgError, pgClient, done) {
@@ -1312,7 +1296,7 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
     return new Promise(function(resolve) {
-        self                          = self.clone(self);
+        self                          = Object.create(self);
         self._clonedSelfTableName     = tableName;
         self._totalRowsInserted       = 0;
 	      self._clonedSelfTableNamePath = self._logsDirPath + '/' + tableName + '.log';
@@ -1500,3 +1484,4 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
+
