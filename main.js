@@ -1,16 +1,16 @@
-/* 
+/*
  * This file is a part of "NMIG" - the database migration tool.
- * 
+ *
  * Copyright 2015 Anatoly Khaytovich <anatolyuss@gmail.com>
- * 
- * @author Anatoly Khaytovich <anatolyuss@gmail.com>  
+ *
+ * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 'use strict';
 const fs   = require('fs');
 const fmtp = require('./migration/fmtp/FromMySQL2PostgreSQL');
 const nmig = new fmtp.FromMySQL2PostgreSQL();
 
-fs.readFile(__dirname + '/config.json', function(error, data) {
+fs.readFile(__dirname + '/config.json', (error, data) => {
     if (error) {
         console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + __dirname + '/config.json');
     } else {
@@ -25,4 +25,3 @@ fs.readFile(__dirname + '/config.json', function(error, data) {
         }
     }
 });
-
