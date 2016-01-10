@@ -1229,21 +1229,6 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                 }
 
                                 for (let attr in objPgIndices) {
-                                    if (attr.toLowerCase() === 'primary') {
-                                        indexType = 'PK';
-                                        sql       = 'ALTER TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '" '
-                                                  + 'ADD PRIMARY KEY(' + objPgIndices[attr].column_name.join(',') + ');';
-
-                                    } else {
-                                        // "schema_idxname_{integer}_idx" - is NOT a mistake.
-                                        let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
-                                        indexType      = 'index';
-                                        sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
-                                                       + self._schema + '_' + self._clonedSelfTableName + '_' + columnName + '_idx" ON "'
-                                                       + self._schema + '"."' + self._clonedSelfTableName
-                                                       + '" (' + objPgIndices[attr].column_name.join(',') + ');';
-                                    }
-                                    
                                     processIndexAndKeyPromises.push(
                                         new Promise(function(resolveProcessIndexAndKeySql) {
                                             pg.connect(self._targetConString, function(pgError, pgClient, done) {
@@ -1253,6 +1238,21 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                                     self.generateError(self, msg);
                                                     resolveProcessIndexAndKeySql();
                                                 } else {
+                                                    if (attr.toLowerCase() === 'primary') {
+                                                        indexType = 'PK';
+                                                        sql       = 'ALTER TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '" '
+                                                                  + 'ADD PRIMARY KEY(' + objPgIndices[attr].column_name.join(',') + ');';
+
+                                                    } else {
+                                                        // "schema_idxname_{integer}_idx" - is NOT a mistake.
+                                                        let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
+                                                        indexType      = 'index';
+                                                        sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
+                                                                       + self._schema + '_' + self._clonedSelfTableName + '_' + columnName + '_idx" ON "'
+                                                                       + self._schema + '"."' + self._clonedSelfTableName
+                                                                       + '" (' + objPgIndices[attr].column_name.join(',') + ');';
+                                                    }
+                                                    
                                                     pgClient.query(sql, function(err2) {
                                                         done();
 
@@ -1484,4 +1484,3 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
-
