@@ -508,22 +508,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                                 + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
 
                                 self.log(self, message);
-
-                                Promise.all(processTablePromises).then(
-                                    () => {
-			                                   resolve(self);
-                                    },
-                                    () => {
-                                        reject();
-                                    }
-                                ).then(
-                                    () => {
-                                        resolve(self);
-                                    },
-                                    () => {
-                                        reject();
-                                    }
-                                );
+                                Promise.all(processTablePromises).then(() => resolve(self), () => reject());
                             }
                         });
                     }
@@ -1245,10 +1230,16 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.connect
     ).then(
         self.createTable,
-        () => self.log(self, '\t--[processTable] Cannot establish DB connections...')
+        () => {
+            // Braces are essential. Without them promises-chain will continue execution.
+            self.log(self, '\t--[processTable] Cannot establish DB connections...')
+        }
     ).then(
         self.populateTable,
-        () => self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + tableName + '"...')
+        () => {
+            // Braces are essential. Without them promises-chain will continue execution.
+            self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + tableName + '"...')
+        }
     ).then(
         self.processEnum
     ).then(
@@ -1259,8 +1250,6 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.createSequence
     ).then(
         self.processIndexAndKey
-    ).then(
-        //
     );
 };
 
