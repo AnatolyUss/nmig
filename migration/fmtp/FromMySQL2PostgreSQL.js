@@ -847,8 +847,6 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows, call
     Promise.all(insertPromises).then(() => callback.call(self));
 };
 
-// TODO: continue.
-
 /**
  * Define which columns of the given table are of type "enum".
  * Set an appropriate constraint, if need.
@@ -857,7 +855,7 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows, call
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         self.log(self, '\t--[processEnum] Defines "ENUMs" for table "' + self._schema + '"."' + self._clonedSelfTableName + '"');
         let processEnumPromises = [];
 
@@ -867,8 +865,8 @@ FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
 
                 if ('enum' === arrType[0]) { // arrType[1] ends with ')'.
                     processEnumPromises.push(
-                        new Promise(function(resolveProcessEnum) {
-                            pg.connect(self._targetConString, function(error, client, done) {
+                        new Promise(resolveProcessEnum => {
+                            pg.connect(self._targetConString, (error, client, done) => {
                                 if (error) {
                                     done();
                                     let msg = '\t--[processEnum] Cannot connect to PostgreSQL server...\n' + error;
@@ -878,7 +876,7 @@ FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
                                     let sql = 'ALTER TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '" '
                                             + 'ADD CHECK ("' + self._clonedSelfTableColumns[i].Field + '" IN (' + arrType[1] + ');';
 
-                                    client.query(sql, function(err) {
+                                    client.query(sql, err => {
                                         done();
 
                                         if (err) {
@@ -901,11 +899,7 @@ FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
             }
         }
 
-        Promise.all(processEnumPromises).then(
-            function() {
-                resolve(self);
-            }
-        );
+        Promise.all(processEnumPromises).then(() => resolve(self));
     });
 };
 
@@ -917,15 +911,15 @@ FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.processNull = function(self) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         self.log(self, '\t--[processNull] Defines "NULLs" for table: "' + self._schema + '"."' + self._clonedSelfTableName + '"');
         let processNullPromises = [];
 
         for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
             if (self._clonedSelfTableColumns[i].Null.toLowerCase() === 'no') {
                 processNullPromises.push(
-                    new Promise(function(resolveProcessNull) {
-                        pg.connect(self._targetConString, function(error, client, done) {
+                    new Promise(resolveProcessNull => {
+                        pg.connect(self._targetConString, (error, client, done) => {
                             if (error) {
                                 done();
                                 let msg = '\t--[processNull] Cannot connect to PostgreSQL server...\n' + error;
@@ -935,7 +929,7 @@ FromMySQL2PostgreSQL.prototype.processNull = function(self) {
                                 let sql = 'ALTER TABLE "' + self._schema + '"."' + self._clonedSelfTableName
                                         + '" ALTER COLUMN "' + self._clonedSelfTableColumns[i].Field + '" SET NOT NULL;';
 
-                                client.query(sql, function(err) {
+                                client.query(sql, err => {
                                     done();
 
                                     if (err) {
@@ -957,11 +951,7 @@ FromMySQL2PostgreSQL.prototype.processNull = function(self) {
             }
         }
 
-        Promise.all(processNullPromises).then(
-            function() {
-                resolve(self);
-            }
-        );
+        Promise.all(processNullPromises).then(() => resolve(self));
     });
 };
 
@@ -973,7 +963,7 @@ FromMySQL2PostgreSQL.prototype.processNull = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         self.log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + self._clonedSelfTableName + '"');
         let processDefaultPromises = [];
         let sqlReservedValues      = {
@@ -994,8 +984,8 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
         for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
             if (self._clonedSelfTableColumns[i].Default) {
                 processDefaultPromises.push(
-                    new Promise(function(resolveProcessDefault) {
-                        pg.connect(self._targetConString, function(error, client, done) {
+                    new Promise(resolveProcessDefault => {
+                        pg.connect(self._targetConString, (error, client, done) => {
                             if (error) {
                                 done();
                                 let msg = '\t--[processDefault] Cannot connect to PostgreSQL server...\n' + error;
@@ -1013,7 +1003,7 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
                                            : "'" + self._clonedSelfTableColumns[i].Default + "';";
                                 }
 
-                                client.query(sql, function(err) {
+                                client.query(sql, err => {
                                     done();
 
                                     if (err) {
@@ -1035,11 +1025,7 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
             }
         }
 
-        Promise.all(processDefaultPromises).then(
-            function() {
-                resolve(self);
-            }
-        );
+        Promise.all(processDefaultPromises).then(() => resolve(self));
     });
 };
 
@@ -1051,16 +1037,16 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         let createSequencePromises = [];
 
         for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
             if (self._clonedSelfTableColumns[i].Extra === 'auto_increment') {
                 createSequencePromises.push(
-                    new Promise(function(resolveCreateSequence) {
+                    new Promise(resolveCreateSequence => {
                         let seqName = self._clonedSelfTableName + '_' + self._clonedSelfTableColumns[i].Field + '_seq';
                         self.log(self, '\t--[createSequence] Trying to create sequence : "' + self._schema + '"."' + seqName + '"');
-                        pg.connect(self._targetConString, function(error, client, done) {
+                        pg.connect(self._targetConString, (error, client, done) => {
                             if (error) {
                                 done();
                                 let msg = '\t--[createSequence] Cannot connect to PostgreSQL server...\n' + error;
@@ -1068,7 +1054,7 @@ FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
                                 resolveCreateSequence();
                             } else {
                                 let sql = 'CREATE SEQUENCE "' + self._schema + '"."' + seqName + '";';
-                                client.query(sql, function(err) {
+                                client.query(sql, err => {
                                     if (err) {
                                         done();
                                         let errMsg = '\t--[createSequence] Failed to create sequence "' + self._schema + '"."' + seqName + '"';
@@ -1079,7 +1065,7 @@ FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
                                              + 'ALTER COLUMN "' + self._clonedSelfTableColumns[i].Field + '" '
                                              + 'SET DEFAULT NEXTVAL(\'"' + self._schema + '"."' + seqName + '"\');';
 
-                                         client.query(sql, function(err2) {
+                                         client.query(sql, err2 => {
                                              if (err2) {
                                                  done();
                                                  let err2Msg = '\t--[createSequence] Failed to set default value for "' + self._schema + '"."'
@@ -1093,7 +1079,7 @@ FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
                                                        + 'OWNED BY "' + self._schema + '"."' + self._clonedSelfTableName
                                                        + '"."' + self._clonedSelfTableColumns[i].Field + '";';
 
-                                                   client.query(sql, function(err3) {
+                                                   client.query(sql, err3 => {
                                                         if (err3) {
                                                             done();
                                                             let err3Msg = '\t--[createSequence] Failed to relate sequence "' + self._schema + '"."' + seqName + '" to '
@@ -1107,7 +1093,7 @@ FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
                                                                + '(SELECT MAX("' + self._clonedSelfTableColumns[i].Field + '") FROM "'
                                                                + self._schema + '"."' + self._clonedSelfTableName + '"));';
 
-                                                           client.query(sql, function(err4) {
+                                                           client.query(sql, err4 => {
                                                               done();
 
                                                               if (err4) {
@@ -1136,11 +1122,7 @@ FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
             }
         }
 
-        Promise.all(createSequencePromises).then(
-            function() {
-                resolve(self);
-            }
-        );
+        Promise.all(createSequencePromises).then(() => resolve(self));
     });
 };
 
@@ -1151,21 +1133,21 @@ FromMySQL2PostgreSQL.prototype.createSequence = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
-    return new Promise(function(resolve) {
-        resolve(self);
-    }).then(
+    return new Promise(
+        resolve => resolve(self)
+    ).then(
         self.connect
     ).then(
-        function(self) {
-            return new Promise(function(resolveProcessIndexAndKey) {
-                self._mysql.getConnection(function(error, connection) {
+        self => {
+            return new Promise(resolveProcessIndexAndKey => {
+                self._mysql.getConnection((error, connection) => {
                     if (error) {
                         // The connection is undefined.
                         self.generateError(self, '\t--[processIndexAndKey] Cannot connect to MySQL server...\n\t' + error);
                         resolveProcessIndexAndKey();
                     } else {
                         let sql = 'SHOW INDEX FROM `' + self._clonedSelfTableName + '`;';
-                        connection.query(sql, function(err, arrIndices) {
+                        connection.query(sql, (err, arrIndices) => {
                             connection.release();
 
                             if (err) {
@@ -1190,8 +1172,8 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
 
                                 for (let attr in objPgIndices) {
                                     processIndexAndKeyPromises.push(
-                                        new Promise(function(resolveProcessIndexAndKeySql) {
-                                            pg.connect(self._targetConString, function(pgError, pgClient, done) {
+                                        new Promise(resolveProcessIndexAndKeySql => {
+                                            pg.connect(self._targetConString, (pgError, pgClient, done) => {
                                                 if (pgError) {
                                                     done();
                                                     let msg = '\t--[processIndexAndKey] Cannot connect to PostgreSQL server...\n' + pgError;
@@ -1213,7 +1195,7 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                                                        + '" (' + objPgIndices[attr].column_name.join(',') + ');';
                                                     }
 
-                                                    pgClient.query(sql, function(err2) {
+                                                    pgClient.query(sql, err2 => {
                                                         done();
 
                                                         if (err2) {
@@ -1229,15 +1211,13 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                     );
                                 }
 
-                                Promise.all(processIndexAndKeyPromises).then(
-                                    function() {
-                                        let success = '\t--[processIndexAndKey] "' + self._schema + '"."'
-                                                    + self._clonedSelfTableName + '": PK/indices are successfully set...';
+                                Promise.all(processIndexAndKeyPromises).then(() => {
+                                    let success = '\t--[processIndexAndKey] "' + self._schema + '"."'
+                                                + self._clonedSelfTableName + '": PK/indices are successfully set...';
 
-                                        self.log(self, success);
-                                        resolveProcessIndexAndKey(self);
-                                    }
-                                );
+                                    self.log(self, success);
+                                    resolveProcessIndexAndKey(self);
+                                });
                             }
                         });
                     }
@@ -1255,7 +1235,7 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         self                          = Object.create(self);
         self._clonedSelfTableName     = tableName;
         self._totalRowsInserted       = 0;
@@ -1265,14 +1245,10 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.connect
     ).then(
         self.createTable,
-        function() {
-            self.log(self, '\t--[processTable] Cannot establish DB connections...');
-        }
+        () => self.log(self, '\t--[processTable] Cannot establish DB connections...')
     ).then(
         self.populateTable,
-        function() {
-            self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + tableName + '"...');
-        }
+        () => self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + tableName + '"...')
     ).then(
         self.processEnum
     ).then(
@@ -1284,9 +1260,7 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
     ).then(
         self.processIndexAndKey
     ).then(
-        function() {
-            //
-        }
+        //
     );
 };
 
@@ -1297,9 +1271,9 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.closeConnections = function(self) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         if (self._mysql) {
-            self._mysql.end(function(error) {
+            self._mysql.end(error => {
                 if (error) {
                     self.log(self, '\t--[closeConnections] ' + error);
                 }
@@ -1324,21 +1298,19 @@ FromMySQL2PostgreSQL.prototype.closeConnections = function(self) {
  * @returns {Promise}
  */
 FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
-    return new Promise(function(resolve) {
+    return new Promise(resolve => {
         self.log(self, '\t--[cleanup] Cleanup resources...');
         resolve(self);
     }).then(
         self.removeTemporaryDirectory
     ).then(
         self.closeConnections
-    ).then(
-        function(self) {
-            return new Promise(function(resolve) {
-		            self.log(self, '\t--[cleanup] Cleanup finished...');
-                resolve(self);
-            });
-        }
-    );
+    ).then(self => {
+        return new Promise(resolve => {
+            self.log(self, '\t--[cleanup] Cleanup finished...');
+            resolve(self);
+        });
+    });
 };
 
 /**
@@ -1375,69 +1347,49 @@ FromMySQL2PostgreSQL.prototype.generateReport = function(self, endMsg) {
 FromMySQL2PostgreSQL.prototype.run = function(config) {
     let self     = this;
     self._config = config;
-    let promise  = new Promise(function(resolve) {
-        resolve(self);
-    });
+    let promise  = new Promise(resolve => resolve(self));
 
     promise.then(
         self.boot
     ).then(
         self.createLogsDirectory,
-        function() {
-            console.log('\t--[run] Failed to boot migration');
-        }
-
+        () => console.log('\t--[run] Failed to boot migration')
     ).then(
         self.createTemporaryDirectory,
-        function() {
-            self.log(self, '\t--[run] Logs directory was not created...');
-        }
-
+        () => self.log(self, '\t--[run] Logs directory was not created...')
     ).then(
         self.createSchema,
-        function() {
+        () => {
             let msg = '\t--[run] The temporary directory [' + self._tempDirPath + '] already exists...'
                     + '\n\t  Please, remove this directory and rerun NMIG...';
 
             self.log(self, msg);
         }
-
     ).then(
         self.loadStructureToMigrate,
-        function() {
-            return new Promise(function(resolveError) {
-                resolveError(self);
-            }).then(
-                function() {
-                    self.log(self, '\t--[run] Cannot create new DB schema...');
-                    self.cleanup(self);
-                }
-            );
+        () => {
+            return new Promise(resolveError => resolveError(self)).then(() => {
+                self.log(self, '\t--[run] Cannot create new DB schema...');
+                self.cleanup(self);
+            });
         }
-
     ).then(
-        function() {
-            return new Promise(function(resolve) {
-                resolve(self);
-            }).then(
+        () => {
+            return new Promise(
+                resolve => resolve(self)
+            ).then(
                 self.cleanup
             ).then(
-                function(self) {
-                    self.generateReport(self, 'NMIG migration is accomplished.');
-                }
+                self => self.generateReport(self, 'NMIG migration is accomplished.')
             );
         },
-        function() {
-            return new Promise(function(resolveErr) {
-                resolveErr(self);
-            }).then(
-                function() {
-                    self.cleanup(self);
-                }
+        () => {
+            return new Promise(
+                resolveErr => resolveErr(self)
             ).then(
-                function() {
-                    self.generateReport(self, 'NMIG cannot load source database structure.');
-                }
+                () => self.cleanup(self)
+            ).then(
+                () => self.generateReport(self, 'NMIG cannot load source database structure.')
             );
         }
     );
