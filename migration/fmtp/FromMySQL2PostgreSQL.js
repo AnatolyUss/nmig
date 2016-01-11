@@ -1232,13 +1232,13 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.createTable,
         () => {
             // Braces are essential. Without them promises-chain will continue execution.
-            self.log(self, '\t--[processTable] Cannot establish DB connections...')
+            self.log(self, '\t--[processTable] Cannot establish DB connections...');
         }
     ).then(
         self.populateTable,
         () => {
             // Braces are essential. Without them promises-chain will continue execution.
-            self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + tableName + '"...')
+            self.log(self, '\t--[processTable] Cannot create table "' + self._schema + '"."' + tableName + '"...');
         }
     ).then(
         self.processEnum
@@ -1342,10 +1342,16 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
         self.boot
     ).then(
         self.createLogsDirectory,
-        () => console.log('\t--[run] Failed to boot migration')
+        () => {
+            // Braces are essential. Without them promises-chain will continue execution.
+            console.log('\t--[run] Failed to boot migration');
+        }
     ).then(
         self.createTemporaryDirectory,
-        () => self.log(self, '\t--[run] Logs directory was not created...')
+        () => {
+            // Braces are essential. Without them promises-chain will continue execution.
+            self.log(self, '\t--[run] Logs directory was not created...');
+        }
     ).then(
         self.createSchema,
         () => {
