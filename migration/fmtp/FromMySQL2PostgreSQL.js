@@ -519,6 +519,103 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
 };
 
 /**
+ * Creates foreign keys.
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.processForeignKey = function(self) {
+    return new Promise(resolve => {
+        let fkPromises = [];
+
+        for (let i = 0; i < self._tablesToMigrate.length; i++) {
+            fkPromises.push(
+                new Promise(fkResolveConnection => {
+                    let msg = '\t--[processForeignKey] Search foreign keys for table "' + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
+                    self.log(self, msg);
+                    fkResolveConnection(self);
+                }).then(
+                    self.connect
+                ).then(
+                    self => {
+                        return new Promise(fkResolve => {
+                            self._mysql.getConnection((error, connection) => {
+                                if (error) {
+                                    // The connection is undefined.
+                                    self.generateError(self, '\t--[processForeignKey] Cannot connect to MySQL server...\n' + error);
+                                    fkResolve(self);
+                                } else {
+                                    let sql = "SELECT cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME, "
+                                            + "cRefs.UPDATE_RULE, cRefs.DELETE_RULE, cRefs.CONSTRAINT_NAME "
+                                            + "FROM INFORMATION_SCHEMA.`COLUMNS` AS cols "
+                                            + "INNER JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS refs "
+                                            + "ON refs.TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND refs.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND refs.TABLE_NAME = cols.TABLE_NAME "
+                                            + "AND refs.COLUMN_NAME = cols.COLUMN_NAME "
+                                            + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cRefs "
+                                            + "ON cRefs.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND cRefs.CONSTRAINT_NAME = refs.CONSTRAINT_NAME "
+                                            + "LEFT JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS links "
+                                            + "ON links.TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND links.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND links.REFERENCED_TABLE_NAME = cols.TABLE_NAME "
+                                            + "AND links.REFERENCED_COLUMN_NAME = cols.COLUMN_NAME "
+                                            + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cLinks "
+                                            + "ON cLinks.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME "
+                                            + "WHERE cols.TABLE_SCHEMA = '" + self._mySqlDbName + "' "
+                                            + "AND cols.TABLE_NAME = '" + self._tablesToMigrate[i] + "';";
+
+                                    connection.query(sql, (err, rows) => {
+                                        connection.release();
+                                        
+                                        if (err) {
+                                            self.generateError(self, '\t--[processForeignKey] ' + err, sql);
+                                            fkResolve(self);
+                                        } else {
+                                            pg.connect(self._targetConString, (error, client, done) => {
+                                                if (error) {
+                                                    done();
+                                                    self.generateError(self, '\t--[processForeignKey] Cannot connect to PostgreSQL server...');
+                                                    fkResolve(self);
+                                                } else {
+                                                    sql = '';
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    },
+                    () => {
+                        return new Promise(resolveError => {
+                            self.generateError(self, '\t--[processForeignKey] Cannot establish DB connections...');
+                            resolveError(self);
+                        });
+                    }
+                )
+            );
+        }
+
+        Promise.all(fkPromises).then(() => resolve(self));
+    });
+};
+
+/**
+ * Runs "vacuum full" and "analyze".
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.runVacuumFullAndAnalyze = function(self) {
+    return new Promise(resolve => {
+        resolve(self); // TODO: implement this method.
+    });
+};
+
+/**
  * Migrates structure of a single table to PostgreSql server.
  *
  * @param   {FromMySQL2PostgreSQL} self
@@ -544,7 +641,7 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                             connection.release();
 
                             if (err) {
-                                self.generateError(self, '\t--[createTable] ' + err);
+                                self.generateError(self, '\t--[createTable] ' + err, sql);
                                 rejectCreateTable();
                             } else {
                                 pg.connect(self._targetConString, (error, client, done) => {
@@ -1369,6 +1466,16 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
             });
         }
     ).then(
+        self.processForeignKey,
+        () => {
+            return new Promise(resolveError => resolveError(self)).then(() => {
+                self.log(self, '\t--[run] NMIG cannot load source database structure...');
+                self.cleanup(self);
+            });
+        }
+    ).then(
+        self.runVacuumFullAndAnalyze
+    ).then(
         () => {
             return new Promise(
                 resolve => resolve(self)
@@ -1384,7 +1491,12 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
             ).then(
                 () => self.cleanup(self)
             ).then(
-                () => self.generateReport(self, 'NMIG cannot load source database structure.')
+                () => {
+                    let message = 'NMIG migration is accomplished with errors. '
+                                + 'Please, check log files under [' + self._logsDirPath + ']';
+
+                    self.generateReport(self, message);
+                }
             );
         }
     );
