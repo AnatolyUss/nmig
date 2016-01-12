@@ -569,7 +569,7 @@ FromMySQL2PostgreSQL.prototype.processForeignKey = function(self) {
 
                                     connection.query(sql, (err, rows) => {
                                         connection.release();
-                                        
+
                                         if (err) {
                                             self.generateError(self, '\t--[processForeignKey] ' + err, sql);
                                             fkResolve(self);
@@ -611,7 +611,41 @@ FromMySQL2PostgreSQL.prototype.processForeignKey = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.runVacuumFullAndAnalyze = function(self) {
     return new Promise(resolve => {
-        resolve(self); // TODO: implement this method.
+        let vacuumPromises = [];
+
+        for (let i = 0; i < self._tablesToMigrate.length; i++) {
+            let msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
+                    + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
+
+            self.log(self, msg);
+            vacuumPromises.push(
+                new Promise(resolveVacuum => {
+                    pg.connect(self._targetConString, (error, client, done) => {
+                        if (error) {
+                            done();
+                            self.generateError(self, '\t--[runVacuumFullAndAnalyze] Cannot connect to PostgreSQL server...');
+                            resolveVacuum(self);
+                        } else {
+                            let sql = 'VACUUM (FULL, ANALYZE) "' + self._schema + '"."' + self._tablesToMigrate[i] + '";';
+                            client.query(sql, err => {
+                                done();
+
+                                if (err) {
+                                    self.generateError(self, '\t--[runVacuumFullAndAnalyze] ' + err, sql);
+                                    resolveVacuum(self);
+                                } else {
+                                    let msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
+                                    self.log(self, msg2);
+                                    resolveVacuum(self);
+                                }
+                            });
+                        }
+                    });
+                })
+            );
+        }
+        
+        Promise.all(vacuumPromises).then(() => resolve(self));
     });
 };
 
@@ -1503,4 +1537,3 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
-
