@@ -488,15 +488,16 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 let createViewPromises   = [];
 
                                 for (let i = 0; i < rows.length; i++) {
-                                    if (rows[i].Table_type === 'BASE TABLE') {
-                                        self._tablesToMigrate.push(rows[i]);
-                                        tablesCnt++;
-                                        processTablePromises.push(
-                                            self.processTable(self, rows[i]['Tables_in_' + self._mySqlDbName])
-                                        );
+                                    let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
+                                    if (['logs_test_3', 'logs_test_4', 'logs_test_5'].indexOf(relationName) === -1) continue;// TODO.
+
+                                    if (rows[i].Table_type === 'BASE TABLE') {
+                                        self._tablesToMigrate.push(relationName);
+                                        tablesCnt++;
+                                        processTablePromises.push(self.processTable(self, relationName));
                                     } else if (rows[i].Table_type === 'VIEW') {
-                                        self._viewsToMigrate.push(rows[i]);
+                                        self._viewsToMigrate.push(relationName);
                                         viewsCnt++;
                                     }
                                 }
@@ -569,19 +570,72 @@ FromMySQL2PostgreSQL.prototype.processForeignKey = function(self) {
 
                                     connection.query(sql, (err, rows) => {
                                         connection.release();
-
+                                        console.log(rows);//TODO.
                                         if (err) {
                                             self.generateError(self, '\t--[processForeignKey] ' + err, sql);
                                             fkResolve(self);
                                         } else {
-                                            pg.connect(self._targetConString, (error, client, done) => {
-                                                if (error) {
-                                                    done();
-                                                    self.generateError(self, '\t--[processForeignKey] Cannot connect to PostgreSQL server...');
-                                                    fkResolve(self);
-                                                } else {
-                                                    sql = '';
-                                                }
+                                            let constraints         = {};
+                                            let constraintsPromises = [];
+
+                                            for (let j = 0; j < rows.length; j++) {
+                                                constraints[rows[j].CONSTRAINT_NAME] = {
+                                                    'column_name'            : rows[j].COLUMN_NAME,
+                                                    'referenced_table_name'  : rows[j].REFERENCED_TABLE_NAME,
+                                                    'referenced_column_name' : rows[j].REFERENCED_COLUMN_NAME,
+                                                    'update_rule'            : rows[j].UPDATE_RULE,
+                                                    'delete_rule'            : rows[j].DELETE_RULE
+                                                };
+                                            }
+
+                                            for (let attr in constraints) {
+                                                constraintsPromises.push(
+                                                    new Promise(resolveConstraintPromise => {
+                                                        pg.connect(self._targetConString, (error, client, done) => {
+                                                            if (error) {
+                                                                done();
+                                                                self.generateError(self, '\t--[processForeignKey] Cannot connect to PostgreSQL server...');
+                                                                resolveConstraintPromise(self);
+                                                            } else {
+                                                                let arrFKs        = [];
+                                                                let arrPKs        = [];
+                                                                let strRefTbName  = '';
+                                                                let strDeleteRule = '';
+                                                                let strUpdateRule = '';
+                                                                sql               = 'ALTER TABLE "' + self._schema + '"."'
+                                                                                  + self._tablesToMigrate[i] + '" ADD FOREIGN KEY (';
+
+                                                                for (let str in constraints[attr]) {
+                                                                    strRefTbName  = constraints[attr][str].referenced_table_name;
+                                                                    strUpdateRule = constraints[attr][str].update_rule;
+                                                                    strDeleteRule = constraints[attr][str].delete_rule;
+                                                                    arrFKs.push('"' + constraints[attr][str].column_name + '"');
+                                                                    arrPKs.push('"' + constraints[attr][str].referenced_column_name + '"');
+                                                                }
+
+                                                                sql += arrFKs.join(',') + ') REFERENCES "' + self._schema + '"."' + strRefTbName + '" ('
+                                                                    +  arrPKs.join(',') + ') ON UPDATE ' + strUpdateRule + ' ON DELETE ' + strDeleteRule + ';';
+
+                                                                client.query(sql, err2 => {
+                                                                    done();
+
+                                                                    if (err2) {
+                                                                        self.generateError(self, '\t--[processForeignKey] ' + err2, sql);
+                                                                        resolveConstraintPromise(self);
+                                                                    } else {
+                                                                        resolveConstraintPromise(self);
+                                                                    }
+                                                                });
+                                                            }
+                                                        });
+                                                    })
+                                                );
+                                            }
+
+                                            Promise.all(constraintsPromises).then(() => {
+                                                let success = '\t--[processForeignKey] Foreign keys for table: "' + self._schema + '"."' + self._tablesToMigrate[i] + '" are set...';
+                                                self.log(self, success);
+                                                fkResolve(self);
                                             });
                                         }
                                     });
@@ -644,7 +698,7 @@ FromMySQL2PostgreSQL.prototype.runVacuumFullAndAnalyze = function(self) {
                 })
             );
         }
-        
+
         Promise.all(vacuumPromises).then(() => resolve(self));
     });
 };
@@ -1537,3 +1591,4 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
+
