@@ -10,6 +10,9 @@ const fs    = require('fs');
 const mysql = require('mysql');
 const pg    = require('pg');
 
+/**
+ * Constructor.
+ */
 function ViewGenerator() {
     // No code should be put here.
 }
@@ -26,3 +29,4 @@ ViewGenerator.prototype.generateView = function(schema, viewName) {
 };
 
 module.exports.ViewGenerator = ViewGenerator;
+
