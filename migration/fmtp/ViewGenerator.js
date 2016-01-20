@@ -22,11 +22,12 @@ function ViewGenerator() {
  *
  * @param   {String} schema
  * @param   {String} viewName
- * @returns {String}
+ * @returns {Promise}
  */
 ViewGenerator.prototype.generateView = function(schema, viewName) {
-    return 'test';
+    return new Promise(resolve => {
+        resolve();
+    });
 };
 
 module.exports.ViewGenerator = ViewGenerator;
-
