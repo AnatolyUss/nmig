@@ -6,10 +6,11 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 'use strict';
-const fs           = require('fs');
-const pg           = require('pg');
-const mysql        = require('mysql');
-const csvStringify = require('csv-stringify');
+const fs            = require('fs');
+const pg            = require('pg');
+const mysql         = require('mysql');
+const csvStringify  = require('csv-stringify');
+const viewGenerator = require('ViewGenerator');
 
 /**
  * Constructor.
@@ -490,8 +491,6 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 for (let i = 0; i < rows.length; i++) {
                                     let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
-                                    if (['logs', 'logs_test_3', 'logs_test_4', 'logs_test_5'].indexOf(relationName) === -1) continue;// TODO.
-
                                     if (rows[i].Table_type === 'BASE TABLE') {
                                         self._tablesToMigrate.push(relationName);
                                         tablesCnt++;
@@ -499,6 +498,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                     } else if (rows[i].Table_type === 'VIEW') {
                                         self._viewsToMigrate.push(relationName);
                                         viewsCnt++;
+                                        //createViewPromises.push(new ViewGenerator().generateView(self._schema, relationName)); // TODO: not here...
                                     }
                                 }
 
@@ -610,49 +610,24 @@ FromMySQL2PostgreSQL.prototype.processForeignKey = function(self) {
  */
 FromMySQL2PostgreSQL.prototype.processForeignKeyWorker = function(self, tableName, rows) {
     return new Promise(resolve => {
-        let constraints         = [];
         let constraintsPromises = [];
+        let objConstraints      = Object.create(null);
 
         for (let i = 0; i < rows.length; i++) {
-              constraints.push({
-                'constraint_name'        : rows[i].CONSTRAINT_NAME,
-                'column_name'            : rows[i].COLUMN_NAME,
-                'referenced_table_name'  : rows[i].REFERENCED_TABLE_NAME,
-                'referenced_column_name' : rows[i].REFERENCED_COLUMN_NAME,
-                'update_rule'            : rows[i].UPDATE_RULE,
-                'delete_rule'            : rows[i].DELETE_RULE
-            });
+            if (rows[i].CONSTRAINT_NAME in objConstraints) {
+                objConstraints[rows[i].CONSTRAINT_NAME].column_name.push('"' + rows[i].COLUMN_NAME + '"');
+                objConstraints[rows[i].CONSTRAINT_NAME].referenced_column_name.push('"' + rows[i].REFERENCED_COLUMN_NAME + '"');
+            } else {
+                objConstraints[rows[i].CONSTRAINT_NAME]                        = Object.create(null);
+                objConstraints[rows[i].CONSTRAINT_NAME].column_name            = ['"' + rows[i].COLUMN_NAME + '"'];
+                objConstraints[rows[i].CONSTRAINT_NAME].referenced_column_name = ['"' + rows[i].REFERENCED_COLUMN_NAME + '"'];
+                objConstraints[rows[i].CONSTRAINT_NAME].referenced_table_name  = rows[i].REFERENCED_TABLE_NAME;
+                objConstraints[rows[i].CONSTRAINT_NAME].update_rule            = rows[i].UPDATE_RULE;
+                objConstraints[rows[i].CONSTRAINT_NAME].delete_rule            = rows[i].DELETE_RULE;
+            }
         }
 
-        console.log('Table: ' + tableName + '\n' + JSON.stringify(constraints)); // TODO.
-        // TODO.
-        /*
-        Table: logs_test_5
-        [{
-        	"constraint_name": "logs_test_5_ibfk_1",
-        	"column_name": "id1",
-        	"referenced_table_name": "logs_test_4",
-        	"referenced_column_name": "id1",
-        	"update_rule": "CASCADE",
-        	"delete_rule": "CASCADE"
-        }, {
-        	"constraint_name": "logs_test_5_ibfk_1",
-        	"column_name": "id2",
-        	"referenced_table_name": "logs_test_4",
-        	"referenced_column_name": "id2",
-        	"update_rule": "CASCADE",
-        	"delete_rule": "CASCADE"
-        }, {
-        	"constraint_name": "logs_test_5_ibfk_2",
-        	"column_name": "log_id",
-        	"referenced_table_name": "logs",
-        	"referenced_column_name": "id",
-        	"update_rule": "RESTRICT",
-        	"delete_rule": "RESTRICT"
-        }]
-        */
-
-        for (let i = 0; i < constraints.length; i++) {
+        for (let attr in objConstraints) {
             constraintsPromises.push(
                 new Promise(resolveConstraintPromise => {
                     pg.connect(self._targetConString, (error, client, done) => {
@@ -661,27 +636,16 @@ FromMySQL2PostgreSQL.prototype.processForeignKeyWorker = function(self, tableNam
                             self.generateError(self, '\t--[processForeignKeyWorker] Cannot connect to PostgreSQL server...');
                             resolveConstraintPromise(self);
                         } else {
-                            let arrFKs        = [];
-                            let arrPKs        = [];
-                            let strRefTbName  = constraints[i].referenced_table_name;
-                            let strUpdateRule = constraints[i].update_rule;
-                            let strDeleteRule = constraints[i].delete_rule;
-                            let sql           = 'ALTER TABLE "' + self._schema + '"."'
-                                                + self._tablesToMigrate[i] + '" ADD FOREIGN KEY (';
+                            let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" ADD FOREIGN KEY ('
+                                    + objConstraints[attr].column_name.join(',') + ') REFERENCES "' + self._schema + '"."'
+                                    + objConstraints[attr].referenced_table_name + '" (' + objConstraints[attr].referenced_column_name.join(',')
+                                    + ') ON UPDATE ' + objConstraints[attr].update_rule + ' ON DELETE ' + objConstraints[attr].delete_rule + ';';
 
-                            for (let str in constraints[i]) {
-                                arrFKs.push('"' + constraints[i].column_name + '"');
-                                arrPKs.push('"' + constraints[i].referenced_column_name + '"');
-                            }
-
-                            sql += arrFKs.join(',') + ') REFERENCES "' + self._schema + '"."' + strRefTbName + '" ('
-                                +  arrPKs.join(',') + ') ON UPDATE ' + strUpdateRule + ' ON DELETE ' + strDeleteRule + ';';
-
-                            client.query(sql, err2 => {
+                            client.query(sql, err => {
                                 done();
 
-                                if (err2) {
-                                    self.generateError(self, '\t--[processForeignKeyWorker] ' + err2, sql);
+                                if (err) {
+                                    self.generateError(self, '\t--[processForeignKeyWorker] ' + err, sql);
                                     resolveConstraintPromise(self);
                                 } else {
                                     resolveConstraintPromise(self);
