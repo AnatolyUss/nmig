@@ -10,7 +10,7 @@ const fs            = require('fs');
 const pg            = require('pg');
 const mysql         = require('mysql');
 const csvStringify  = require('csv-stringify');
-const viewGenerator = require('ViewGenerator');
+const viewGenerator = require('./ViewGenerator');
 
 /**
  * Constructor.
@@ -308,6 +308,53 @@ FromMySQL2PostgreSQL.prototype.createLogsDirectory = function(self) {
 };
 
 /**
+ * Writes a log, containing a view code.
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @param   {String}               viewName
+ * @param   {String}               sql
+ * @returns {undefined}
+ */
+FromMySQL2PostgreSQL.prototype.logNotCreatedView = function(self, viewName, sql) {
+    fs.stat(self._notCreatedViewsPath, (directoryDoesNotExist, stat) => {
+        if (directoryDoesNotExist) {
+            fs.mkdir(self._notCreatedViewsPath, self._0777, e => {
+                if (e) {
+                    self.log(self, '\t--[logNotCreatedView] ' + e);
+                } else {
+                    self.log(self, '\t--[logNotCreatedView] "not_created_views" directory is created...');
+                    // "not_created_views" directory is created. Can write the log...
+                    fs.open(self._notCreatedViewsPath + '/' + viewName + '.sql', 'w', self._0777, (error, fd) => {
+                        if (error) {
+                            self.log(self, error);
+                        } else {
+                            let buffer = new Buffer(sql, self._encoding);
+                            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                                fs.close(fd);
+                            });
+                        }
+                    });
+                }
+            });
+        } else if (!stat.isDirectory()) {
+            self.log(self, '\t--[logNotCreatedView] Cannot write the log due to unexpected error');
+        } else {
+            // "not_created_views" directory already exists. Can write the log...
+            fs.open(self._notCreatedViewsPath + '/' + viewName + '.sql', 'w', self._0777, (error, fd) => {
+                if (error) {
+                    self.log(self, error);
+                } else {
+                    let buffer = new Buffer(sql, self._encoding);
+                    fs.write(fd, buffer, 0, buffer.length, null, () => {
+                        fs.close(fd);
+                    });
+                }
+            });
+        }
+    });
+};
+
+/**
  * Outputs given log.
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/self._clonedSelfTableName.log" file.
@@ -464,8 +511,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
     return new Promise(
         resolve => resolve(self)
     ).then(
-        self.connect,
-        () => self.log(self, '\t--[loadStructureToMigrate] Cannot establish DB connections...')
+        self.connect
     ).then(
         self => {
             return new Promise((resolve, reject) => {
@@ -486,7 +532,6 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 let tablesCnt            = 0;
                                 let viewsCnt             = 0;
                                 let processTablePromises = [];
-                                let createViewPromises   = [];
 
                                 for (let i = 0; i < rows.length; i++) {
                                     let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
@@ -498,7 +543,6 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                     } else if (rows[i].Table_type === 'VIEW') {
                                         self._viewsToMigrate.push(relationName);
                                         viewsCnt++;
-                                        //createViewPromises.push(new ViewGenerator().generateView(self._schema, relationName)); // TODO: not here...
                                     }
                                 }
 
@@ -515,8 +559,79 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                     }
                 });
             });
-        }
+        },
+        () => self.log(self, '\t--[loadStructureToMigrate] Cannot establish DB connections...')
     );
+};
+
+/**
+ * Attempts to convert MySQL view to PostgreSQL view.
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.processView = function(self) {
+    return new Promise(resolve => {
+        let createViewPromises = [];
+
+        for (let i = 0; i < self._viewsToMigrate.length; i++) {
+            createViewPromises.push(
+                new Promise(
+                    resolveProcessView => resolveProcessView(self)
+                ).then(
+                    self.connect
+                ).then(
+                    self => {
+                        return new Promise(resolveProcessView2 => {
+                            self._mysql.getConnection((error, connection) => {
+                                if (error) {
+                                    // The connection is undefined.
+                                    self.generateError(self, '\t--[processView] Cannot connect to MySQL server...\n' + error);
+                                    resolveProcessView2(self);
+                                } else {
+                                    let sql = 'SHOW CREATE VIEW `' + self._viewsToMigrate[i] + '`;';
+                                    connection.query(sql, (strErr, rows) => {
+                                        connection.release();
+
+                                        if (strErr) {
+                                            self.generateError(self, '\t--[processView] ' + strErr, sql);
+                                            resolveProcessView2(self);
+                                        } else {
+                                            pg.connect(self._targetConString, (error, client, done) => {
+                                                if (error) {
+                                                    done();
+                                                    self.generateError(self, '\t--[processView] Cannot connect to PostgreSQL server...');
+                                                    resolveProcessView2(self);
+                                                } else {
+                                                    let viewGen = new viewGenerator.ViewGenerator();
+                                                    sql         = viewGen.generateView(self._schema, self._viewsToMigrate[i], rows[0]['Create View']);
+                                                    client.query(sql, err => {
+                                                        done();
+
+                                                        if (err) {
+                                                            self.generateError(self, '\t--[processView] ' + err, sql);
+                                                            self.logNotCreatedView(self, self._viewsToMigrate[i], sql);
+                                                            resolveProcessView2(self);
+                                                        } else {
+                                                            self.log(self, '\t--[processView] View "' + self._schema + '"."' + self._viewsToMigrate[i] + '" is created...');
+                                                            resolveProcessView2(self);
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    },
+                    () => self.log(self, '\t--[processView] Cannot establish DB connections...')
+                )
+            );
+        }
+
+        Promise.all(createViewPromises).then(() => resolve(self));
+    });
 };
 
 /**
@@ -1565,6 +1680,8 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
                 self.cleanup(self);
             });
         }
+    ).then(
+        self.processView
     ).then(
         self.runVacuumFullAndAnalyze
     ).then(
