@@ -1,7 +1,20 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2015 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program (please see the "LICENSE.md" file).
+ * If not, see <http://www.gnu.org/licenses/gpl.txt>.
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
@@ -538,8 +551,8 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
 
                                     if (rows[i].Table_type === 'BASE TABLE') {
                                         self._tablesToMigrate.push(relationName);
-                                        tablesCnt++;
                                         processTablePromises.push(self.processTable(self, relationName));
+                                        tablesCnt++;
                                     } else if (rows[i].Table_type === 'VIEW') {
                                         self._viewsToMigrate.push(relationName);
                                         viewsCnt++;
@@ -1614,18 +1627,17 @@ FromMySQL2PostgreSQL.prototype.cleanup = function(self) {
  * @returns {undefined}
  */
 FromMySQL2PostgreSQL.prototype.generateReport = function(self, endMsg) {
-    let timeTaken  = (new Date()) - self._timeBegin;
-    let hours      = Math.floor(timeTaken / 1000 / 3600);
-    timeTaken     -= hours * 1000 * 3600;
-    let minutes    = Math.floor(timeTaken / 1000 / 60);
-    timeTaken     -= minutes * 1000 * 60;
-    let seconds    = Math.ceil(timeTaken / 1000);
-    hours          = hours < 10 ? '0' + hours : hours;
-    minutes        = minutes < 10 ? '0' + minutes : minutes;
-    seconds        = seconds < 10 ? '0' + seconds : seconds;
-    let output     = '\t--[generateReport] ' + endMsg
-                   + '\n\t--[generateReport] Total time: ' + hours + ':' + minutes + ':' + seconds
-                   + '\n\t--[generateReport] (hours:minutes:seconds)';
+    let differenceSec = ((new Date()) - self._timeBegin) / 1000;
+    let seconds       = Math.floor(differenceSec % 60);
+    differenceSec     = differenceSec / 60;
+    let minutes       = Math.floor(differenceSec % 60);
+    let hours         = Math.floor(differenceSec / 60);
+    hours             = hours < 10 ? '0' + hours : hours;
+    minutes           = minutes < 10 ? '0' + minutes : minutes;
+    seconds           = seconds < 10 ? '0' + seconds : seconds;
+    let output        = '\t--[generateReport] ' + endMsg
+                      + '\n\t--[generateReport] Total time: ' + hours + ':' + minutes + ':' + seconds
+                      + '\n\t--[generateReport] (hours:minutes:seconds)';
 
     self.log(self, output);
     process.exit();
@@ -1712,4 +1724,3 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
 };
 
 module.exports.FromMySQL2PostgreSQL = FromMySQL2PostgreSQL;
-
