@@ -40,8 +40,10 @@ function FromMySQL2PostgreSQL() {
  */
 FromMySQL2PostgreSQL.prototype.boot = function(self) {
     return new Promise((resolve, reject) => {
+        console.log('\n\tNMIG - the database migration tool');
+        console.log('\tCopyright 2016  Anatoly Khaytovich <anatolyuss@gmail.com>');
         console.log('\n\t--[boot] Boot...');
-
+        
         if (self._config.source === undefined) {
             console.log('\t--[boot] Cannot perform a migration due to missing source database (MySQL) connection string');
             console.log('\t--[boot] Please, specify source database (MySQL) connection string, and run the tool again');
@@ -58,7 +60,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._targetConString     = self._config.target;
         self._tempDirPath         = self._config.tempDirPath;
         self._logsDirPath         = self._config.logsDirPath;
-        self._dataTypesMapAddr    = self._config.dataTypesMapAddr;
+        self._dataTypesMapAddr    = __dirname + '/DataTypesMap.json';
         self._allLogsPath         = self._logsDirPath + '/all.log';
         self._reportOnlyPath      = self._logsDirPath + '/report-only.log';
         self._errorLogsPath       = self._logsDirPath + '/errors-only.log';
