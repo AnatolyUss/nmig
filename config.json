@@ -57,6 +57,20 @@
         "During migration each table's data will be split into chunks of data_chunk_size (in MB).",
         "If not supplied, then 10 MB will be used as a default."
     ],
-    "data_chunk_size" : 2
+    "data_chunk_size" : 2,
+
+    "copy_only_description" : [
+        "During migration each table's data will be split into chunks, and each chunk will be transmitted via COPY protocol.",
+        "By default, if transmission via COPY fails then current chunk's data will be transmitted via INSERT statments, which may last considerably longer.",
+        "This behavior can be disabled for tables, included into the list (Array) below."
+    ],
+    "copy_only" : [],
+
+    "no_vacuum_description" : [
+        "PostgreSQL VACUUM reclaims storage occupied by dead tuples. VACUUM is a very time-consuming procedure.",
+        "By default, VACUUM will be performed automatically after migration (recommended)",
+        "This behavior can be disabled for tables, included into the list (Array) below."
+    ],
+    "no_vacuum" : []
 }
 
