@@ -41,9 +41,9 @@ function FromMySQL2PostgreSQL() {
 FromMySQL2PostgreSQL.prototype.boot = function(self) {
     return new Promise((resolve, reject) => {
         console.log('\n\tNMIG - the database migration tool');
-        console.log('\tCopyright 2016  Anatoly Khaytovich <anatolyuss@gmail.com>');
+        console.log('\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>');
         console.log('\n\t--[boot] Boot...');
-        
+
         if (self._config.source === undefined) {
             console.log('\t--[boot] Cannot perform a migration due to missing source database (MySQL) connection string');
             console.log('\t--[boot] Please, specify source database (MySQL) connection string, and run the tool again');
@@ -65,6 +65,8 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._reportOnlyPath      = self._logsDirPath + '/report-only.log';
         self._errorLogsPath       = self._logsDirPath + '/errors-only.log';
         self._notCreatedViewsPath = self._logsDirPath + '/not_created_views';
+        self._copyOnly            = self._config.copy_only;
+        self._noVacuum            = self._config.no_vacuum;
         self._timeBegin           = new Date();
         self._encoding            = self._config.encoding === undefined ? 'utf8' : self._config.encoding;
         self._dataChunkSize       = self._config.data_chunk_size === undefined ? 10 : +self._config.data_chunk_size;
@@ -802,35 +804,37 @@ FromMySQL2PostgreSQL.prototype.runVacuumFullAndAnalyze = function(self) {
         let vacuumPromises = [];
 
         for (let i = 0; i < self._tablesToMigrate.length; i++) {
-            let msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
-                    + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
+            if (self._noVacuum.indexOf(self._tablesToMigrate[i]) === -1) {
+                let msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
+                        + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
 
-            self.log(self, msg);
-            vacuumPromises.push(
-                new Promise(resolveVacuum => {
-                    pg.connect(self._targetConString, (error, client, done) => {
-                        if (error) {
-                            done();
-                            self.generateError(self, '\t--[runVacuumFullAndAnalyze] Cannot connect to PostgreSQL server...');
-                            resolveVacuum(self);
-                        } else {
-                            let sql = 'VACUUM (FULL, ANALYZE) "' + self._schema + '"."' + self._tablesToMigrate[i] + '";';
-                            client.query(sql, err => {
+                self.log(self, msg);
+                vacuumPromises.push(
+                    new Promise(resolveVacuum => {
+                        pg.connect(self._targetConString, (error, client, done) => {
+                            if (error) {
                                 done();
+                                self.generateError(self, '\t--[runVacuumFullAndAnalyze] Cannot connect to PostgreSQL server...');
+                                resolveVacuum(self);
+                            } else {
+                                let sql = 'VACUUM (FULL, ANALYZE) "' + self._schema + '"."' + self._tablesToMigrate[i] + '";';
+                                client.query(sql, err => {
+                                    done();
 
-                                if (err) {
-                                    self.generateError(self, '\t--[runVacuumFullAndAnalyze] ' + err, sql);
-                                    resolveVacuum(self);
-                                } else {
-                                    let msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
-                                    self.log(self, msg2);
-                                    resolveVacuum(self);
-                                }
-                            });
-                        }
-                    });
-                })
-            );
+                                    if (err) {
+                                        self.generateError(self, '\t--[runVacuumFullAndAnalyze] ' + err, sql);
+                                        resolveVacuum(self);
+                                    } else {
+                                        let msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
+                                        self.log(self, msg2);
+                                        resolveVacuum(self);
+                                    }
+                                });
+                            }
+                        });
+                    })
+                );
+            }
         }
 
         Promise.all(vacuumPromises).then(() => resolve(self));
@@ -1057,7 +1061,18 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
 
                                                                     if (err) {
                                                                         self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
-                                                                        self.populateTableByInsert(self, sanitizedRecords, () => {
+
+                                                                        if (self._copyOnly.indexOf(self._clonedSelfTableName) === -1) {
+                                                                            self.populateTableByInsert(self, sanitizedRecords, () => {
+                                                                                let msg = '\t--[populateTableWorker]  For now inserted: ' + self._totalRowsInserted + ' rows, '
+                                                                                        + 'Total rows to insert into "' + self._schema + '"."' + self._clonedSelfTableName + '": ' + rowsCnt;
+
+                                                                                self.log(self, msg);
+                                                                                fs.unlink(csvAddr, () => {
+                                                                                    fs.close(fd, () => resolvePopulateTableWorker());
+                                                                                });
+                                                                            });
+                                                                        } else {
                                                                             let msg = '\t--[populateTableWorker]  For now inserted: ' + self._totalRowsInserted + ' rows, '
                                                                                     + 'Total rows to insert into "' + self._schema + '"."' + self._clonedSelfTableName + '": ' + rowsCnt;
 
@@ -1065,7 +1080,8 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                                                             fs.unlink(csvAddr, () => {
                                                                                 fs.close(fd, () => resolvePopulateTableWorker());
                                                                             });
-                                                                        });
+                                                                        }
+
                                                                     } else {
                                                                         self._totalRowsInserted += result.rowCount;
                                                                         let msg                  = '\t--[populateTableWorker]  For now inserted: ' + self._totalRowsInserted + ' rows, '
