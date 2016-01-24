@@ -22,7 +22,7 @@
 const fs            = require('fs');
 const pg            = require('pg');
 const mysql         = require('mysql');
-const csvStringify  = require('csv-stringify');
+const csvStringify  = require('./csvStringifyModified');
 const viewGenerator = require('./ViewGenerator');
 
 /**
