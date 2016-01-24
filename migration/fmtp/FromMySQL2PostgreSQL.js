@@ -1130,7 +1130,7 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows, call
                     if (error) {
                         done();
                         let msg = '\t--[populateTableByInsert] Cannot connect to PostgreSQL server...\n' + error;
-                        self.generateError(self, msg, sql);
+                        self.generateError(self, msg);
                         resolveInsert();
                     } else {
                         let sql                = 'INSERT INTO "' + self._schema + '"."' + self._clonedSelfTableName + '"';
