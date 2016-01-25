@@ -69,7 +69,7 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._noVacuum            = self._config.no_vacuum;
         self._timeBegin           = new Date();
         self._encoding            = self._config.encoding === undefined ? 'utf8' : self._config.encoding;
-        self._dataChunkSize       = self._config.data_chunk_size === undefined ? 10 : +self._config.data_chunk_size;
+        self._dataChunkSize       = self._config.data_chunk_size === undefined ? 2 : +self._config.data_chunk_size;
         self._dataChunkSize       = self._dataChunkSize < 1 ? 1 : self._dataChunkSize;
         self._0777                = '0777';
         self._mysql               = null;
