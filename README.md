@@ -50,7 +50,7 @@ Chunk size can be adjusted easily via configuration file.</li>
 
 <p><b>6.</b> In case of any remarks, misunderstandings or errors during migration,<br /> &nbsp;&nbsp;&nbsp;
    please feel free to email me
-   <a href="mailto:anatolyuss@gmail.com?subject=FromMySqlToPostgreSql">anatolyuss@gmail.com</a></p>
+   <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
 <p>Current version is 1.0.0<br />
