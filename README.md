@@ -9,7 +9,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 <li> Ease of use - the only thing needed to run this app is the Node.js runtime.</li>
 <li> Accuracy of migration the database structure - NMIG converts
    MySQL data types to corresponding PostgreSQL data types, creates constraints,
-   indeces, primary and foreign keys exactly as they were before migration.</li>
+   indexes, primary and foreign keys exactly as they were before migration.</li>
 
 <li>Ability to migrate big databases - in order to reduce RAM consumption NMIG will split each table's data into several chunks. <br />
 Chunk size can be adjusted easily via configuration file.</li>
