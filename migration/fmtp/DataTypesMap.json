@@ -1,204 +1,212 @@
 {
     "README" : [
-        "If you wish to customize this 'map' - then perform following steps:"
+        "This JSON document represents a correct data-types map between MySQL and PostgreSQL.",
+        "If you wish to customize (not recommended) this map - you can.",
+        "Map explanation:",
+        "1. Each key represents a MySQL data-type, and value (object) explaining how to convert this type.",
+        "2. In each value object, <type> represents a corresponding PostgreSQL data-type.",
+        "3. In each value object, <increased_size> represents a PostgreSQL data-type corresponding to UNSIGNED MySQL data-types.",
+        "   For example MySQL int equals to PostgreSQL int, but MySQL int unsigned should be converted to PostgreSQL bigint.",
+        "4. In each value object, <mySqlVarLenPgSqlFixedLen> should be true if MySQL data-type has variable length, ",
+        "   but corresponding PostgreSQL data-type has fixed length. For example: MySQL int(11) -> PostgreSQL int.",
+        "   In any other case <mySqlVarLenPgSqlFixedLen> should be false."
     ],
-    
+
     "bit" : {
-        "increased_size"           : "bit varying", 
+        "increased_size"           : "bit varying",
         "type"                     : "bit",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "year" : {
-        "increased_size"           : "int", 
+        "increased_size"           : "int",
         "type"                     : "smallint",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "tinyint" : {
-        "increased_size"           : "int", 
+        "increased_size"           : "int",
         "type"                     : "smallint",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "smallint" : {
-        "increased_size"           : "int", 
+        "increased_size"           : "int",
         "type"                     : "smallint",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "mediumint" : {
-        "increased_size"           : "bigint", 
+        "increased_size"           : "bigint",
         "type"                     : "int",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "int" : {
-        "increased_size"           : "bigint", 
+        "increased_size"           : "bigint",
         "type"                     : "int",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "bigint" : {
-        "increased_size"           : "numeric", 
+        "increased_size"           : "numeric",
         "type"                     : "bigint",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "float" : {
-        "increased_size"           : "double precision", 
+        "increased_size"           : "double precision",
         "type"                     : "real",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "double" : {
-        "increased_size"           : "double precision", 
+        "increased_size"           : "double precision",
         "type"                     : "double precision",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "double precision" : {
-        "increased_size"           : "double precision", 
+        "increased_size"           : "double precision",
         "type"                     : "double precision",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "numeric" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "numeric",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "decimal" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "decimal",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "decimal(19,2)" : {
-        "increased_size"           : "numeric", 
+        "increased_size"           : "numeric",
         "type"                     : "money",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "char" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "character",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "varchar" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "character varying",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "date" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "date",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "time" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "time",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "datetime" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "timestamp",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "timestamp" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "timestamp",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "point" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "point",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "linestring" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "line",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "polygon" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "polygon",
         "mySqlVarLenPgSqlFixedLen" : false
     },
-    
+
     "enum" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "character varying(255)",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "tinytext" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "text",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "mediumtext" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "text",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "longtext" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "text",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "text" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "text",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "varbinary" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "bytea",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "binary" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "bytea",
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
     "tinyblob" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "bytea",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "mediumblob" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "bytea",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "longblob" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "bytea",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "blob" : {
-        "increased_size"           : "", 
+        "increased_size"           : "",
         "type"                     : "bytea",
         "mySqlVarLenPgSqlFixedLen" : false
     }
 }
-
