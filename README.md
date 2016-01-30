@@ -26,8 +26,6 @@ Chunk size can be adjusted easily via configuration file.</li>
 <h3>SYSTEM REQUIREMENTS</h3>
 <ul>
 <li> <b>Node.js 5.x.x</b></li>
-<li> <b>node-mysql</b> <p><pre> cd /path/to/nmig</pre> and then <pre>$ npm install mysql</pre></p> </li>
-<li> <b>node-postgres</b> <p><pre>$ npm install pg</pre></p> </li>
 </ul>
 
 <h3>USAGE</h3>
@@ -37,11 +35,15 @@ Chunk size can be adjusted easily via configuration file.</li>
 <p><b>2.</b> Download NMIG package and put it on the machine running your PostgreSQL.<br />
    <b>Sample:</b>&nbsp;<pre> /path/to/nmig</pre></p>
 
-<p><b>3.</b> Update configuration file located at <pre>/path/to/nmig/config.json</pre> with correct details.<br /></p>
+<p><b>3.</b> Edit configuration file located at <pre>/path/to/nmig/config.json</pre> with correct details.<br /></p>
    <p><b>Note:</b>&nbsp; config.json contains brief description of each configuration parameter.</p>
 
-<p><b>4.</b> Run the app from a terminal.<br />
-   &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b> &nbsp;<pre>$ node /path/to/nmig/main.js</pre></p>
+<p><b>4.</b></p>Go to nmig directory, install dependencies, and run the app.<br />
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
+    <pre>$ cd /path/to/nmig</pre><br />
+    <pre>$ npm install mysql</pre><br />
+    <pre>$ npm install pg</pre><br />
+    <pre>$ node main.js</pre><br />
 
 <p><b>5.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
    Log files will be located under "logs_directory" folder in the root of the package.<br />&nbsp;&nbsp;&nbsp;
