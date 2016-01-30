@@ -38,12 +38,13 @@ Chunk size can be adjusted easily via configuration file.</li>
 <p><b>3.</b> Edit configuration file located at <pre>/path/to/nmig/config.json</pre> with correct details.<br /></p>
    <p><b>Note:</b>&nbsp; config.json contains brief description of each configuration parameter.</p>
 
-<p><b>4.</b></p>Go to nmig directory, install dependencies, and run the app.<br />
+<p><b>4.</b>Go to nmig directory, install dependencies, and run the app.<br />
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install mysql</pre><br />
     <pre>$ npm install pg</pre><br />
     <pre>$ node main.js</pre><br />
+    </p>
 
 <p><b>5.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
    Log files will be located under "logs_directory" folder in the root of the package.<br />&nbsp;&nbsp;&nbsp;
