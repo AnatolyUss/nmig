@@ -1,0 +1,10 @@
+{
+  "name": "nmig",
+  "version": "1.0.0",
+  "description": "The database migration app",
+  "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
+  "dependencies": {
+    "mysql": "*",
+    "pg": "*"
+  }
+}
