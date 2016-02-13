@@ -41,8 +41,7 @@ Chunk size can be adjusted easily via configuration file.</li>
 <p><b>4.</b> Go to nmig directory, install dependencies, and run the app.<br />
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
-    <pre>$ npm install mysql</pre><br />
-    <pre>$ npm install pg</pre><br />
+    <pre>$ npm install</pre><br />
     <pre>$ node main.js</pre><br />
     </p>
 
