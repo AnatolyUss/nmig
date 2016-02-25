@@ -30,13 +30,17 @@ Chunk size can be adjusted easily via configuration file.</li>
 
 <h3>USAGE</h3>
 <p><b>1.</b> Create a new database.<br />
-   <b>Sample:</b>&nbsp;<pre> CREATE DATABASE my_postgresql_database;</pre></p>
+   <b>Sample:</b>&nbsp;<code> CREATE DATABASE my_postgresql_database;</code></p>
 
 <p><b>2.</b> Download NMIG package and put it on the machine running your PostgreSQL.<br />
-   <b>Sample:</b>&nbsp;<pre> /path/to/nmig</pre></p>
+   <b>Sample:</b>&nbsp;<code>/path/to/nmig</code></p>
 
-<p><b>3.</b> Edit configuration file located at <pre>/path/to/nmig/config.json</pre> with correct details.<br /></p>
-   <p><b>Note:</b>&nbsp; config.json contains brief description of each configuration parameter.</p>
+<p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/config.json</code> with correct details.<br /></p>
+<b>Remarks:</b>
+   <ul>
+   <li> config.json contains brief description of each configuration parameter</li>
+   <li>Make sure, that username, you use in your PostgreSQL connection string, defined as superuser (usually     "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
+   </ul>
 
 <p><b>4.</b> Go to nmig directory, install dependencies, and run the app.<br />
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
