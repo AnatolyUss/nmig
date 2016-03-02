@@ -72,6 +72,11 @@
     "exclude_tables_description": [
         "List (Array) of tables not to be migrated."
     ],
-    "exclude_tables": []
+    "exclude_tables": [],
+
+    "import_only_tables_description": [
+        "List (Array) of tables to be imported from database."
+    ],
+    "import_only_tables": []
 }
 
