@@ -553,6 +553,9 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 for (let i = 0; i < rows.length; i++) {
                                     let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
+                                    // skip excluded tables 
+                                    if(self._config.exclude_tables && self._config.exclude_tables.find(x => x===relationName)) continue;
+
                                     if (rows[i].Table_type === 'BASE TABLE') {
                                         self._tablesToMigrate.push(relationName);
                                         processTablePromises.push(self.processTable(self, relationName));

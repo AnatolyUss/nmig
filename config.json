@@ -67,6 +67,11 @@
         "By default, VACUUM will be performed automatically after migration (recommended)",
         "This behavior can be disabled for tables, included into the list (Array) below."
     ],
-    "no_vacuum" : []
+    "no_vacuum" : [],
+
+    "exclude_tables_description": [
+        "List (Array) of tables not to be migrated."
+    ],
+    "exclude_tables": []
 }
 
