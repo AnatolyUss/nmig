@@ -72,6 +72,12 @@
         "mySqlVarLenPgSqlFixedLen" : true
     },
 
+    "geometry" : {
+        "increased_size"           : "",
+        "type"                     : "geometry",
+        "mySqlVarLenPgSqlFixedLen" : false
+    },
+    
     "numeric" : {
         "increased_size"           : "",
         "type"                     : "numeric",
