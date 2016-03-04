@@ -39,7 +39,7 @@ Chunk size can be adjusted easily via configuration file.</li>
 <b>Remarks:</b>
    <ul>
    <li> config.json contains brief description of each configuration parameter</li>
-   <li>Make sure, that username, you use in your PostgreSQL connection string, defined as superuser (usually     "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
+   <li>Make sure, that username, you use in your PostgreSQL connection details, defined as superuser (usually     "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
    </ul>
 
 <p><b>4.</b> Go to nmig directory, install dependencies, and run the app.<br />
