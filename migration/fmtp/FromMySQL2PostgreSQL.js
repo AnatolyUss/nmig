@@ -556,9 +556,6 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                     // skip excluded tables 
                                     if(self._config.exclude_tables && self._config.exclude_tables.find(x => x===relationName)) continue;
 
-                                    // import only tables
-                                    if(self._config.import_only_tables && !self._config.import_only_tables.find(x => x===relationName)) continue;
-
                                     if (rows[i].Table_type === 'BASE TABLE') {
                                         self._tablesToMigrate.push(relationName);
                                         processTablePromises.push(self.processTable(self, relationName));
