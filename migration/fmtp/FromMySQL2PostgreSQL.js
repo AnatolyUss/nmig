@@ -67,9 +67,10 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._notCreatedViewsPath = self._logsDirPath + '/not_created_views';
         self._copyOnly            = self._config.copy_only;
         self._noVacuum            = self._config.no_vacuum;
+        self._excludeTables       = self._config.exclude_tables;
         self._timeBegin           = new Date();
         self._encoding            = self._config.encoding === undefined ? 'utf8' : self._config.encoding;
-        self._dataChunkSize       = self._config.data_chunk_size === undefined ? 2 : +self._config.data_chunk_size;
+        self._dataChunkSize       = self._config.data_chunk_size === undefined ? 1 : +self._config.data_chunk_size;
         self._dataChunkSize       = self._dataChunkSize < 1 ? 1 : self._dataChunkSize;
         self._0777                = '0777';
         self._mysql               = null;
@@ -553,10 +554,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                 for (let i = 0; i < rows.length; i++) {
                                     let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
-                                    // skip excluded tables 
-                                    if(self._config.exclude_tables && self._config.exclude_tables.find(x => x===relationName)) continue;
-
-                                    if (rows[i].Table_type === 'BASE TABLE') {
+                                    if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
                                         self._tablesToMigrate.push(relationName);
                                         processTablePromises.push(self.processTable(self, relationName));
                                         tablesCnt++;
@@ -947,32 +945,55 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                 let tableSizeInMb = rows[0].size_in_mb;
                                 tableSizeInMb     = tableSizeInMb < 1 ? 1 : tableSizeInMb;
 
-                                sql = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
-                                connection.query(sql, (err2, rows2) => {
-                                    connection.release();
-
-                                    if (err2) {
-                                        self.generateError(self, '\t--[populateTable] ' + err2, sql);
+                                /*
+                                 * Build field list for SELECT from MySQL and apply optional casting or function based on field type.
+                                 * Get an amount of rows in the currently processed table.
+                                 */
+                                sql = 'SHOW COLUMNS FROM `' + self._clonedSelfTableName + '`;';
+                                connection.query(sql, (err1, arrColumns) => {
+                                    if (err1) {
+                                        connection.release();
+                                        self.generateError(self, '\t--[populateTable] ' + err1, sql);
                                         resolvePopulateTable();
                                     } else {
-                                        let rowsCnt              = rows2[0].rows_count;
-                                        let chunksCnt            = tableSizeInMb / self._dataChunkSize;
-                                        chunksCnt                = chunksCnt < 1 ? 1 : chunksCnt;
-                                        let rowsInChunk          = Math.ceil(rowsCnt / chunksCnt);
-                                        let populateTableWorkers = [];
-                                        let msg                  = '\t--[populateTable] Total rows to insert into '
-                                                                 + '"' + self._schema + '"."'
-                                                                 + self._clonedSelfTableName + '": ' + rowsCnt;
+                                        let strSelectFieldList = '';
 
-                                        self.log(self, msg);
-
-                                        for (let offset = 0; offset < rowsCnt; offset += rowsInChunk) {
-                                            populateTableWorkers.push(
-                                                self.populateTableWorker(self, offset, rowsInChunk, rowsCnt)
-                                            );
+                                        for (let i = 0; i < arrColumns.length; i++) {
+                                            strSelectFieldList += arrColumns[i].Type === 'geometry'
+                                                                  ? 'hex(ST_AsWKB(`' + arrColumns[i].Field + '`)),'
+                                                                  : '`' + arrColumns[i].Field + '`,';
                                         }
 
-                                        Promise.all(populateTableWorkers).then(() => resolvePopulateTable(self));
+                                        strSelectFieldList = strSelectFieldList.slice(0, -1);
+
+                                        sql = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
+                                        connection.query(sql, (err2, rows2) => {
+                                            connection.release();
+
+                                            if (err2) {
+                                                self.generateError(self, '\t--[populateTable] ' + err2, sql);
+                                                resolvePopulateTable();
+                                            } else {
+                                                let rowsCnt              = rows2[0].rows_count;
+                                                let chunksCnt            = tableSizeInMb / self._dataChunkSize;
+                                                chunksCnt                = chunksCnt < 1 ? 1 : chunksCnt;
+                                                let rowsInChunk          = Math.ceil(rowsCnt / chunksCnt);
+                                                let populateTableWorkers = [];
+                                                let msg                  = '\t--[populateTable] Total rows to insert into '
+                                                                         + '"' + self._schema + '"."'
+                                                                         + self._clonedSelfTableName + '": ' + rowsCnt;
+
+                                                self.log(self, msg);
+
+                                                for (let offset = 0; offset < rowsCnt; offset += rowsInChunk) {
+                                                    populateTableWorkers.push(
+                                                        self.populateTableWorker(self, strSelectFieldList, offset, rowsInChunk, rowsCnt)
+                                                    );
+                                                }
+
+                                                Promise.all(populateTableWorkers).then(() => resolvePopulateTable(self));
+                                            }
+                                        });
                                     }
                                 });
                             }
@@ -989,12 +1010,13 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
  * Load a chunk of data using "PostgreSQL COPY".
  *
  * @param   {FromMySQL2PostgreSQL} self
+ * @param   {String}               strSelectFieldList
  * @param   {Number}               offset
  * @param   {Number}               rowsInChunk
  * @param   {Number}               rowsCnt
  * @returns {Promise}
  */
-FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rowsInChunk, rowsCnt) {
+FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFieldList, offset, rowsInChunk, rowsCnt) {
     return new Promise(
         resolve => resolve(self)
     ).then(
@@ -1009,7 +1031,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                         resolvePopulateTableWorker();
                     } else {
                         let csvAddr = self._tempDirPath + '/' + self._clonedSelfTableName + offset + '.csv';
-                        let sql     = 'SELECT * FROM `' + self._clonedSelfTableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
+                        let sql     = 'SELECT ' + strSelectFieldList + ' FROM `' + self._clonedSelfTableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
                         connection.query(sql, (err, rows) => {
                             connection.release();
 
@@ -1034,12 +1056,11 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, offset, rows
                                 }
 
                                 csvStringify(sanitizedRecords, (csvError, csvString) => {
-                                    let buffer = new Buffer(csvString, self._encoding);
-
                                     if (csvError) {
                                         self.generateError(self, '\t--[populateTableWorker] ' + csvError);
                                         resolvePopulateTableWorker();
                                     } else {
+                                        let buffer = new Buffer(csvString, self._encoding);
                                         fs.open(csvAddr, 'a', self._0777, (csvErrorFputcsvOpen, fd) => {
                                             if (csvErrorFputcsvOpen) {
                                                 self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
@@ -1301,7 +1322,7 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
             'NULL'                : 'NULL',
             'UTC_DATE'            : "(CURRENT_DATE AT TIME ZONE 'UTC')",
             'UTC_TIME'            : "(CURRENT_TIME AT TIME ZONE 'UTC')",
-            'UTC_TIMESTAMP'       : "(NOW() AT TIME ZONE 'UTC')",
+            'UTC_TIMESTAMP'       : "(NOW() AT TIME ZONE 'UTC')"
         };
 
         for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
@@ -1487,8 +1508,9 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                         objPgIndices[arrIndices[i].Key_name].column_name.push('"' + arrIndices[i].Column_name + '"');
                                     } else {
                                         objPgIndices[arrIndices[i].Key_name] = {
-                                            'is_unique'   : arrIndices[i].Non_unique === 0 ? true : false,
-                                            'column_name' : ['"' + arrIndices[i].Column_name + '"']
+                                            is_unique   : arrIndices[i].Non_unique === 0 ? true : false,
+                                            column_name : ['"' + arrIndices[i].Column_name + '"'],
+                                            Index_type  : ' USING ' + (arrIndices[i].Index_type === 'SPATIAL' ? 'GIST' : arrIndices[i].Index_type)
                                         };
                                     }
                                 }
@@ -1514,8 +1536,8 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                                         indexType      = 'index';
                                                         sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
                                                                        + self._schema + '_' + self._clonedSelfTableName + '_' + columnName + '_idx" ON "'
-                                                                       + self._schema + '"."' + self._clonedSelfTableName
-                                                                       + '" (' + objPgIndices[attr].column_name.join(',') + ');';
+                                                                       + self._schema + '"."' + self._clonedSelfTableName + '" '
+                                                                       + objPgIndices[attr].Index_type + ' (' + objPgIndices[attr].column_name.join(',') + ');';
                                                     }
 
                                                     pgClient.query(sql, err2 => {
