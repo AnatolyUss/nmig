@@ -51,9 +51,9 @@
     
     "data_chunk_size_description" : [
         "During migration each table's data will be split into chunks of data_chunk_size (in MB).",
-        "If not supplied, then 2 MB will be used as a default."
+        "If not supplied, then 1 MB will be used as a default."
     ],
-    "data_chunk_size" : 2,
+    "data_chunk_size" : 1,
 
     "copy_only_description" : [
         "During migration each table's data will be split into chunks, and each chunk will be transmitted via COPY protocol.",
@@ -70,7 +70,8 @@
     "no_vacuum" : [],
 
     "exclude_tables_description": [
-        "List (Array) of tables not to be migrated."
+        "List (Array) of tables, that will not be migrated.",
+        "By default, nmig will migrate all tables"
     ],
     "exclude_tables": []
 }
