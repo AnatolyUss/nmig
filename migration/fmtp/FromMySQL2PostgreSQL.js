@@ -1091,7 +1091,10 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
 
                                                                                 self.log(self, msg);
                                                                                 fs.unlink(csvAddr, () => {
-                                                                                    fs.close(fd, () => resolvePopulateTableWorker());
+                                                                                    fs.close(fd, () => {
+                                                                                        global.gc();
+                                                                                        resolvePopulateTableWorker();
+                                                                                    });
                                                                                 });
                                                                             });
                                                                         } else {
@@ -1100,7 +1103,10 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
 
                                                                             self.log(self, msg);
                                                                             fs.unlink(csvAddr, () => {
-                                                                                fs.close(fd, () => resolvePopulateTableWorker());
+                                                                                fs.close(fd, () => {
+                                                                                    global.gc();
+                                                                                    resolvePopulateTableWorker();
+                                                                                });
                                                                             });
                                                                         }
 
@@ -1111,7 +1117,10 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
 
                                                                         self.log(self, msg);
                                                                         fs.unlink(csvAddr, () => {
-                                                                            fs.close(fd, () => resolvePopulateTableWorker());
+                                                                            fs.close(fd, () => {
+                                                                                global.gc();
+                                                                                resolvePopulateTableWorker();
+                                                                            });
                                                                         });
                                                                     }
 		                                                            });
@@ -1608,6 +1617,8 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.createSequence
     ).then(
         self.processIndexAndKey
+    ).then(
+        global.gc
     );
 };
 
