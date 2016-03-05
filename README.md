@@ -39,15 +39,24 @@ Chunk size can be adjusted easily via configuration file.</li>
 <b>Remarks:</b>
    <ul>
    <li> config.json contains brief description of each configuration parameter</li>
-   <li>Make sure, that username, you use in your PostgreSQL connection details, defined as superuser (usually     "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
+   <li>Make sure, that username, you use in your PostgreSQL connection details, defined as superuser (usually "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
    </ul>
 
-<p><b>4.</b> Go to nmig directory, install dependencies, and run the app.<br />
+<p><b>4.</b> Go to nmig directory, install dependencies, and run the app with <code>--expose-gc</code> flag<br />
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install</pre><br />
-    <pre>$ node main.js</pre><br />
-    </p>
+    <pre>$ node --expose-gc main.js</pre><br />
+</p>
+<p>
+   &nbsp;&nbsp;
+   <b>Remark</b>: you can increase node.js memory limit (RAM usage) using <code>--max-old-space-size</code> flag<br />
+</p>
+<p>
+   &nbsp;&nbsp;
+   Following command will increase memory limit to ~2GB and run nmig
+   <br />&nbsp;&nbsp;<code>$ node --max-old-space-size=2048 --expose-gc main.js</code>
+</p>
 
 <p><b>5.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
    Log files will be located under "logs_directory" folder in the root of the package.<br />&nbsp;&nbsp;&nbsp;
@@ -70,7 +79,7 @@ which includes data types mapping, creation of tables, constraints, indexes, <br
 PKs, FKs, migration of data, garbage-collection (VACUUM) and analyzing the newly created <br />
 PostgreSQL database took 1 minute 18 seconds.</p>
 <p>
-<b>Remark:</b>&nbsp; it is highly recommended to VACUUM newly created database! <br /> 
+<b>Remark:</b>&nbsp; it is highly recommended to VACUUM newly created database! <br />
 Just keep in mind, that VACUUM is a very time-consuming procedure. <br />
 So if you are short in time - disable VACUUM via config.json ("no_vacuum" parameter). <br />
 Such step will save you ~25% of migration time. <br />
