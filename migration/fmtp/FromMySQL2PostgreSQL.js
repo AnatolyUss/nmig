@@ -163,24 +163,23 @@ FromMySQL2PostgreSQL.prototype.mapDataTypes = function(objDataTypesMap, mySqlDat
     let retVal               = '';
     let arrDataTypeDetails   = mySqlDataType.split(' ');
     mySqlDataType            = arrDataTypeDetails[0].toLowerCase();
-    let increaseOriginalSize = arrDataTypeDetails.indexOf('unsigned') !== -1
-                               || arrDataTypeDetails.indexOf('zerofill') !== -1;
+    let increaseOriginalSize = arrDataTypeDetails.indexOf('unsigned') !== -1 || arrDataTypeDetails.indexOf('zerofill') !== -1;
+    arrDataTypeDetails       = null;
 
     if (mySqlDataType.indexOf('(') === -1) {
         // No parentheses detected.
-        retVal = increaseOriginalSize
-                 ? objDataTypesMap[mySqlDataType].increased_size
-                 : objDataTypesMap[mySqlDataType].type;
-
+        retVal = increaseOriginalSize ? objDataTypesMap[mySqlDataType].increased_size : objDataTypesMap[mySqlDataType].type;
     } else {
         // Parentheses detected.
-        let arrDataType = mySqlDataType.split('(');
-        let strDataType = arrDataType[0].toLowerCase();
+        let arrDataType             = mySqlDataType.split('(');
+        let strDataType             = arrDataType[0].toLowerCase();
+        let strDataTypeDisplayWidth = arrDataType[1];
+        arrDataType                 = null;
 
         if ('enum' === strDataType) {
             retVal = 'character varying(255)';
         } else if ('decimal' === strDataType || 'numeric' === strDataType) {
-            retVal = objDataTypesMap[strDataType].type + '(' + arrDataType[1];
+            retVal = objDataTypesMap[strDataType].type + '(' + strDataTypeDisplayWidth;
         } else if ('decimal(19,2)' === mySqlDataType || objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen) {
             // Should be converted without a length definition.
             retVal = increaseOriginalSize
@@ -189,8 +188,8 @@ FromMySQL2PostgreSQL.prototype.mapDataTypes = function(objDataTypesMap, mySqlDat
         } else {
             // Should be converted with a length definition.
             retVal = increaseOriginalSize
-                     ? objDataTypesMap[strDataType].increased_size + '(' + arrDataType[1]
-                     : objDataTypesMap[strDataType].type + '(' + arrDataType[1];
+                     ? objDataTypesMap[strDataType].increased_size + '(' + strDataTypeDisplayWidth
+                     : objDataTypesMap[strDataType].type + '(' + strDataTypeDisplayWidth;
         }
     }
 
@@ -346,6 +345,7 @@ FromMySQL2PostgreSQL.prototype.logNotCreatedView = function(self, viewName, sql)
                         } else {
                             let buffer = new Buffer(sql, self._encoding);
                             fs.write(fd, buffer, 0, buffer.length, null, () => {
+                                buffer = null;
                                 fs.close(fd);
                             });
                         }
@@ -362,6 +362,7 @@ FromMySQL2PostgreSQL.prototype.logNotCreatedView = function(self, viewName, sql)
                 } else {
                     let buffer = new Buffer(sql, self._encoding);
                     fs.write(fd, buffer, 0, buffer.length, null, () => {
+                        buffer = null;
                         fs.close(fd);
                     });
                 }
@@ -383,39 +384,28 @@ FromMySQL2PostgreSQL.prototype.logNotCreatedView = function(self, viewName, sql)
 FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
     let buffer = new Buffer(log + '\n\n', self._encoding);
 
-    return new Promise(resolve => {
-        if (isErrorLog === undefined || isErrorLog === false) {
-            console.log(log);
-        }
+    if (isErrorLog === undefined || isErrorLog === false) {
+        console.log(log);
+    }
 
-        fs.open(self._allLogsPath, 'a', self._0777, (error, fd) => {
-            if (error) {
-                resolve(self);
-            } else {
-                fs.write(fd, buffer, 0, buffer.length, null, () => {
-                    fs.close(fd, () => resolve(self));
+    fs.open(self._allLogsPath, 'a', self._0777, (error, fd) => {
+        if (!error) {
+            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                fs.close(fd, () => {
+                    if (self._clonedSelfTableNamePath) {
+                        fs.open(self._clonedSelfTableNamePath, 'a', self._0777, (error, fd) => {
+                            if (!error) {
+                                fs.write(fd, buffer, 0, buffer.length, null, () => {
+                                    buffer = null;
+                                    fs.close(fd);
+                                });
+                            }
+                        });
+                    }
                 });
-            }
-        });
-    }).then(
-        self => {
-            return new Promise(resolveTableLog => {
-                if (self._clonedSelfTableNamePath === undefined) {
-                    resolveTableLog(self);
-                } else {
-                    fs.open(self._clonedSelfTableNamePath, 'a', self._0777, (error, fd) => {
-                        if (error) {
-                            resolveTableLog(self);
-                        } else {
-                            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                                fs.close(fd, () => resolveTableLog(self));
-                            });
-                        }
-                    });
-                }
             });
         }
-    );
+    });
 };
 
 /**
@@ -424,24 +414,21 @@ FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
  * @param   {FromMySQL2PostgreSQL} self
  * @param   {String}               message
  * @param   {String}               sql
- * @returns {Promise}
+ * @returns {undefined}
  */
 FromMySQL2PostgreSQL.prototype.generateError = function(self, message, sql) {
-    return new Promise(resolve => {
-        message    += '\n\n';
-        message    += sql === undefined ? '' : '\n\tSQL: ' + sql + '\n\n';
-        let buffer  = new Buffer(message, self._encoding);
-        self.log(self, message, true);
+    message    += '\n\n';
+    message    += sql === undefined ? '' : '\n\tSQL: ' + sql + '\n\n';
+    let buffer  = new Buffer(message, self._encoding);
+    self.log(self, message, true);
 
-        fs.open(self._errorLogsPath, 'a', self._0777, (error, fd) => {
-            if (error) {
-                resolve(self);
-            } else {
-                fs.write(fd, buffer, 0, buffer.length, null, () => {
-                    fs.close(fd, () => resolve(self));
-                });
-            }
-        });
+    fs.open(self._errorLogsPath, 'a', self._0777, (error, fd) => {
+        if (!error) {
+            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                buffer = null;
+                fs.close(fd);
+            });
+        }
     });
 };
 
@@ -562,6 +549,7 @@ FromMySQL2PostgreSQL.prototype.loadStructureToMigrate = function(self) {
                                     }
                                 }
 
+                                rows            = null;
                                 self._tablesCnt = tablesCnt;
                                 self._viewsCnt  = viewsCnt;
                                 let message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
@@ -621,6 +609,7 @@ FromMySQL2PostgreSQL.prototype.processView = function(self) {
                                                 } else {
                                                     let viewGen = new viewGenerator.ViewGenerator();
                                                     sql         = viewGen.generateView(self._schema, self._viewsToMigrate[i], rows[0]['Create View']);
+                                                    rows        = null;
                                                     client.query(sql, err => {
                                                         done();
 
@@ -758,12 +747,15 @@ FromMySQL2PostgreSQL.prototype.processForeignKeyWorker = function(self, tableNam
             }
         }
 
+        rows = null;
+
         for (let attr in objConstraints) {
             constraintsPromises.push(
                 new Promise(resolveConstraintPromise => {
                     pg.connect(self._targetConString, (error, client, done) => {
                         if (error) {
                             done();
+                            objConstraints[attr] = null;
                             self.generateError(self, '\t--[processForeignKeyWorker] Cannot connect to PostgreSQL server...');
                             resolveConstraintPromise(self);
                         } else {
@@ -772,6 +764,7 @@ FromMySQL2PostgreSQL.prototype.processForeignKeyWorker = function(self, tableNam
                                     + objConstraints[attr].referenced_table_name + '" (' + objConstraints[attr].referenced_column_name.join(',')
                                     + ') ON UPDATE ' + objConstraints[attr].update_rule + ' ON DELETE ' + objConstraints[attr].delete_rule + ';';
 
+                            objConstraints[attr] = null;
                             client.query(sql, err => {
                                 done();
 
@@ -879,11 +872,11 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                                         self._clonedSelfTableColumns = rows;
 
                                         for (let i = 0; i < rows.length; i++) {
-                                            sql += '"' + rows[i].Field + '" '
-                                                +  self.mapDataTypes(self._dataTypesMap, rows[i].Type) + ',';
+                                            sql += '"' + rows[i].Field + '" ' +  self.mapDataTypes(self._dataTypesMap, rows[i].Type) + ',';
                                         }
 
-                                        sql = sql.slice(0, -1) + ');';
+                                        rows = null;
+                                        sql  = sql.slice(0, -1) + ');';
                                         client.query(sql, err => {
                                             done();
 
@@ -942,6 +935,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                             } else {
                                 let tableSizeInMb = rows[0].size_in_mb;
                                 tableSizeInMb     = tableSizeInMb < 1 ? 1 : tableSizeInMb;
+                                rows              = null;
 
                                 /*
                                  * Build field list for SELECT from MySQL and apply optional casting or function based on field type.
@@ -962,6 +956,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                                                   : '`' + arrColumns[i].Field + '`,';
                                         }
 
+                                        arrColumns         = null;
                                         strSelectFieldList = strSelectFieldList.slice(0, -1);
 
                                         sql = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
@@ -973,6 +968,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                                 resolvePopulateTable();
                                             } else {
                                                 let rowsCnt              = rows2[0].rows_count;
+                                                rows2                    = null;
                                                 let chunksCnt            = tableSizeInMb / self._dataChunkSize;
                                                 chunksCnt                = chunksCnt < 1 ? 1 : chunksCnt;
                                                 let rowsInChunk          = Math.ceil(rowsCnt / chunksCnt);
@@ -1053,18 +1049,25 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
                                     sanitizedRecords.push(sanitizedRecord);
                                 }
 
+                                rows = null;
                                 csvStringify(sanitizedRecords, (csvError, csvString) => {
+                                    //sanitizedRecords = null; // TODO
+                                    
                                     if (csvError) {
                                         self.generateError(self, '\t--[populateTableWorker] ' + csvError);
                                         resolvePopulateTableWorker();
                                     } else {
                                         let buffer = new Buffer(csvString, self._encoding);
+                                        csvString  = null;
+
                                         fs.open(csvAddr, 'a', self._0777, (csvErrorFputcsvOpen, fd) => {
                                             if (csvErrorFputcsvOpen) {
                                                 self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
                                                 resolvePopulateTableWorker();
                                             } else {
                                                 fs.write(fd, buffer, 0, buffer.length, null, csvErrorFputcsvWrite => {
+                                                    buffer = null;
+
                                                     if (csvErrorFputcsvWrite) {
                                                         self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
                                                         resolvePopulateTableWorker();
@@ -1195,7 +1198,10 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows, call
         );
     }
 
-    Promise.all(insertPromises).then(() => callback.call(self));
+    Promise.all(insertPromises).then(() => {
+        rows = null;
+        callback.call(self);
+    });
 };
 
 /**
@@ -1618,7 +1624,10 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
     ).then(
         self.processIndexAndKey
     ).then(
-        global.gc
+        () => {
+            self = null;
+            global.gc();
+        }
     );
 };
 
