@@ -240,7 +240,7 @@
      for (i = l = 0, ref1 = line.length; 0 <= ref1 ? l < ref1 : l > ref1; i = 0 <= ref1 ? ++l : --l) {
        field = line[i];
        if (typeof field === 'string') {
-
+          // No code here in original version.
        } else if (typeof field === 'number') {
          field = '' + field;
        } else if (typeof field === 'boolean') {
@@ -267,7 +267,11 @@
          newLine += field;
        } else if (this.options.quotedEmpty || ((this.options.quotedEmpty == null) && line[i] === '' && this.options.quotedString)) {
          newLine += quote + quote;
+       } else {
+          // No "else" block here in the original version.
+          newLine += "''";
        }
+
        if (i !== line.length - 1) {
          newLine += delimiter;
        }
