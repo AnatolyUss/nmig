@@ -69,8 +69,8 @@ FromMySQL2PostgreSQL.prototype.boot = function(self) {
         self._excludeTables       = self._config.exclude_tables;
         self._timeBegin           = new Date();
         self._encoding            = self._config.encoding === undefined ? 'utf8' : self._config.encoding;
-        self._dataChunkSize       = self._config.data_chunk_size === undefined ? 1 : +self._config.data_chunk_size;
-        self._dataChunkSize       = self._dataChunkSize < 1 ? 1 : self._dataChunkSize;
+        self._dataChunkSize       = self._config.data_chunk_size === undefined ? 100 : +self._config.data_chunk_size;
+        self._dataChunkSize       = self._dataChunkSize < 100 ? 100 : self._dataChunkSize;
         self._0777                = '0777';
         self._mysql               = null;
         self._tablesToMigrate     = [];
@@ -379,7 +379,7 @@ FromMySQL2PostgreSQL.prototype.logNotCreatedView = function(self, viewName, sql)
  * @param   {FromMySQL2PostgreSQL} self
  * @param   {String}               log
  * @param   {Boolean}              isErrorLog
- * @returns {Promise}
+ * @returns {undefined}
  */
 FromMySQL2PostgreSQL.prototype.log = function(self, log, isErrorLog) {
     let buffer = new Buffer(log + '\n\n', self._encoding);
@@ -922,7 +922,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                         resolvePopulateTable();
                     } else {
                         // Determine current table size, apply "chunking".
-                        let sql = "SELECT ((data_length + index_length) / 1024 / 1024) AS size_in_mb "
+                        let sql = "SELECT ((data_length + index_length) / 1024) AS size_in_kb "
                                 + "FROM information_schema.TABLES "
                                 + "WHERE table_schema = '" + self._mySqlDbName + "' "
                                 + "AND table_name = '" + self._clonedSelfTableName + "';";
@@ -933,8 +933,8 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                 self.generateError(self, '\t--[populateTable] ' + err, sql);
                                 resolvePopulateTable();
                             } else {
-                                let tableSizeInMb = rows[0].size_in_mb;
-                                tableSizeInMb     = tableSizeInMb < 1 ? 1 : tableSizeInMb;
+                                let tableSizeInKb = rows[0].size_in_kb;
+                                tableSizeInKb     = tableSizeInKb < 1 ? 1 : tableSizeInKb;
                                 rows              = null;
 
                                 /*
@@ -969,7 +969,7 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                             } else {
                                                 let rowsCnt              = rows2[0].rows_count;
                                                 rows2                    = null;
-                                                let chunksCnt            = tableSizeInMb / self._dataChunkSize;
+                                                let chunksCnt            = tableSizeInKb / self._dataChunkSize;
                                                 chunksCnt                = chunksCnt < 1 ? 1 : chunksCnt;
                                                 let rowsInChunk          = Math.ceil(rowsCnt / chunksCnt);
                                                 let populateTableWorkers = [];
@@ -1036,7 +1036,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
                                 // Loop through current result set.
                                 // Sanitize records.
                                 // When sanitized - write them to a csv file.
-                                rowsInChunk          = rows.length; // Must check amount of rows BEFORE sanitizing.
+                                rowsInChunk          = rows.length; // Must check amount of rows BEFORE sanitizing?
 		                            let sanitizedRecords = [];
 
                                 for (let cnt = 0; cnt < rows.length; cnt++) {
@@ -1050,9 +1050,10 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
                                 }
 
                                 rows = null;
+                                
                                 csvStringify(sanitizedRecords, (csvError, csvString) => {
-                                    //sanitizedRecords = null; // TODO
-                                    
+                                    sanitizedRecords = null;
+
                                     if (csvError) {
                                         self.generateError(self, '\t--[populateTableWorker] ' + csvError);
                                         resolvePopulateTableWorker();
@@ -1088,7 +1089,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
                                                                         self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
 
                                                                         if (self._copyOnly.indexOf(self._clonedSelfTableName) === -1) {
-                                                                            self.populateTableByInsert(self, sanitizedRecords, () => {
+                                                                            self.populateTableByInsert(self, strSelectFieldList, offset, rowsInChunk, () => {
                                                                                 let msg = '\t--[populateTableWorker]  For now inserted: ' + self._totalRowsInserted + ' rows, '
                                                                                         + 'Total rows to insert into "' + self._schema + '"."' + self._clonedSelfTableName + '": ' + rowsCnt;
 
@@ -1149,59 +1150,87 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
  * Populates data using INSERT statment.
  *
  * @param   {FromMySQL2PostgreSQL} self
- * @param   {Array}                rows
+ * @param   {String}               strSelectFieldList
+ * @param   {Number}               offset
+ * @param   {Number}               rowsInChunk
  * @param   {Function}             callback
  * @returns {undefined}
  */
-FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, rows, callback) {
-    let insertPromises = [];
-
-    for (let i = 0; i < rows.length; i++) {
-        insertPromises.push(
-            new Promise(resolveInsert => {
-                // Execution of populateTableByInsert() must be successful, that is why no reject handler presented here.
-                pg.connect(self._targetConString, (error, client, done) => {
+FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, strSelectFieldList, offset, rowsInChunk, callback) {
+    Promise.resolve(self).then(
+        self.connect
+    ).then(
+        self => {
+            return new Promise(resolve => {
+                self._mysql.getConnection((error, connection) => {
                     if (error) {
-                        done();
-                        let msg = '\t--[populateTableByInsert] Cannot connect to PostgreSQL server...\n' + error;
-                        self.generateError(self, msg);
-                        resolveInsert();
+                        // The connection is undefined.
+                        self.generateError(self, '\t--[populateTableByInsert] Cannot connect to MySQL server...\n\t' + error);
+                        resolve(self);
                     } else {
-                        let sql                = 'INSERT INTO "' + self._schema + '"."' + self._clonedSelfTableName + '"';
-                        let columns            = '(';
-                        let valuesPlaceHolders = 'VALUES(';
-                        let valuesData         = [];
-                        let cnt                = 1;
-
-                        for (let attr in rows[i]) {
-                            columns             += '"' + attr + '",';
-                            valuesPlaceHolders  += '$' + cnt + ',';
-                            valuesData.push(rows[i][attr]); // rows are sanitized.
-                            cnt++;
-                        }
-
-                        sql += columns.slice(0, -1) + ')' + valuesPlaceHolders.slice(0, -1) + ');';
-                        client.query(sql, valuesData, err => {
-                            done();
+                        let sql = 'SELECT ' + strSelectFieldList + ' FROM `' + self._clonedSelfTableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
+                        connection.query(sql, (err, rows) => {
+                            connection.release();
 
                             if (err) {
-                                self.generateError(self, '\t--[populateTableByInsert] INSERT failed...\n' + err, sql);
-                                resolveInsert();
+                                self.generateError(self, '\t--[populateTableByInsert] ' + err, sql);
+                                resolve(self);
                             } else {
-                                self._totalRowsInserted++;
-                                resolveInsert();
+                                let insertPromises = [];
+
+                                for (let i = 0; i < rows.length; i++) {
+                                    insertPromises.push(
+                                        new Promise(resolveInsert => {
+                                            pg.connect(self._targetConString, (error, client, done) => {
+                                                if (error) {
+                                                    done();
+                                                    let msg = '\t--[populateTableByInsert] Cannot connect to PostgreSQL server...\n' + error;
+                                                    self.generateError(self, msg);
+                                                    resolveInsert();
+                                                } else {
+                                                    let sql                = 'INSERT INTO "' + self._schema + '"."' + self._clonedSelfTableName + '"';
+                                                    let columns            = '(';
+                                                    let valuesPlaceHolders = 'VALUES(';
+                                                    let valuesData         = [];
+                                                    let cnt                = 1;
+
+                                                    for (let attr in rows[i]) {
+                                                        columns             += '"' + attr + '",';
+                                                        valuesPlaceHolders  += '$' + cnt + ',';
+                                                        valuesData.push(self.sanitizeValue(rows[i][attr]));
+                                                        cnt++;
+                                                    }
+
+                                                    sql += columns.slice(0, -1) + ')' + valuesPlaceHolders.slice(0, -1) + ');';
+                                                    client.query(sql, valuesData, err => {
+                                                        done();
+
+                                                        if (err) {
+                                                            self.generateError(self, '\t--[populateTableByInsert] INSERT failed...\n' + err, sql);
+                                                            resolveInsert();
+                                                        } else {
+                                                            self._totalRowsInserted++;
+                                                            resolveInsert();
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        })
+                                    );
+                                }
+
+                                Promise.all(insertPromises).then(() => resolve(self));
                             }
                         });
                     }
                 });
-            })
-        );
-    }
-
-    Promise.all(insertPromises).then(() => {
-        rows = null;
-        callback.call(self);
-    });
+            });
+        }
+    ).then(
+        () => callback.call(self)
+    ).catch(
+        () => callback.call(self)
+    );
 };
 
 /**
@@ -1713,9 +1742,8 @@ FromMySQL2PostgreSQL.prototype.generateReport = function(self, endMsg) {
 FromMySQL2PostgreSQL.prototype.run = function(config) {
     let self     = this;
     self._config = config;
-    let promise  = new Promise(resolve => resolve(self));
 
-    promise.then(
+    Promise.resolve(self).then(
         self.boot
     ).then(
         self.createLogsDirectory,
@@ -1740,18 +1768,14 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
     ).then(
         self.loadStructureToMigrate,
         () => {
-            return new Promise(resolveError => resolveError(self)).then(() => {
-                self.log(self, '\t--[run] Cannot create new DB schema...');
-                self.cleanup(self);
-            });
+            self.log(self, '\t--[run] Cannot create new DB schema...');
+            self.cleanup(self);
         }
     ).then(
         self.processForeignKey,
         () => {
-            return new Promise(resolveError => resolveError(self)).then(() => {
-                self.log(self, '\t--[run] NMIG cannot load source database structure...');
-                self.cleanup(self);
-            });
+            self.log(self, '\t--[run] NMIG cannot load source database structure...');
+            self.cleanup(self);
         }
     ).then(
         self.processView
@@ -1759,18 +1783,14 @@ FromMySQL2PostgreSQL.prototype.run = function(config) {
         self.runVacuumFullAndAnalyze
     ).then(
         () => {
-            return new Promise(
-                resolve => resolve(self)
-            ).then(
+            Promise.resolve(self).then(
                 self.cleanup
             ).then(
                 self => self.generateReport(self, 'NMIG migration is accomplished.')
             );
         },
         () => {
-            return new Promise(
-                resolveErr => resolveErr(self)
-            ).then(
+            Promise.resolve(self).then(
                 () => self.cleanup(self)
             ).then(
                 () => {
