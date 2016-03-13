@@ -1050,7 +1050,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
                                 }
 
                                 rows = null;
-                                
+
                                 csvStringify(sanitizedRecords, (csvError, csvString) => {
                                     sanitizedRecords = null;
 
@@ -1063,6 +1063,7 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
 
                                         fs.open(csvAddr, 'a', self._0777, (csvErrorFputcsvOpen, fd) => {
                                             if (csvErrorFputcsvOpen) {
+                                                buffer = null;
                                                 self.generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
                                                 resolvePopulateTableWorker();
                                             } else {
