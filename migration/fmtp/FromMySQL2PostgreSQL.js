@@ -139,15 +139,28 @@ FromMySQL2PostgreSQL.prototype.isFloatNumeric = function(value) {
 /**
  * Sanitize an input value.
  *
+ * @param   {String} strDataType
  * @param   {String} value
  * @returns {String}
  */
-FromMySQL2PostgreSQL.prototype.sanitizeValue = function(value) {
-    if (value === '0000-00-00' || value === '0000-00-00 00:00:00') {
-        return '-INFINITY';
+FromMySQL2PostgreSQL.prototype.sanitizeValue = function(strDataType, value) {
+    let strRetVal = '';
+
+    if (strDataType.indexOf('BYTEA') !== -1) {
+        let buffer = new Buffer(value);
+        strRetVal  = buffer.toString('hex');
+        buffer     = null;
+    } else if (strDataType.indexOf('BIT') !== -1) {
+        let buffer = new Buffer(value);
+        strRetVal  = (+(buffer.toString('hex')) >>> 0).toString(2);
+        buffer     = null;
+    } else if (value === '0000-00-00' || value === '0000-00-00 00:00:00') {
+        strRetVal = '-INFINITY';
     } else {
-        return value;
+        strRetVal = value;
     }
+
+    return strRetVal;
 };
 
 /**
@@ -854,7 +867,7 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                         self.generateError(self, '\t--[createTable] Cannot connect to MySQL server...\n' + error);
                         rejectCreateTable();
                     } else {
-                        let sql = 'SHOW COLUMNS FROM `' + self._clonedSelfTableName + '`;';
+                        let sql = 'SHOW FULL COLUMNS FROM `' + self._clonedSelfTableName + '`;';
                         connection.query(sql, (err, rows) => {
                             connection.release();
 
@@ -868,11 +881,14 @@ FromMySQL2PostgreSQL.prototype.createTable = function(self) {
                                         self.generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...\n' + error, sql);
                                         rejectCreateTable();
                                     } else {
-                                        sql                          = 'CREATE TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '"(';
-                                        self._clonedSelfTableColumns = rows;
+                                        sql                                   = 'CREATE TABLE "' + self._schema + '"."' + self._clonedSelfTableName + '"(';
+                                        self._clonedSelfTableColumns          = rows;
+                                        self._clonedSelfTableColumnsConverted = [];
 
                                         for (let i = 0; i < rows.length; i++) {
-                                            sql += '"' + rows[i].Field + '" ' +  self.mapDataTypes(self._dataTypesMap, rows[i].Type) + ',';
+                                            let strConvertedType  = self.mapDataTypes(self._dataTypesMap, rows[i].Type);
+                                            sql                  += '"' + rows[i].Field + '" ' + strConvertedType + ',';
+                                            self._clonedSelfTableColumnsConverted.push(strConvertedType);
                                         }
 
                                         rows = null;
@@ -933,61 +949,53 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                 self.generateError(self, '\t--[populateTable] ' + err, sql);
                                 resolvePopulateTable();
                             } else {
-                                let tableSizeInKb = rows[0].size_in_kb;
-                                tableSizeInKb     = tableSizeInKb < 1 ? 1 : tableSizeInKb;
-                                rows              = null;
+                                let tableSizeInKb      = rows[0].size_in_kb;
+                                tableSizeInKb          = tableSizeInKb < 1 ? 1 : tableSizeInKb;
+                                rows                   = null;
+                                let strSelectFieldList = '';
 
-                                /*
-                                 * Build field list for SELECT from MySQL and apply optional casting or function based on field type.
-                                 * Get an amount of rows in the currently processed table.
-                                 */
-                                sql = 'SHOW COLUMNS FROM `' + self._clonedSelfTableName + '`;';
-                                connection.query(sql, (err1, arrColumns) => {
-                                    if (err1) {
-                                        connection.release();
-                                        self.generateError(self, '\t--[populateTable] ' + err1, sql);
+                                for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
+                                    if (
+                                        self._clonedSelfTableColumns[i].Type.indexOf('geometry') !== -1
+                                        || self._clonedSelfTableColumns[i].Type.indexOf('point') !== -1
+                                        || self._clonedSelfTableColumns[i].Type.indexOf('linestring') !== -1
+                                        || self._clonedSelfTableColumns[i].Type.indexOf('polygon') !== -1
+                                    ) {
+                                        strSelectFieldList += 'HEX(ST_AsWKB(`' + self._clonedSelfTableColumns[i].Field + '`)),';
+                                    } else {
+                                        strSelectFieldList += '`' + self._clonedSelfTableColumns[i].Field + '`,';
+                                    }
+                                }
+
+                                strSelectFieldList  = strSelectFieldList.slice(0, -1);
+                                sql                 = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
+
+                                connection.query(sql, (err2, rows2) => {
+                                    connection.release();
+
+                                    if (err2) {
+                                        self.generateError(self, '\t--[populateTable] ' + err2, sql);
                                         resolvePopulateTable();
                                     } else {
-                                        let strSelectFieldList = '';
+                                        let rowsCnt              = rows2[0].rows_count;
+                                        rows2                    = null;
+                                        let chunksCnt            = tableSizeInKb / self._dataChunkSize;
+                                        chunksCnt                = chunksCnt < 1 ? 1 : chunksCnt;
+                                        let rowsInChunk          = Math.ceil(rowsCnt / chunksCnt);
+                                        let populateTableWorkers = [];
+                                        let msg                  = '\t--[populateTable] Total rows to insert into '
+                                                                 + '"' + self._schema + '"."'
+                                                                 + self._clonedSelfTableName + '": ' + rowsCnt;
 
-                                        for (let i = 0; i < arrColumns.length; i++) {
-                                            strSelectFieldList += arrColumns[i].Type === 'geometry'
-                                                                  ? 'hex(ST_AsWKB(`' + arrColumns[i].Field + '`)),'
-                                                                  : '`' + arrColumns[i].Field + '`,';
+                                        self.log(self, msg);
+
+                                        for (let offset = 0; offset < rowsCnt; offset += rowsInChunk) {
+                                            populateTableWorkers.push(
+                                                self.populateTableWorker(self, strSelectFieldList, offset, rowsInChunk, rowsCnt)
+                                            );
                                         }
 
-                                        arrColumns         = null;
-                                        strSelectFieldList = strSelectFieldList.slice(0, -1);
-
-                                        sql = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
-                                        connection.query(sql, (err2, rows2) => {
-                                            connection.release();
-
-                                            if (err2) {
-                                                self.generateError(self, '\t--[populateTable] ' + err2, sql);
-                                                resolvePopulateTable();
-                                            } else {
-                                                let rowsCnt              = rows2[0].rows_count;
-                                                rows2                    = null;
-                                                let chunksCnt            = tableSizeInKb / self._dataChunkSize;
-                                                chunksCnt                = chunksCnt < 1 ? 1 : chunksCnt;
-                                                let rowsInChunk          = Math.ceil(rowsCnt / chunksCnt);
-                                                let populateTableWorkers = [];
-                                                let msg                  = '\t--[populateTable] Total rows to insert into '
-                                                                         + '"' + self._schema + '"."'
-                                                                         + self._clonedSelfTableName + '": ' + rowsCnt;
-
-                                                self.log(self, msg);
-
-                                                for (let offset = 0; offset < rowsCnt; offset += rowsInChunk) {
-                                                    populateTableWorkers.push(
-                                                        self.populateTableWorker(self, strSelectFieldList, offset, rowsInChunk, rowsCnt)
-                                                    );
-                                                }
-
-                                                Promise.all(populateTableWorkers).then(() => resolvePopulateTable(self));
-                                            }
-                                        });
+                                        Promise.all(populateTableWorkers).then(() => resolvePopulateTable(self));
                                     }
                                 });
                             }
@@ -1041,9 +1049,13 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
 
                                 for (let cnt = 0; cnt < rows.length; cnt++) {
                                     let sanitizedRecord = Object.create(null);
+                                    let columnsCnt      = 0;
 
-                                    for (let attr in rows[cnt]) {
-                                        sanitizedRecord[attr] = self.sanitizeValue(rows[cnt][attr]);
+                                    for (let strColumnName in rows[cnt]) {
+                                        sanitizedRecord[strColumnName] = self.sanitizeValue(
+                                            self._clonedSelfTableColumnsConverted[columnsCnt++],
+                                            rows[cnt][strColumnName]
+                                        );
                                     }
 
                                     sanitizedRecords.push(sanitizedRecord);
@@ -1190,19 +1202,21 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, strSelectF
                                                     resolveInsert();
                                                 } else {
                                                     let sql                = 'INSERT INTO "' + self._schema + '"."' + self._clonedSelfTableName + '"';
-                                                    let columns            = '(';
-                                                    let valuesPlaceHolders = 'VALUES(';
+                                                    let valuesPlaceHolders = ' VALUES(';
                                                     let valuesData         = [];
                                                     let cnt                = 1;
 
-                                                    for (let attr in rows[i]) {
-                                                        columns             += '"' + attr + '",';
+                                                    for (let strColumnName in rows[i]) {
                                                         valuesPlaceHolders  += '$' + cnt + ',';
-                                                        valuesData.push(self.sanitizeValue(rows[i][attr]));
+                                                        valuesData.push(self.sanitizeValue(
+                                                            self._clonedSelfTableColumnsConverted[cnt - 1],
+                                                            rows[i][strColumnName]
+                                                        ));
+
                                                         cnt++;
                                                     }
 
-                                                    sql += columns.slice(0, -1) + ')' + valuesPlaceHolders.slice(0, -1) + ');';
+                                                    sql += valuesPlaceHolders.slice(0, -1) + ');';
                                                     client.query(sql, valuesData, err => {
                                                         done();
 
@@ -1389,7 +1403,7 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
                                            ? self._clonedSelfTableColumns[i].Default + ';'
                                            : "'" + self._clonedSelfTableColumns[i].Default + "';";
                                 }
-
+                                
                                 client.query(sql, err => {
                                     done();
 
@@ -1541,7 +1555,7 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
                                 self.generateError(self, '\t--[processIndexAndKey] ' + err, sql);
                                 resolveProcessIndexAndKey();
                             } else {
-                                let objPgIndices               = {};
+                                let objPgIndices               = Object.create(null);
                                 let cnt                        = 0;
                                 let indexType                  = '';
                                 let processIndexAndKeyPromises = [];
