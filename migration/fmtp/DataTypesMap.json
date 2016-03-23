@@ -14,7 +14,7 @@
 
     "bit" : {
         "increased_size"           : "bit varying",
-        "type"                     : "bit",
+        "type"                     : "bit varying",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
