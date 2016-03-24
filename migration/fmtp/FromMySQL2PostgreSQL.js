@@ -146,11 +146,11 @@ FromMySQL2PostgreSQL.prototype.isFloatNumeric = function(value) {
 FromMySQL2PostgreSQL.prototype.sanitizeValue = function(strDataType, value) {
     let strRetVal = '';
 
-    if (strDataType.indexOf('BYTEA') !== -1) {
+    if (strDataType.indexOf('bytea') !== -1) {
         let buffer = new Buffer(value);
         strRetVal  = buffer.toString('hex');
         buffer     = null;
-    } else if (strDataType.indexOf('BIT') !== -1) {
+    } else if (strDataType.indexOf('bit') !== -1) {
         let buffer = new Buffer(value);
         strRetVal  = (+(buffer.toString('hex')) >>> 0).toString(2);
         buffer     = null;
@@ -213,7 +213,7 @@ FromMySQL2PostgreSQL.prototype.mapDataTypes = function(objDataTypesMap, mySqlDat
         retVal = 'character varying(1)';
     }
 
-    return retVal.toUpperCase();
+    return retVal;
 };
 
 /**
@@ -1281,12 +1281,14 @@ FromMySQL2PostgreSQL.prototype.processEnum = function(self) {
                                         done();
 
                                         if (err) {
-                                            let msg = '\t--[processEnum] Error while processing ENUM ...\n' + err;
+                                            let msg = '\t--[processEnum] Error while setting ENUM for "' + self._schema + '"."'
+                                                    + self._clonedSelfTableName + '"."' + self._clonedSelfTableColumns[i].Field + '"...\n' + err;
+
                                             self.generateError(self, msg, sql);
                                             resolveProcessEnum();
                                         } else {
-                                            let success = '\t--[processEnum] Set "ENUM" for table "' + self._schema + '"."' + self._clonedSelfTableName
-                                                        + '" column: "' + self._clonedSelfTableColumns[i].Field + '"';
+                                            let success = '\t--[processEnum] Set "ENUM" for "' + self._schema + '"."' + self._clonedSelfTableName
+                                                        + '"."' + self._clonedSelfTableColumns[i].Field + '"...';
 
                                             self.log(self, success);
                                             resolveProcessEnum();
@@ -1334,12 +1336,14 @@ FromMySQL2PostgreSQL.prototype.processNull = function(self) {
                                     done();
 
                                     if (err) {
-                                        let msg = '\t--[processNull] Error while processing NULLs...\n' + err;
+                                        let msg = '\t--[processNull] Error while setting NULL for "' + self._schema + '"."'
+                                                + self._clonedSelfTableName + '"."' + self._clonedSelfTableColumns[i].Field + '"...\n' + err;
+
                                         self.generateError(self, msg, sql);
                                         resolveProcessNull();
                                     } else {
-                                        let success = '\t--[processNull] Set "ENUM" for table "' + self._schema + '"."' + self._clonedSelfTableName
-                                                    + '" column: "' + self._clonedSelfTableColumns[i].Field + '"';
+                                        let success = '\t--[processNull] Set NULL for "' + self._schema + '"."' + self._clonedSelfTableName
+                                                    + '"."' + self._clonedSelfTableColumns[i].Field + '"...';
 
                                         self.log(self, success);
                                         resolveProcessNull();
@@ -1403,17 +1407,20 @@ FromMySQL2PostgreSQL.prototype.processDefault = function(self) {
                                            ? self._clonedSelfTableColumns[i].Default + ';'
                                            : "'" + self._clonedSelfTableColumns[i].Default + "';";
                                 }
-                                
+
                                 client.query(sql, err => {
                                     done();
 
                                     if (err) {
-                                        let msg = '\t--[processDefault] Error while processing default values...\n' + err;
+                                        let msg = '\t--[processDefault] Error occurred when tried to set default value for "'
+                                                + self._schema + '"."' + self._clonedSelfTableName
+                                                + '"."' + self._clonedSelfTableColumns[i].Field + '"...\n' + err;
+
                                         self.generateError(self, msg, sql);
                                         resolveProcessDefault();
                                     } else {
-                                        let success = '\t--[processDefault] Set default value for table "' + self._schema + '"."' + self._clonedSelfTableName
-                                                    + '" column: "' + self._clonedSelfTableColumns[i].Field + '"';
+                                        let success = '\t--[processDefault] Set default value for "' + self._schema + '"."' + self._clonedSelfTableName
+                                                    + '"."' + self._clonedSelfTableColumns[i].Field + '"...';
 
                                         self.log(self, success);
                                         resolveProcessDefault();
@@ -1630,6 +1637,59 @@ FromMySQL2PostgreSQL.prototype.processIndexAndKey = function(self) {
 };
 
 /**
+ * Create comments.
+ *
+ * @param   {FromMySQL2PostgreSQL} self
+ * @returns {Promise}
+ */
+FromMySQL2PostgreSQL.prototype.processComment = function(self) {
+    return new Promise(resolve => {
+        self.log(self, '\t--[processComment] Creates comments for table "' + self._schema + '"."' + self._clonedSelfTableName + '"...');
+        let arrCommentPromises = [];
+
+        for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
+            if (self._clonedSelfTableColumns[i].Comment !== '') {
+                arrCommentPromises.push(
+                    new Promise(resolveComment => {
+                        pg.connect(self._targetConString, (error, client, done) => {
+                            if (error) {
+                                done();
+                                let msg = '\t--[processComment] Cannot connect to PostgreSQL server...\n' + error;
+                                self.generateError(self, msg);
+                                resolveComment();
+                            } else {
+                                let sql = 'COMMENT ON COLUMN "' + self._schema + '"."' + self._clonedSelfTableName + '"."'
+                                        + self._clonedSelfTableColumns[i].Field + '" IS \'' + self._clonedSelfTableColumns[i].Comment + '\';';
+
+                                client.query(sql, err => {
+                                    done();
+
+                                    if (err) {
+                                        let msg = '\t--[processComment] Error while processing comment for "' + self._schema + '"."'
+                                                + self._clonedSelfTableName + '"."' + self._clonedSelfTableColumns[i].Field + '"...\n' + err;
+
+                                        self.generateError(self, msg, sql);
+                                        resolveComment();
+                                    } else {
+                                        let success = '\t--[processComment] Set comment for "' + self._schema + '"."' + self._clonedSelfTableName
+                                                      + '" column: "' + self._clonedSelfTableColumns[i].Field + '"...';
+
+                                        self.log(self, success);
+                                        resolveComment();
+                                    }
+                                });
+                            }
+                        });
+                    })
+                );
+            }
+        }
+
+        Promise.all(arrCommentPromises).then(() => resolve(self));
+    });
+};
+
+/**
  * Runs migration process for given table.
  *
  * @param   {FromMySQL2PostgreSQL} self
@@ -1667,6 +1727,8 @@ FromMySQL2PostgreSQL.prototype.processTable = function(self, tableName) {
         self.createSequence
     ).then(
         self.processIndexAndKey
+    ).then(
+        self.processComment
     ).then(
         () => {
             self = null;
