@@ -14,9 +14,8 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 <li>Ability to migrate big databases - in order to reduce RAM consumption NMIG will split each table's data into several chunks. <br />
 Chunk size can be adjusted easily via configuration file.</li>
 
-<li> Speed of data transfer - in order to migrate data fast NMIG uses PostgreSQL COPY protocol.<br />
-   Note: migration of tables, containing "varbinary" or "blob" columns may be considerably slower.</li>
-
+<li> Speed of data transfer - in order to migrate data fast NMIG uses PostgreSQL COPY protocol.</li>
+   
 <li>Ease of monitoring - NMIG will provide detailed output about every step, it takes during the execution.</li>
 <li>
  Ease of configuration - all the parameters required for migration should be put in one single JSON document.
