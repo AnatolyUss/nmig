@@ -19,11 +19,12 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 'use strict';
-const fs            = require('fs');
-const pg            = require('pg');
-const mysql         = require('mysql');
-const csvStringify  = require('./csvStringifyModified');
-const viewGenerator = require('./ViewGenerator');
+const fs                 = require('fs');
+const pg                 = require('pg');
+const mysql              = require('mysql');
+const csvStringify       = require('./csvStringifyModified');
+const viewGenerator      = require('./ViewGenerator');
+const arrangeColumnsData = require('./ColumnsDataArranger');
 
 /**
  * Constructor.
@@ -134,33 +135,6 @@ FromMySQL2PostgreSQL.prototype.isIntNumeric = function(value) {
  */
 FromMySQL2PostgreSQL.prototype.isFloatNumeric = function(value) {
     return !isNaN(parseFloat(value)) && isFinite(value);
-};
-
-/**
- * Sanitize an input value.
- *
- * @param   {String} strDataType
- * @param   {String} value
- * @returns {String}
- */
-FromMySQL2PostgreSQL.prototype.sanitizeValue = function(strDataType, value) {
-    let strRetVal = '';
-
-    if (strDataType.indexOf('bytea') !== -1) {
-        let buffer = new Buffer(value);
-        strRetVal  = buffer.toString('hex');
-        buffer     = null;
-    } else if (strDataType.indexOf('bit') !== -1) {
-        let buffer = new Buffer(value);
-        strRetVal  = (+(buffer.toString('hex')) >>> 0).toString(2);
-        buffer     = null;
-    } else if (value === '0000-00-00' || value === '0000-00-00 00:00:00') {
-        strRetVal = '-INFINITY';
-    } else {
-        strRetVal = value;
-    }
-
-    return strRetVal;
 };
 
 /**
@@ -952,23 +926,8 @@ FromMySQL2PostgreSQL.prototype.populateTable = function(self) {
                                 let tableSizeInKb      = rows[0].size_in_kb;
                                 tableSizeInKb          = tableSizeInKb < 1 ? 1 : tableSizeInKb;
                                 rows                   = null;
-                                let strSelectFieldList = '';
-
-                                for (let i = 0; i < self._clonedSelfTableColumns.length; i++) {
-                                    if (
-                                        self._clonedSelfTableColumns[i].Type.indexOf('geometry') !== -1
-                                        || self._clonedSelfTableColumns[i].Type.indexOf('point') !== -1
-                                        || self._clonedSelfTableColumns[i].Type.indexOf('linestring') !== -1
-                                        || self._clonedSelfTableColumns[i].Type.indexOf('polygon') !== -1
-                                    ) {
-                                        strSelectFieldList += 'HEX(ST_AsWKB(`' + self._clonedSelfTableColumns[i].Field + '`)),';
-                                    } else {
-                                        strSelectFieldList += '`' + self._clonedSelfTableColumns[i].Field + '`,';
-                                    }
-                                }
-
-                                strSelectFieldList  = strSelectFieldList.slice(0, -1);
-                                sql                 = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
+                                let strSelectFieldList = arrangeColumnsData(self._clonedSelfTableColumns);
+                                sql                    = 'SELECT COUNT(1) AS rows_count FROM `' + self._clonedSelfTableName + '`;';
 
                                 connection.query(sql, (err2, rows2) => {
                                     connection.release();
@@ -1041,30 +1000,10 @@ FromMySQL2PostgreSQL.prototype.populateTableWorker = function(self, strSelectFie
                                 self.generateError(self, '\t--[populateTableWorker] ' + err, sql);
                                 resolvePopulateTableWorker();
                             } else {
-                                // Loop through current result set.
-                                // Sanitize records.
-                                // When sanitized - write them to a csv file.
-                                rowsInChunk          = rows.length; // Must check amount of rows BEFORE sanitizing?
-		                            let sanitizedRecords = [];
+                                rowsInChunk = rows.length;
 
-                                for (let cnt = 0; cnt < rows.length; cnt++) {
-                                    let sanitizedRecord = Object.create(null);
-                                    let columnsCnt      = 0;
-
-                                    for (let strColumnName in rows[cnt]) {
-                                        sanitizedRecord[strColumnName] = self.sanitizeValue(
-                                            self._clonedSelfTableColumnsConverted[columnsCnt++],
-                                            rows[cnt][strColumnName]
-                                        );
-                                    }
-
-                                    sanitizedRecords.push(sanitizedRecord);
-                                }
-
-                                rows = null;
-
-                                csvStringify(sanitizedRecords, (csvError, csvString) => {
-                                    sanitizedRecords = null;
+                                csvStringify(rows, (csvError, csvString) => {
+                                    rows = null;
 
                                     if (csvError) {
                                         self.generateError(self, '\t--[populateTableWorker] ' + csvError);
@@ -1208,11 +1147,7 @@ FromMySQL2PostgreSQL.prototype.populateTableByInsert = function(self, strSelectF
 
                                                     for (let strColumnName in rows[i]) {
                                                         valuesPlaceHolders  += '$' + cnt + ',';
-                                                        valuesData.push(self.sanitizeValue(
-                                                            self._clonedSelfTableColumnsConverted[cnt - 1],
-                                                            rows[i][strColumnName]
-                                                        ));
-
+                                                        valuesData.push(rows[i][strColumnName]);
                                                         cnt++;
                                                     }
 
