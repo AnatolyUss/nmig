@@ -29,7 +29,7 @@
 module.exports = function(arrTableColumns) {
     let strRetVal = '';
 
-    for (let i = 0; i < arrTableColumns.length; i++) {
+    for (let i = 0; i < arrTableColumns.length; ++i) {
         if (
             arrTableColumns[i].Type.indexOf('geometry') !== -1
             || arrTableColumns[i].Type.indexOf('point') !== -1
@@ -47,9 +47,8 @@ module.exports = function(arrTableColumns) {
         ) {
             strRetVal += 'BIN(`' + arrTableColumns[i].Field + '`),';
         } else if (
-            arrTableColumns[i].Type.indexOf('date') !== -1
-            || arrTableColumns[i].Type.indexOf('datetime') !== -1
-            || arrTableColumns[i].Type.indexOf('timestamp') !== -1
+            arrTableColumns[i].Type.indexOf('timestamp') !== -1
+            || arrTableColumns[i].Type.indexOf('date') !== -1
         ) {
             strRetVal += 'IF(`' + arrTableColumns[i].Field
                       +  '` IN(\'0000-00-00\', \'0000-00-00 00:00:00\'), \'-INFINITY\', `'

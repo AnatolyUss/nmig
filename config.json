@@ -36,6 +36,12 @@
         "Maximal amount of simultaneous connections to your PostgreSQL database during migration"
     ],
     "max_pool_size_target" : 10,
+
+	"pipe_width_description" : [
+        "Maximal amount of data-chunks, processed in a single 'DataPipe' iteration.",
+        "Note: 'pipe_width' should not be greater than 'max_pool_size_target'."
+    ],
+    "pipe_width" : 10,
     
     "encoding_description" : [
         "JavaScript encoding type.",
@@ -47,7 +53,7 @@
         "schema - a name of the schema, that will contain all migrated tables.",
         "If not supplied, then a new schema will be created automatically."
     ],
-    "schema" : "test_schema",
+    "schema" : "public",
     
     "data_chunk_size_description" : [
         "During migration each table's data will be split into chunks of data_chunk_size (in KB).",
