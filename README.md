@@ -54,7 +54,7 @@ Chunk size can be adjusted easily via configuration file.</li>
 <p>
    &nbsp;&nbsp;
    Following command will increase memory limit to ~2GB and run nmig
-   <br />&nbsp;&nbsp;<code>$ node --max-old-space-size=2048 --expose-gc main.js</code>
+   <br />&nbsp;&nbsp;<code>$ node --max-old-space-size=2048 --expose-gc nmig.js</code>
 </p>
 
 <p><b>5.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
