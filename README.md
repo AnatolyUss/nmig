@@ -67,7 +67,7 @@ Chunk size can be adjusted easily via configuration file.</li>
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
-<p>Current version is 1.1.1<br />
+<p>Current version is 1.2.0<br />
 (major version . improvements . bug fixes)</p>
 
 
