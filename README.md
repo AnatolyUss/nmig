@@ -45,7 +45,7 @@ Chunk size can be adjusted easily via configuration file.</li>
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install</pre><br />
-    <pre>$ node --expose-gc main.js</pre><br />
+    <pre>$ node --expose-gc nmig.js</pre><br />
 </p>
 <p>
    &nbsp;&nbsp;
