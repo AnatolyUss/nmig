@@ -37,7 +37,7 @@
     ],
     "max_pool_size_target" : 10,
 
-	"pipe_width_description" : [
+    "pipe_width_description" : [
         "Maximal amount of data-chunks, processed in a single 'DataPipe' iteration.",
         "Note: 'pipe_width' should not be greater than 'max_pool_size_target'."
     ],
