@@ -971,7 +971,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                 resolvePopulateTableWorker();
                             } else {
                                 rowsInChunk = rows.length;
-                                
+
                                 csvStringify(rows, (csvError, csvString) => {
                                     rows = null;
 
@@ -1018,6 +1018,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                                                 log(msg);
                                                                                 fs.unlink(csvAddr, () => {
                                                                                     fs.close(fd, () => {
+                                                                                        global.gc();
                                                                                         resolvePopulateTableWorker();
                                                                                     });
                                                                                 });
@@ -1029,6 +1030,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                                             log(msg);
                                                                             fs.unlink(csvAddr, () => {
                                                                                 fs.close(fd, () => {
+                                                                                    global.gc();
                                                                                     resolvePopulateTableWorker();
                                                                                 });
                                                                             });
@@ -1042,6 +1044,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                                         log(msg);
                                                                         fs.unlink(csvAddr, () => {
                                                                             fs.close(fd, () => {
+                                                                                global.gc();
                                                                                 resolvePopulateTableWorker();
                                                                             });
                                                                         });
@@ -1142,9 +1145,9 @@ function populateTableByInsert(tableName, strSelectFieldList, offset, rowsInChun
             });
         }
     ).then(
-        () => callback.call()
+        () => callback()
     ).catch(
-        () => callback.call()
+        () => callback()
     );
 }
 
@@ -1845,10 +1848,7 @@ function loadData(arrDataUnitsChunk) {
         ));
     }
 
-    Promise.all(arrPromises).then(() => {
-        global.gc();
-        eventEmitter.emit('processed');
-    });
+    Promise.all(arrPromises).then(() => eventEmitter.emit('processed'));
 }
 
 /**
