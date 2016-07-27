@@ -46,8 +46,8 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
     <pre>$ node nmig.js</pre><br />
 </p>
 
-<p><b>5</b> If a disaster took place during migration (for what ever reason) - simply restart the process
-<code>$ node nmig.js</code><br> NMIG will restart from the point it was stopped at.
+<p><b>5.</b> If a disaster took place during migration (for what ever reason) - simply restart the process
+<code>$ node nmig.js</code><br>&nbsp;&nbsp;&nbsp;&nbsp;NMIG will restart from the point it was stopped at.
 </p>
 
 <p><b>6.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
