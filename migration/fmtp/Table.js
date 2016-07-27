@@ -31,3 +31,4 @@ module.exports = function Table(tableLogPath) {
     this.arrTableColumns   = [];
     this.totalRowsInserted = 0;
 };
+
