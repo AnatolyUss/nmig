@@ -37,3 +37,4 @@ fs.readFile(__dirname + '/config.json', (error, data) => {
         }
     }
 });
+
