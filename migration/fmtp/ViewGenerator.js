@@ -46,3 +46,4 @@ module.exports = function(schema, viewName, mysqlViewCode) {
 
     return 'CREATE OR REPLACE VIEW "' + schema + '"."' + viewName + '" ' + arrMysqlViewCode.join(' ') + ';';
 };
+
