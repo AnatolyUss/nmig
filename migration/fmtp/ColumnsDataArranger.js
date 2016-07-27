@@ -60,3 +60,4 @@ module.exports = function(arrTableColumns) {
 
     return strRetVal.slice(0, -1);
 };
+
