@@ -77,7 +77,7 @@
         "type"                     : "geometry",
         "mySqlVarLenPgSqlFixedLen" : false
     },
-    
+
     "numeric" : {
         "increased_size"           : "",
         "type"                     : "numeric",
