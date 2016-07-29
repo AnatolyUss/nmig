@@ -6,7 +6,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 
 <h3>KEY FEATURES</h3>
 <ul>
-<li> Accuracy of migration the database structure - NMIG converts
+<li> Precise migration of the database structure - NMIG converts
    MySQL data types to corresponding PostgreSQL data types, creates constraints,
    indexes, primary and foreign keys exactly as they were before migration.</li>
 
@@ -33,7 +33,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <b>Sample:</b>&nbsp;<code>/path/to/nmig</code></p>
 
 <p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/config.json</code> with correct details.<br /></p>
-<b>Remarks:</b>
+<b>Notes:</b>
    <ul>
    <li> config.json contains brief description of each configuration parameter</li>
    <li>Make sure, that username, you use in your PostgreSQL connection details, defined as superuser (usually "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
@@ -71,7 +71,7 @@ which includes data types mapping, creation of tables, constraints, indexes, <br
 PKs, FKs, migration of data, garbage-collection (VACUUM) and analyzing the newly created <br />
 PostgreSQL database took 1 minute 18 seconds.</p>
 <p>
-<b>Remark:</b>&nbsp; it is highly recommended to VACUUM newly created database! <br />
+<b>Note:</b>&nbsp; it is highly recommended to VACUUM newly created database! <br />
 Just keep in mind, that VACUUM is a very time-consuming procedure. <br />
 So if you are short in time - disable VACUUM via config.json ("no_vacuum" parameter). <br />
 Such step will save you ~25% of migration time. <br />
