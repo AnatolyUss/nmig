@@ -21,11 +21,12 @@
 'use strict';
 
 const fs   = require('fs');
+const colors = require('colors');
 const fmtp = require('./migration/fmtp/FromMySQL2PostgreSQL');
 
 fs.readFile(__dirname + '/config.json', (error, data) => {
     if (error) {
-        console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + __dirname + '/config.json');
+        console.log('\n\t--Cannot run migration\nCannot read configuration info from '.red + __dirname.red + '/config.json'.red);
     } else {
         try {
             let config         = JSON.parse(data.toString());
@@ -33,8 +34,7 @@ fs.readFile(__dirname + '/config.json', (error, data) => {
             config.logsDirPath = __dirname + '/logs_directory';
             fmtp(config);
         } catch (err) {
-            console.log('\n\t--Cannot parse JSON from' + __dirname + '/config.json');
+            console.log('\n\t--Cannot parse JSON from'.red + __dirname.red + '/config.json'.red);
         }
     }
 });
-

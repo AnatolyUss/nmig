@@ -23,6 +23,8 @@
 const fs              = require('fs');
 const pg              = require('pg');
 const mysql           = require('mysql');
+const colors          = require('colors');
+const async           = require('async');
 const csvStringify    = require('./CsvStringifyModified');
 const isIntNumeric    = require('./IntegerValidator');
 const log             = require('./Logger');
@@ -104,105 +106,155 @@ function processTransaction(sql, client, done, callback) {
 function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk, rowsCnt, dataPoolId) {
     return connect(self).then(() => {
         return new Promise(resolvePopulateTableWorker => {
-            self._mysql.getConnection((error, connection) => {
-                if (error) {
-                    // The connection is undefined.
-                    generateError(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
-                    resolvePopulateTableWorker();
-                } else {
-                    let csvAddr = self._tempDirPath + '/' + tableName + offset + '.csv';
+            let csvAddr = self._tempDirPath + '/' + tableName + offset + '.csv';
+
+            async.waterfall([
+                // open mysql connection
+                function(callback){
+                    self._mysql.getConnection((error, connection) => {
+                        if (error) {
+                            // The connection is undefined.
+                            generateError(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
+                            resolvePopulateTableWorker();
+                            callback({error: 'The connection is undefined.'.red});
+                        } else {
+                            callback(null, connection);
+                        }
+                    });
+                },
+                // run mysql query
+                function(connection, callback){
                     let sql     = 'SELECT ' + strSelectFieldList + ' FROM `' + tableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
 
                     connection.query(sql, (err, rows) => {
-                        connection.release();
-
-                        if (err) {
-                            generateError(self, '\t--[populateTableWorker] ' + err, sql);
+                        if(err) {
+                            generateError(self, '\t--[populateTableWorker] Error in MySQL query...\n\t' + error);
                             resolvePopulateTableWorker();
+                            callback({error: 'Error in MySQL query.'.red});
                         } else {
-                            rowsInChunk = rows.length;
-
-                            csvStringify(rows, (csvError, csvString) => {
-                                rows = null;
-
-                                if (csvError) {
-                                    generateError(self, '\t--[populateTableWorker] ' + csvError);
-                                    resolvePopulateTableWorker();
-                                } else {
-                                    let buffer = new Buffer(csvString, self._encoding);
-                                    csvString  = null;
-
-                                    fs.open(csvAddr, 'a', self._0777, (csvErrorFputcsvOpen, fd) => {
-                                        if (csvErrorFputcsvOpen) {
-                                            buffer = null;
-                                            generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
-                                            resolvePopulateTableWorker();
-                                        } else {
-                                            fs.write(fd, buffer, 0, buffer.length, null, csvErrorFputcsvWrite => {
-                                                buffer = null;
-
-                                                if (csvErrorFputcsvWrite) {
-                                                    generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
-                                                    resolvePopulateTableWorker();
-                                                } else {
-                                                    pg.connect(self._targetConString, (error, client, done) => {
-                                                        if (error) {
-                                                            done();
-                                                            generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
-                                                            resolvePopulateTableWorker();
-                                                        } else {
-                                                            processTransaction('START TRANSACTION;', client, done, boolErrorWhenBegan => {
-                                                                if (boolErrorWhenBegan) {
-                                                                    fs.unlink(csvAddr, () => {
-                                                                        fs.close(fd, () => {
-                                                                            resolvePopulateTableWorker();
-                                                                        });
-                                                                    });
-                                                                } else {
-                                                                    sql = 'COPY "' + self._schema + '"."' + tableName + '" FROM ' + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
-
-                                                                    processTransaction(sql, client, done, (boolErr, result) => {
-                                                                        if (boolErr || result === undefined) {
-                                                                            fs.unlink(csvAddr, () => {
-                                                                                fs.close(fd, () => {
-                                                                                    return resolvePopulateTableWorker();
-                                                                                });
-                                                                            });
-                                                                        }
-
-                                                                        if (isIntNumeric(result.rowCount)) {
-                                                                            process.send(new MessageToMaster(tableName, result.rowCount, rowsCnt));
-                                                                        }
-
-                                                                        fs.unlink(csvAddr, () => {
-                                                                            fs.close(fd, () => {
-                                                                                sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" '
-                                                                                    + 'WHERE id = ' + dataPoolId + ';';
-
-                                                                                processTransaction(sql, client, done, boolErrorWhenDelete => {
-                                                                                    if (boolErrorWhenDelete) {
-                                                                                        resolvePopulateTableWorker();
-                                                                                    } else {
-                                                                                        processTransaction('COMMIT;', client, done, () => {
-                                                                                            resolvePopulateTableWorker();
-                                                                                        });
-                                                                                    }
-                                                                                });
-                                                                            });
-                                                                        });
-                                                                    });
-                                                                }
-                                                            });
-                                                        }
-                                                   });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
+                            callback(null, connection, rows);
                         }
                     });
+                },
+                //
+                function(connection, rows, callback){
+                    connection.release();
+                    rowsInChunk = rows.length;
+
+                    csvStringify(rows, (csvError, csvString) => {
+                        rows = null;
+
+                        if (csvError) {
+                            generateError(self, '\t--[populateTableWorker] ' + csvError);
+                            resolvePopulateTableWorker();
+                            callback({error: 'Error in MySQL query.'.red});
+                        } else {
+                            callback(null, csvString);
+                        }
+                    });
+                },
+                // open csv chunk
+                function(csvString, callback) {
+                    let buffer = new Buffer(csvString, self._encoding);
+                    csvString  = null;
+
+                    fs.open(csvAddr, 'a', self._0777, (csvErrorFputcsvOpen, fd) => {
+                        if (csvErrorFputcsvOpen) {
+                            buffer = null;
+                            generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
+                            resolvePopulateTableWorker();
+                            callback({error: 'Error open csv file.'.red});
+                        } else {
+                            callback(null, fd, buffer);
+                        }
+                    });
+                },
+                // write csv chunk
+                function(fd, buffer, callback) {
+                    fs.write(fd, buffer, 0, buffer.length, null, csvErrorFputcsvWrite => {
+                        buffer = null;
+    
+                        if (csvErrorFputcsvWrite) {
+                            generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
+                            resolvePopulateTableWorker();
+                            callback({error: 'Error write csv file.'.red});
+                        } else {
+                            callback(null, fd);
+                        }
+                    });
+                },
+                // connect to postgress
+                function(fd, callback) {
+                    pg.connect(self._targetConString, (error, client, done) => {
+                        if (error) {
+                            done();
+                            generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
+                            resolvePopulateTableWorker();
+                            callback({error: 'Cannot connect to PostgreSQL server.'.red});
+                        } else {
+                            callback(null, client, done, fd);
+                        }
+                    });
+                },
+                // start transaction
+                function(client, done, fd, callback) {
+                    processTransaction('START TRANSACTION;', client, done, boolErrorWhenBegan => {
+                        if (boolErrorWhenBegan) {
+                            fs.unlink(csvAddr, () => {
+                                fs.close(fd, () => {
+                                    resolvePopulateTableWorker();
+                                    callback({error: 'Error start transaction.'.red});
+                                });
+                            });
+                        } else {
+                            callback(null, fd, client, done);
+                        }
+                    });
+                },
+                function(fd, client, done, callback) {
+                    let sql = 'COPY "' + self._schema + '"."' + tableName + '" FROM ' + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
+
+                    processTransaction(sql, client, done, (boolErr, result) => {
+                        if (boolErr || result === undefined) {
+                            fs.unlink(csvAddr, () => {
+                                fs.close(fd, () => {
+                                    callback({error: 'Error execute postgres query.'.red});
+                                    return resolvePopulateTableWorker();
+                                });
+                            });
+                        }
+
+                        if (isIntNumeric(result.rowCount)) {
+                            process.send(new MessageToMaster(tableName, result.rowCount, rowsCnt));
+                        }
+
+                        fs.unlink(csvAddr, () => {
+                            fs.close(fd, () => {
+                                sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" '
+                                    + 'WHERE id = ' + dataPoolId + ';';
+
+                                processTransaction(sql, client, done, boolErrorWhenDelete => {
+                                    if (boolErrorWhenDelete) {
+                                        callback({error: 'Error delete chunk data from table.'.red});
+                                        resolvePopulateTableWorker();
+                                    } else {
+                                        processTransaction('COMMIT;', client, done, () => {
+                                            resolvePopulateTableWorker();
+                                            callback(null, true);
+                                        });
+                                    }
+                                });
+                            });
+                        });
+                    });
+                }
+            ], function (err, result) {
+                if(err) {
+                    console.log(err);
+                    process.exit();
+                }
+                else if(!result) {
+                    console.log('Cannot write log file!'.red);
                 }
             });
         });

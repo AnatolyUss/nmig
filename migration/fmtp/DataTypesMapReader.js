@@ -21,6 +21,7 @@
 'use strict';
 
 const fs = require('fs');
+const colors = require('colors');
 
 /**
  * Reads "./DataTypesMap.json" and converts its json content to js object.
@@ -33,15 +34,15 @@ module.exports = function(self) {
     return new Promise((resolve, reject) => {
         fs.readFile(self._dataTypesMapAddr, (error, data) => {
             if (error) {
-                console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from ' + self._dataTypesMapAddr);
+                console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from '.red + self._dataTypesMapAddr.red);
                 reject();
             } else {
                 try {
                     self._dataTypesMap = JSON.parse(data.toString());
-                    console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
+                    console.log('\t--[readDataTypesMap] Data Types Map is loaded...'.green);
                     resolve();
                 } catch (err) {
-                    console.log('\t--[readDataTypesMap] Cannot parse JSON from' + self._dataTypesMapAddr);
+                    console.log('\t--[readDataTypesMap] Cannot parse JSON from'.red + self._dataTypesMapAddr.red);
                     reject();
                 }
             }

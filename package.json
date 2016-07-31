@@ -5,6 +5,8 @@
   "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
   "dependencies": {
     "mysql": "*",
-    "pg": "*"
+    "pg": "*",
+    "colors": "*",
+    "async": "*"
   }
 }
