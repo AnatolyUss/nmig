@@ -250,7 +250,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                 }
             ], function (err, result) {
                 if(err) {
-                    console.log(err);
+                    console.log(err.message);
                     process.exit();
                 }
                 else if(!result) {
