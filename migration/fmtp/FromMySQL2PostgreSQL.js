@@ -185,26 +185,26 @@ function removeTemporaryDirectory() {
  */
 function createLogsDirectory() {
     return new Promise((resolve, reject) => {
-        console.log('\t--[createLogsDirectory] Creating logs directory...');
+        console.log('\t--[createLogsDirectory] Creating logs directory...'.green);
         fs.stat(self._logsDirPath, (directoryDoesNotExist, stat) => {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._logsDirPath, self._0777, e => {
                     if (e) {
-                        let msg = '\t--[createLogsDirectory] Cannot perform a migration due to impossibility to create '
-                                + '"logs_directory": ' + self._logsDirPath;
+                        let msg = '\t--[createLogsDirectory] Cannot perform a migration due to impossibility to create '.red
+                                + '"logs_directory": '.red + self._logsDirPath.red;
 
                         console.log(msg);
                         reject();
                     } else {
-                        log(self, '\t--[createLogsDirectory] Logs directory is created...');
+                        log(self, '\t--[createLogsDirectory] Logs directory is created...'.green);
                         resolve();
                     }
                 });
             } else if (!stat.isDirectory()) {
-                console.log('\t--[createLogsDirectory] Cannot perform a migration due to unexpected error');
+                console.log('\t--[createLogsDirectory] Cannot perform a migration due to unexpected error'.red);
                 reject();
             } else {
-                log(self, '\t--[createLogsDirectory] Logs directory already exists...');
+                log(self, '\t--[createLogsDirectory] Logs directory already exists...'.green);
                 resolve();
             }
         });
@@ -1674,7 +1674,10 @@ function continueProcessAfterDataLoading() {
  * @returns {undefined}
  */
 module.exports = function(config) {
-    console.log('\n\tNMIG - the database migration tool\n\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\t Boot...');
+    let startMessage = '\n\tNMIG'.rainbow + '- postgres to mysql database migration tool\n\t' +
+        'Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\t' +
+        'Boot...'.blue;
+    console.log(startMessage);
     self                 = new Conversion(config);
     pg.defaults.poolSize = self._maxPoolSizeTarget;
 
@@ -1682,7 +1685,7 @@ module.exports = function(config) {
         createLogsDirectory,
         () => {
             // Braces are essential. Without them promises-chain will continue execution.
-            console.log('\t--[FromMySQL2PostgreSQL] Failed to boot migration');
+            console.log('\t--[FromMySQL2PostgreSQL] Failed to boot migration'.red);
         }
     ).then(
         createTemporaryDirectory,
