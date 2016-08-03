@@ -162,7 +162,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                                     sql = 'COPY "' + self._schema + '"."' + tableName + '" FROM ' + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
 
                                                                     processTransaction(sql, client, done, (boolErr, result) => {
-                                                                        if (boolErr || result === undefined) {
+                                                                        if (boolErr || typeof result === 'undefined') {
                                                                             fs.unlink(csvAddr, () => {
                                                                                 fs.close(fd, () => {
                                                                                     return resolvePopulateTableWorker();
