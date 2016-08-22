@@ -21,8 +21,6 @@
 'use strict';
 
 const fs              = require('fs');
-const pg              = require('pg');
-const mysql           = require('mysql');
 const csvStringify    = require('./CsvStringifyModified');
 const isIntNumeric    = require('./IntegerValidator');
 const log             = require('./Logger');
@@ -34,9 +32,8 @@ const MessageToMaster = require('./MessageToMaster');
 let self = null;
 
 process.on('message', signal => {
-    self                 = new Conversion(signal.config);
-    pg.defaults.poolSize = self._maxPoolSizeTarget;
-    let arrPromises      = [];
+    self            = new Conversion(signal.config);
+    let arrPromises = [];
     log(self, '\t--[loadData] Loading the data...');
 
     for (let i = 0; i < signal.chunks.length; ++i) {
@@ -54,39 +51,42 @@ process.on('message', signal => {
 });
 
 /**
- * Run given query as part of the transaction.
- * Return client to the connection pool, if necessary.
+ * Delete given record from the data-pool.
  *
- * @param   {String}         sql
+ * @param   {Number}         dataPoolId
  * @param   {Node-pg client} client
  * @param   {Function}       done
  * @param   {Function}       callback
  * @returns {undefined}
  */
-function processTransaction(sql, client, done, callback) {
-    client.query(sql, (error, result) => {
-        if (error) {
-            /*
-             * Release the client in case of error.
-             * Must run 'ROLLBACK' before releasing the client.
-             */
-            generateError(self, '\t--[processTransaction] ' + error, sql);
-            client.query('ROLLBACK;', () => {
-                done();
-                return callback(true); // 'callback' has executed due to an error.
-            });
+function deleteChunk(dataPoolId, client, done, callback) {
+    let sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" '
+            + 'WHERE id = ' + dataPoolId + ';';
+
+    client.query(sql, err => {
+        done();
+
+        if (err) {
+            generateError(self, '\t--[deleteChunk] ' + err, sql);
         }
 
-        if (sql === 'ROLLBACK;' || sql === 'COMMIT;') {
-            /*
-             * Running 'ROLLBACK' or 'COMMIT' - meaning that the transaction is over.
-             * The client must be released back to the pool.
-             * In any other case the client must be held for reusing.
-             */
-            done();
-        }
+        return callback();
+    });
+}
 
-        return callback(false, result); // 'processTransaction' has finished successfully.
+/**
+ * Delete given csv file.
+ *
+ * @param   {String}         csvAddr
+ * @param   {FileDescriptor} fd
+ * @param   {Function}       callback
+ * @returns {undefined}
+ */
+function deleteCsv(csvAddr, fd, callback) {
+    fs.unlink(csvAddr, () => {
+        fs.close(fd, () => {
+            return callback();
+        });
     });
 }
 
@@ -145,53 +145,25 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                     generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
                                                     resolvePopulateTableWorker();
                                                 } else {
-                                                    pg.connect(self._targetConString, (error, client, done) => {
+                                                    self._pg.connect((error, client, done) => {
                                                         if (error) {
-                                                            done();
                                                             generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
-                                                            resolvePopulateTableWorker();
+                                                            deleteCsv(csvAddr, fd, () => resolvePopulateTableWorker());
                                                         } else {
-                                                            processTransaction('START TRANSACTION;', client, done, boolErrorWhenBegan => {
-                                                                if (boolErrorWhenBegan) {
-                                                                    fs.unlink(csvAddr, () => {
-                                                                        fs.close(fd, () => {
-                                                                            resolvePopulateTableWorker();
-                                                                        });
-                                                                    });
+                                                            let sqlCopy = 'COPY "' + self._schema + '"."' + tableName + '" FROM ' + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
+
+                                                            client.query(sqlCopy, (error, result) => {
+                                                                if (error) {
+                                                                    generateError(self, '\t--[populateTableWorker] ' + err, sqlCopy);
+                                                                    let rejectedData = '\t--[populateTableWorker] Following MySQL query will return a data set, rejected by PostgreSQL:\n' + sql + '\n';
+                                                                    log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
                                                                 } else {
-                                                                    sql = 'COPY "' + self._schema + '"."' + tableName + '" FROM ' + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
-
-                                                                    processTransaction(sql, client, done, (boolErr, result) => {
-                                                                        if (boolErr || typeof result === 'undefined') {
-                                                                            fs.unlink(csvAddr, () => {
-                                                                                fs.close(fd, () => {
-                                                                                    return resolvePopulateTableWorker();
-                                                                                });
-                                                                            });
-                                                                        }
-
-                                                                        if (isIntNumeric(result.rowCount)) {
-                                                                            process.send(new MessageToMaster(tableName, result.rowCount, rowsCnt));
-                                                                        }
-
-                                                                        fs.unlink(csvAddr, () => {
-                                                                            fs.close(fd, () => {
-                                                                                sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" '
-                                                                                    + 'WHERE id = ' + dataPoolId + ';';
-
-                                                                                processTransaction(sql, client, done, boolErrorWhenDelete => {
-                                                                                    if (boolErrorWhenDelete) {
-                                                                                        resolvePopulateTableWorker();
-                                                                                    } else {
-                                                                                        processTransaction('COMMIT;', client, done, () => {
-                                                                                            resolvePopulateTableWorker();
-                                                                                        });
-                                                                                    }
-                                                                                });
-                                                                            });
-                                                                        });
-                                                                    });
+                                                                    process.send(new MessageToMaster(tableName, result.rowCount, rowsCnt));
                                                                 }
+
+                                                                deleteChunk(dataPoolId, client, done, () => {
+                                                                    deleteCsv(csvAddr, fd, () => resolvePopulateTableWorker());
+                                                                });
                                                             });
                                                         }
                                                    });
