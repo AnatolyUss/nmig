@@ -21,30 +21,53 @@
 'use strict';
 
 const mysql = require('mysql');
+const pg    = require('pg');
 const log   = require('./Logger');
 
 /**
  * Check if both servers are connected.
  * If not, than create connections.
+ * Kill current process if can not connect.
  *
  * @param   {Conversion} self
  * @returns {Promise}
  */
 module.exports = function(self) {
-    return new Promise((resolve, reject) => {
-        if (!self._mysql) {
-            self._sourceConString.connectionLimit = self._maxPoolSizeSource;
-            let pool                              = mysql.createPool(self._sourceConString);
+    return new Promise(resolve => {
+        let mysqlConnectionPromise = new Promise((mysqlResolve, mysqlReject) => {
+            if (!self._mysql) {
+                self._sourceConString.connectionLimit = self._maxPoolSizeSource;
+                let pool                              = mysql.createPool(self._sourceConString);
 
-            if (pool) {
-                self._mysql = pool;
-                resolve();
+                if (pool) {
+                    self._mysql = pool;
+                    mysqlResolve();
+                } else {
+                    log(self, '\t--[connect] Cannot connect to MySQL server...');
+                    mysqlReject();
+                }
             } else {
-                log(self, '\t--[connect] Cannot connect to MySQL server...');
-                reject();
+                mysqlResolve();
             }
-        } else {
-            resolve();
-        }
+        });
+
+        let pgConnectionPromise = new Promise((pgResolve, pgReject) => {
+            if (!self._pg) {
+                self._targetConString.max = self._maxPoolSizeTarget;
+                let pool                  = new pg.Pool(self._targetConString);
+
+                if (pool) {
+                    self._pg = pool;
+                    pgResolve();
+                } else {
+                    log(self, '\t--[connect] Cannot connect to PostgreSQL server...');
+                    pgReject();
+                }
+            } else {
+                pgResolve();
+            }
+        });
+
+        Promise.all([mysqlConnectionPromise, pgConnectionPromise]).then(() => resolve(), () => process.exit());
     });
 };
