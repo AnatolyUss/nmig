@@ -21,8 +21,6 @@
 'use strict';
 
 const fs                  = require('fs');
-const pg                  = require('pg');
-const mysql               = require('mysql');
 const childProcess        = require('child_process');
 const generateView        = require('./ViewGenerator');
 const arrangeColumnsData  = require('./ColumnsDataArranger');
@@ -74,7 +72,7 @@ function mapDataTypes(objDataTypesMap, mySqlDataType) {
         let strDataTypeDisplayWidth = arrDataType[1];
         arrDataType                 = null;
 
-        if ('enum' === strDataType) {
+        if ('enum' === strDataType || 'set' === strDataType) {
             retVal = 'character varying(255)';
         } else if ('decimal' === strDataType || 'numeric' === strDataType) {
             retVal = objDataTypesMap[strDataType].type + '(' + strDataTypeDisplayWidth;
@@ -266,36 +264,37 @@ function logNotCreatedView(viewName, sql) {
  * @returns {Promise}
  */
 function createSchema() {
-    return new Promise((resolve, reject) => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...\n' + error);
-                reject();
-            } else {
-                let sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
-                client.query(sql, (err, result) => {
-                    if (err) {
-                        done();
-                        generateError(self, '\t--[createSchema] ' + err, sql);
-                        reject();
-                    } else if (result.rows.length === 0) {
-                        sql = 'CREATE SCHEMA "' + self._schema + '";';
-                        client.query(sql, err => {
+    return connect(self).then(() => {
+        return new Promise((resolve, reject) => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...\n' + error);
+                    reject();
+                } else {
+                    let sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
+                    client.query(sql, (err, result) => {
+                        if (err) {
                             done();
+                            generateError(self, '\t--[createSchema] ' + err, sql);
+                            reject();
+                        } else if (result.rows.length === 0) {
+                            sql = 'CREATE SCHEMA "' + self._schema + '";';
+                            client.query(sql, err => {
+                                done();
 
-                            if (err) {
-                                generateError(self, '\t--[createSchema] ' + err, sql);
-                                reject();
-                            } else {
-                                resolve();
-                            }
-                        });
-                    } else {
-                        resolve();
-                    }
-                });
-            }
+                                if (err) {
+                                    generateError(self, '\t--[createSchema] ' + err, sql);
+                                    reject();
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        } else {
+                            resolve();
+                        }
+                    });
+                }
+            });
         });
     });
 }
@@ -307,25 +306,26 @@ function createSchema() {
  * @returns {Promise}
  */
 function getStatelog(param) {
-    return new Promise(resolve => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[getStateLog] Cannot connect to PostgreSQL server...\n' + error);
-                resolve(false);
-            } else {
-                let sql = 'SELECT ' + param + ' FROM "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
-                client.query(sql, (err, data) => {
-                    done();
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[getStateLog] Cannot connect to PostgreSQL server...\n' + error);
+                    resolve(false);
+                } else {
+                    let sql = 'SELECT ' + param + ' FROM "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
+                    client.query(sql, (err, data) => {
+                        done();
 
-                    if (err) {
-                        generateError(self, '\t--[getStateLog] ' + err, sql);
-                        resolve(false);
-                    } else {
-                        resolve(data.rows[0][param]);
-                    }
-                });
-            }
+                        if (err) {
+                            generateError(self, '\t--[getStateLog] ' + err, sql);
+                            resolve(false);
+                        } else {
+                            resolve(data.rows[0][param]);
+                        }
+                    });
+                }
+            });
         });
     });
 }
@@ -337,26 +337,27 @@ function getStatelog(param) {
  * @returns {Promise}
  */
 function updateStatelog(param) {
-    return new Promise(resolve => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[updateStateLog] Cannot connect to PostgreSQL server...\n' + error);
-                resolve();
-            } else {
-                let sql = 'UPDATE "' + self._schema + '"."state_logs_'
-                        + self._schema + self._mySqlDbName + '" SET ' + param + ' = TRUE;';
-
-                client.query(sql, err => {
-                    done();
-
-                    if (err) {
-                        generateError(self, '\t--[updateStateLog] ' + err, sql);
-                    }
-
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[updateStateLog] Cannot connect to PostgreSQL server...\n' + error);
                     resolve();
-                });
-            }
+                } else {
+                    let sql = 'UPDATE "' + self._schema + '"."state_logs_'
+                            + self._schema + self._mySqlDbName + '" SET ' + param + ' = TRUE;';
+
+                    client.query(sql, err => {
+                        done();
+
+                        if (err) {
+                            generateError(self, '\t--[updateStateLog] ' + err, sql);
+                        }
+
+                        resolve();
+                    });
+                }
+            });
         });
     });
 }
@@ -367,62 +368,63 @@ function updateStatelog(param) {
  * @returns {Promise}
  */
 function createStateLogsTable() {
-    return new Promise((resolve, reject) => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[createStateLogsTable] Cannot connect to PostgreSQL server...\n' + error);
-                reject();
-            } else {
-                let sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName
-                        + '"('
-                        + '"tables_loaded" BOOLEAN,'
-                        + '"per_table_constraints_loaded" BOOLEAN,'
-                        + '"foreign_keys_loaded" BOOLEAN,'
-                        + '"views_loaded" BOOLEAN'
-                        + ');';
+    return connect(self).then(() =>{
+        return new Promise((resolve, reject) => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[createStateLogsTable] Cannot connect to PostgreSQL server...\n' + error);
+                    reject();
+                } else {
+                    let sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName
+                            + '"('
+                            + '"tables_loaded" BOOLEAN,'
+                            + '"per_table_constraints_loaded" BOOLEAN,'
+                            + '"foreign_keys_loaded" BOOLEAN,'
+                            + '"views_loaded" BOOLEAN'
+                            + ');';
 
-                client.query(sql, err => {
-                    if (err) {
-                        done();
-                        generateError(self, '\t--[createStateLogsTable] ' + err, sql);
-                        reject();
-                    } else {
-                        sql = 'SELECT COUNT(1) AS cnt FROM "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
-                        client.query(sql, (errorCount, result) => {
-                            if (errorCount) {
-                                done();
-                                generateError(self, '\t--[createStateLogsTable] ' + errorCount, sql);
-                                reject();
-                            } else if (+result.rows[0].cnt === 0) {
-                                sql = 'INSERT INTO "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName
-                                    + '" VALUES(FALSE, FALSE, FALSE, FALSE);';
-
-                                client.query(sql, errorInsert => {
+                    client.query(sql, err => {
+                        if (err) {
+                            done();
+                            generateError(self, '\t--[createStateLogsTable] ' + err, sql);
+                            reject();
+                        } else {
+                            sql = 'SELECT COUNT(1) AS cnt FROM "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
+                            client.query(sql, (errorCount, result) => {
+                                if (errorCount) {
                                     done();
+                                    generateError(self, '\t--[createStateLogsTable] ' + errorCount, sql);
+                                    reject();
+                                } else if (+result.rows[0].cnt === 0) {
+                                    sql = 'INSERT INTO "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName
+                                        + '" VALUES(FALSE, FALSE, FALSE, FALSE);';
 
-                                    if (errorInsert) {
-                                        generateError(self, '\t--[createStateLogsTable] ' + errorInsert, sql);
-                                        reject();
-                                    } else {
-                                        let msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
-                                                + self._schema + self._mySqlDbName + '" is created...';
+                                    client.query(sql, errorInsert => {
+                                        done();
 
-                                        log(self, msg);
-                                        resolve();
-                                    }
-                                });
-                            } else {
-                                let msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
-                                        + self._schema + self._mySqlDbName + '" is created...';
+                                        if (errorInsert) {
+                                            generateError(self, '\t--[createStateLogsTable] ' + errorInsert, sql);
+                                            reject();
+                                        } else {
+                                            let msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
+                                                    + self._schema + self._mySqlDbName + '" is created...';
 
-                                log(self, msg);
-                                resolve();
-                            }
-                        });
-                    }
-                });
-            }
+                                            log(self, msg);
+                                            resolve();
+                                        }
+                                    });
+                                } else {
+                                    let msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
+                                            + self._schema + self._mySqlDbName + '" is created...';
+
+                                    log(self, msg);
+                                    resolve();
+                                }
+                            });
+                        }
+                    });
+                }
+            });
         });
     });
 }
@@ -433,26 +435,27 @@ function createStateLogsTable() {
  * @returns {Promise}
  */
 function dropStateLogsTable() {
-    return new Promise(resolve => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[dropStateLogsTable] Cannot connect to PostgreSQL server...\n' + error);
-                resolve();
-            } else {
-                let sql = 'DROP TABLE "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
-                client.query(sql, err => {
-                    done();
-
-                    if (err) {
-                        generateError(self, '\t--[dropStateLogsTable] ' + err, sql);
-                    } else {
-                        log(self, '\t--[dropStateLogsTable] table "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '" is dropped...');
-                    }
-
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[dropStateLogsTable] Cannot connect to PostgreSQL server...\n' + error);
                     resolve();
-                });
-            }
+                } else {
+                    let sql = 'DROP TABLE "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
+                    client.query(sql, err => {
+                        done();
+
+                        if (err) {
+                            generateError(self, '\t--[dropStateLogsTable] ' + err, sql);
+                        } else {
+                            log(self, '\t--[dropStateLogsTable] table "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '" is dropped...');
+                        }
+
+                        resolve();
+                    });
+                }
+            });
         });
     });
 }
@@ -463,28 +466,29 @@ function dropStateLogsTable() {
  * @returns {Promise}
  */
 function createDataPoolTable() {
-    return new Promise((resolve, reject) => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[createDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
-                reject();
-            } else {
-                let sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
-                        + '"("id" BIGSERIAL, "json" TEXT);';
+    return connect(self).then(() => {
+        return new Promise((resolve, reject) => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[createDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
+                    reject();
+                } else {
+                    let sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
+                            + '"("id" BIGSERIAL, "json" TEXT);';
 
-                client.query(sql, err => {
-                    done();
+                    client.query(sql, err => {
+                        done();
 
-                    if (err) {
-                        generateError(self, '\t--[createDataPoolTable] ' + err, sql);
-                        reject();
-                    } else {
-                        log(self, '\t--[createDataPoolTable] table "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" is created...');
-                        resolve();
-                    }
-                });
-            }
+                        if (err) {
+                            generateError(self, '\t--[createDataPoolTable] ' + err, sql);
+                            reject();
+                        } else {
+                            log(self, '\t--[createDataPoolTable] table "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" is created...');
+                            resolve();
+                        }
+                    });
+                }
+            });
         });
     });
 }
@@ -495,26 +499,27 @@ function createDataPoolTable() {
  * @returns {Promise}
  */
 function dropDataPoolTable() {
-    return new Promise(resolve => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[dropDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
-                resolve();
-            } else {
-                let sql = 'DROP TABLE "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
-                client.query(sql, err => {
-                    done();
-
-                    if (err) {
-                        generateError(self, '\t--[dropDataPoolTable] ' + err, sql);
-                    } else {
-                        log(self, '\t--[dropDataPoolTable] table "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" is dropped...');
-                    }
-
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[dropDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
                     resolve();
-                });
-            }
+                } else {
+                    let sql = 'DROP TABLE "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
+                    client.query(sql, err => {
+                        done();
+
+                        if (err) {
+                            generateError(self, '\t--[dropDataPoolTable] ' + err, sql);
+                        } else {
+                            log(self, '\t--[dropDataPoolTable] table "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" is dropped...');
+                        }
+
+                        resolve();
+                    });
+                }
+            });
         });
     });
 }
@@ -526,65 +531,60 @@ function dropDataPoolTable() {
  */
 function loadStructureToMigrate() {
     return getStatelog('tables_loaded').then(stateLog => {
-        return connect(self).then(
-            () => {
-                return new Promise((resolve, reject) => {
-                    self._mysql.getConnection((error, connection) => {
-                        if (error) {
-                            // The connection is undefined.
-                            generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
+        return new Promise((resolve, reject) => {
+            self._mysql.getConnection((error, connection) => {
+                if (error) {
+                    // The connection is undefined.
+                    generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
+                    reject();
+                } else {
+                    let sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
+                    connection.query(sql, (strErr, rows) => {
+                        connection.release();
+
+                        if (strErr) {
+                            generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
                             reject();
                         } else {
-                            let sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
-                            connection.query(sql, (strErr, rows) => {
-                                connection.release();
+                            let tablesCnt            = 0;
+                            let viewsCnt             = 0;
+                            let processTablePromises = [];
 
-                                if (strErr) {
-                                    generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
-                                    reject();
-                                } else {
-                                    let tablesCnt            = 0;
-                                    let viewsCnt             = 0;
-                                    let processTablePromises = [];
+                            for (let i = 0; i < rows.length; ++i) {
+                                let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
-                                    for (let i = 0; i < rows.length; ++i) {
-                                        let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
-
-                                        if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
-                                            self._tablesToMigrate.push(relationName);
-                                            self._dicTables[relationName] = new Table(self._logsDirPath + '/' + relationName + '.log');
-                                            processTablePromises.push(processTableBeforeDataLoading(relationName, stateLog));
-                                            tablesCnt++;
-                                        } else if (rows[i].Table_type === 'VIEW') {
-                                            self._viewsToMigrate.push(relationName);
-                                            viewsCnt++;
-                                        }
-                                    }
-
-                                    rows            = null;
-                                    self._tablesCnt = tablesCnt;
-                                    self._viewsCnt  = viewsCnt;
-                                    let message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
-                                                    + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n'
-                                                    + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
-
-                                    log(self, message);
-
-                                    Promise.all(processTablePromises).then(
-                                        () => {
-                                            updateStatelog('tables_loaded');
-                                            resolve();
-                                        },
-                                        () => reject()
-                                    );
+                                if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
+                                    self._tablesToMigrate.push(relationName);
+                                    self._dicTables[relationName] = new Table(self._logsDirPath + '/' + relationName + '.log');
+                                    processTablePromises.push(processTableBeforeDataLoading(relationName, stateLog));
+                                    tablesCnt++;
+                                } else if (rows[i].Table_type === 'VIEW') {
+                                    self._viewsToMigrate.push(relationName);
+                                    viewsCnt++;
                                 }
-                            });
+                            }
+
+                            rows            = null;
+                            self._tablesCnt = tablesCnt;
+                            self._viewsCnt  = viewsCnt;
+                            let message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
+                                            + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n'
+                                            + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
+
+                            log(self, message);
+
+                            Promise.all(processTablePromises).then(
+                                () => {
+                                    updateStatelog('tables_loaded');
+                                    resolve();
+                                },
+                                () => reject()
+                            );
                         }
                     });
-                });
-            },
-            () => log(self, '\t--[loadStructureToMigrate] Cannot establish DB connections...')
-        );
+                }
+            });
+        });
     });
 }
 
@@ -601,53 +601,47 @@ function processView() {
             if (!stateLog) {
                 for (let i = 0; i < self._viewsToMigrate.length; ++i) {
                     createViewPromises.push(
-                        connect(self).then(
-                            () => {
-                                return new Promise(resolveProcessView2 => {
-                                    self._mysql.getConnection((error, connection) => {
-                                        if (error) {
-                                            // The connection is undefined.
-                                            generateError(self, '\t--[processView] Cannot connect to MySQL server...\n' + error);
+                        new Promise(resolveProcessView2 => {
+                            self._mysql.getConnection((error, connection) => {
+                                if (error) {
+                                    // The connection is undefined.
+                                    generateError(self, '\t--[processView] Cannot connect to MySQL server...\n' + error);
+                                    resolveProcessView2();
+                                } else {
+                                    let sql = 'SHOW CREATE VIEW `' + self._viewsToMigrate[i] + '`;';
+                                    connection.query(sql, (strErr, rows) => {
+                                        connection.release();
+
+                                        if (strErr) {
+                                            generateError(self, '\t--[processView] ' + strErr, sql);
                                             resolveProcessView2();
                                         } else {
-                                            let sql = 'SHOW CREATE VIEW `' + self._viewsToMigrate[i] + '`;';
-                                            connection.query(sql, (strErr, rows) => {
-                                                connection.release();
-
-                                                if (strErr) {
-                                                    generateError(self, '\t--[processView] ' + strErr, sql);
+                                            self._pg.connect((error, client, done) => {
+                                                if (error) {
+                                                    generateError(self, '\t--[processView] Cannot connect to PostgreSQL server...');
                                                     resolveProcessView2();
                                                 } else {
-                                                    pg.connect(self._targetConString, (error, client, done) => {
-                                                        if (error) {
-                                                            done();
-                                                            generateError(self, '\t--[processView] Cannot connect to PostgreSQL server...');
+                                                    sql  = generateView(self._schema, self._viewsToMigrate[i], rows[0]['Create View']);
+                                                    rows = null;
+                                                    client.query(sql, err => {
+                                                        done();
+
+                                                        if (err) {
+                                                            generateError(self, '\t--[processView] ' + err, sql);
+                                                            logNotCreatedView(self._viewsToMigrate[i], sql);
                                                             resolveProcessView2();
                                                         } else {
-                                                            sql  = generateView(self._schema, self._viewsToMigrate[i], rows[0]['Create View']);
-                                                            rows = null;
-                                                            client.query(sql, err => {
-                                                                done();
-
-                                                                if (err) {
-                                                                    generateError(self, '\t--[processView] ' + err, sql);
-                                                                    logNotCreatedView(self._viewsToMigrate[i], sql);
-                                                                    resolveProcessView2();
-                                                                } else {
-                                                                    log(self, '\t--[processView] View "' + self._schema + '"."' + self._viewsToMigrate[i] + '" is created...');
-                                                                    resolveProcessView2();
-                                                                }
-                                                            });
+                                                            log(self, '\t--[processView] View "' + self._schema + '"."' + self._viewsToMigrate[i] + '" is created...');
+                                                            resolveProcessView2();
                                                         }
                                                     });
                                                 }
                                             });
                                         }
                                     });
-                                });
-                            },
-                            () => generateError(self, '\t--[processView] Cannot establish DB connections...')
-                        )
+                                }
+                            });
+                        })
                     );
                 }
             }
@@ -672,51 +666,49 @@ function processForeignKey() {
                     let tableName = self._tablesToMigrate[i];
                     log(self, '\t--[processForeignKey] Search foreign keys for table "' + self._schema + '"."' + tableName + '"...');
                     fkPromises.push(
-                        connect(self).then(() => {
-                            return new Promise(fkResolve => {
-                                self._mysql.getConnection((error, connection) => {
-                                    if (error) {
-                                        // The connection is undefined.
-                                        generateError(self, '\t--[processForeignKey] Cannot connect to MySQL server...\n' + error);
-                                        fkResolve();
-                                    } else {
-                                        let sql = "SELECT cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME, "
-                                                + "cRefs.UPDATE_RULE, cRefs.DELETE_RULE, cRefs.CONSTRAINT_NAME "
-                                                + "FROM INFORMATION_SCHEMA.`COLUMNS` AS cols "
-                                                + "INNER JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS refs "
-                                                + "ON refs.TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                                + "AND refs.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                                + "AND refs.TABLE_NAME = cols.TABLE_NAME "
-                                                + "AND refs.COLUMN_NAME = cols.COLUMN_NAME "
-                                                + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cRefs "
-                                                + "ON cRefs.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
-                                                + "AND cRefs.CONSTRAINT_NAME = refs.CONSTRAINT_NAME "
-                                                + "LEFT JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS links "
-                                                + "ON links.TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                                + "AND links.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                                + "AND links.REFERENCED_TABLE_NAME = cols.TABLE_NAME "
-                                                + "AND links.REFERENCED_COLUMN_NAME = cols.COLUMN_NAME "
-                                                + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cLinks "
-                                                + "ON cLinks.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
-                                                + "AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME "
-                                                + "WHERE cols.TABLE_SCHEMA = '" + self._mySqlDbName + "' "
-                                                + "AND cols.TABLE_NAME = '" + tableName + "';";
+                        new Promise(fkResolve => {
+                            self._mysql.getConnection((error, connection) => {
+                                if (error) {
+                                    // The connection is undefined.
+                                    generateError(self, '\t--[processForeignKey] Cannot connect to MySQL server...\n' + error);
+                                    fkResolve();
+                                } else {
+                                    let sql = "SELECT cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME, "
+                                            + "cRefs.UPDATE_RULE, cRefs.DELETE_RULE, cRefs.CONSTRAINT_NAME "
+                                            + "FROM INFORMATION_SCHEMA.`COLUMNS` AS cols "
+                                            + "INNER JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS refs "
+                                            + "ON refs.TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND refs.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND refs.TABLE_NAME = cols.TABLE_NAME "
+                                            + "AND refs.COLUMN_NAME = cols.COLUMN_NAME "
+                                            + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cRefs "
+                                            + "ON cRefs.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND cRefs.CONSTRAINT_NAME = refs.CONSTRAINT_NAME "
+                                            + "LEFT JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS links "
+                                            + "ON links.TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND links.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND links.REFERENCED_TABLE_NAME = cols.TABLE_NAME "
+                                            + "AND links.REFERENCED_COLUMN_NAME = cols.COLUMN_NAME "
+                                            + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cLinks "
+                                            + "ON cLinks.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
+                                            + "AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME "
+                                            + "WHERE cols.TABLE_SCHEMA = '" + self._mySqlDbName + "' "
+                                            + "AND cols.TABLE_NAME = '" + tableName + "';";
 
-                                          connection.query(sql, (err, rows) => {
-                                              connection.release();
+                                      connection.query(sql, (err, rows) => {
+                                          connection.release();
 
-                                              if (err) {
-                                                  generateError(self, self, '\t--[processForeignKey] ' + err, sql);
+                                          if (err) {
+                                              generateError(self, self, '\t--[processForeignKey] ' + err, sql);
+                                              fkResolve();
+                                          } else {
+                                              processForeignKeyWorker(tableName, rows).then(() => {
+                                                  log(self, '\t--[processForeignKey] Foreign keys for table "' + self._schema + '"."' + tableName + '" are set...');
                                                   fkResolve();
-                                              } else {
-                                                  processForeignKeyWorker(tableName, rows).then(() => {
-                                                      log(self, '\t--[processForeignKey] Foreign keys for table "' + self._schema + '"."' + tableName + '" are set...');
-                                                      fkResolve();
-                                                  });
-                                              }
-                                          });
-                                      }
-                                });
+                                              });
+                                          }
+                                      });
+                                  }
                             });
                         })
                     );
@@ -759,9 +751,8 @@ function processForeignKeyWorker(tableName, rows) {
         for (let attr in objConstraints) {
             constraintsPromises.push(
                 new Promise(resolveConstraintPromise => {
-                    pg.connect(self._targetConString, (error, client, done) => {
+                    self._pg.connect((error, client, done) => {
                         if (error) {
-                            done();
                             objConstraints[attr] = null;
                             generateError(self, '\t--[processForeignKeyWorker] Cannot connect to PostgreSQL server...');
                             resolveConstraintPromise();
@@ -798,44 +789,45 @@ function processForeignKeyWorker(tableName, rows) {
  * @returns {Promise}
  */
 function runVacuumFullAndAnalyze() {
-    return new Promise(resolve => {
-        let vacuumPromises = [];
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            let vacuumPromises = [];
 
-        for (let i = 0; i < self._tablesToMigrate.length; ++i) {
-            if (self._noVacuum.indexOf(self._tablesToMigrate[i]) === -1) {
-                let msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
-                        + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
+            for (let i = 0; i < self._tablesToMigrate.length; ++i) {
+                if (self._noVacuum.indexOf(self._tablesToMigrate[i]) === -1) {
+                    let msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
+                            + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
 
-                log(self, msg);
-                vacuumPromises.push(
-                    new Promise(resolveVacuum => {
-                        pg.connect(self._targetConString, (error, client, done) => {
-                            if (error) {
-                                done();
-                                generateError(self, '\t--[runVacuumFullAndAnalyze] Cannot connect to PostgreSQL server...');
-                                resolveVacuum();
-                            } else {
-                                let sql = 'VACUUM (FULL, ANALYZE) "' + self._schema + '"."' + self._tablesToMigrate[i] + '";';
-                                client.query(sql, err => {
-                                    done();
+                    log(self, msg);
+                    vacuumPromises.push(
+                        new Promise(resolveVacuum => {
+                            self._pg.connect((error, client, done) => {
+                                if (error) {
+                                    generateError(self, '\t--[runVacuumFullAndAnalyze] Cannot connect to PostgreSQL server...');
+                                    resolveVacuum();
+                                } else {
+                                    let sql = 'VACUUM (FULL, ANALYZE) "' + self._schema + '"."' + self._tablesToMigrate[i] + '";';
+                                    client.query(sql, err => {
+                                        done();
 
-                                    if (err) {
-                                        generateError(self, '\t--[runVacuumFullAndAnalyze] ' + err, sql);
-                                        resolveVacuum();
-                                    } else {
-                                        let msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
-                                        log(self, msg2);
-                                        resolveVacuum();
-                                    }
-                                });
-                            }
-                        });
-                    })
-                );
+                                        if (err) {
+                                            generateError(self, '\t--[runVacuumFullAndAnalyze] ' + err, sql);
+                                            resolveVacuum();
+                                        } else {
+                                            let msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
+                                            log(self, msg2);
+                                            resolveVacuum();
+                                        }
+                                    });
+                                }
+                            });
+                        })
+                    );
+                }
             }
-        }
 
-        Promise.all(vacuumPromises).then(() => resolve());
+            Promise.all(vacuumPromises).then(() => resolve());
+        });
     });
 }
 
@@ -846,65 +838,61 @@ function runVacuumFullAndAnalyze() {
  * @returns {Promise}
  */
 function createTable(tableName) {
-    return connect(self).then(
-        () => {
-            return new Promise((resolveCreateTable, rejectCreateTable) => {
-                log(self, '\t--[createTable] Currently creating table: `' + tableName + '`', self._dicTables[tableName].tableLogPath);
-                self._mysql.getConnection((error, connection) => {
-                    if (error) {
-                        // The connection is undefined.
-                        generateError(self, '\t--[createTable] Cannot connect to MySQL server...\n' + error);
-                        rejectCreateTable();
-                    } else {
-                        let sql = 'SHOW FULL COLUMNS FROM `' + tableName + '`;';
-                        connection.query(sql, (err, rows) => {
-                            connection.release();
+    return connect(self).then(() => {
+        return new Promise((resolveCreateTable, rejectCreateTable) => {
+            log(self, '\t--[createTable] Currently creating table: `' + tableName + '`', self._dicTables[tableName].tableLogPath);
+            self._mysql.getConnection((error, connection) => {
+                if (error) {
+                    // The connection is undefined.
+                    generateError(self, '\t--[createTable] Cannot connect to MySQL server...\n' + error);
+                    rejectCreateTable();
+                } else {
+                    let sql = 'SHOW FULL COLUMNS FROM `' + tableName + '`;';
+                    connection.query(sql, (err, rows) => {
+                        connection.release();
 
-                            if (err) {
-                                generateError(self, '\t--[createTable] ' + err, sql);
-                                rejectCreateTable();
-                            } else {
-                                pg.connect(self._targetConString, (error, client, done) => {
-                                    if (error) {
-                                        done();
-                                        generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...\n' + error, sql);
-                                        rejectCreateTable();
-                                    } else {
-                                        self._dicTables[tableName].arrTableColumns = rows;
-                                        sql                                        = 'CREATE TABLE IF NOT EXISTS "'
-                                                                                   + self._schema + '"."' + tableName + '"(';
+                        if (err) {
+                            generateError(self, '\t--[createTable] ' + err, sql);
+                            rejectCreateTable();
+                        } else {
+                            self._pg.connect((error, client, done) => {
+                                if (error) {
+                                    generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...\n' + error, sql);
+                                    rejectCreateTable();
+                                } else {
+                                    self._dicTables[tableName].arrTableColumns = rows;
+                                    sql                                        = 'CREATE TABLE IF NOT EXISTS "'
+                                                                               + self._schema + '"."' + tableName + '"(';
 
-                                        for (let i = 0; i < rows.length; ++i) {
-                                            let strConvertedType  = mapDataTypes(self._dataTypesMap, rows[i].Type);
-                                            sql                  += '"' + rows[i].Field + '" ' + strConvertedType + ',';
-                                        }
-
-                                        rows = null;
-                                        sql  = sql.slice(0, -1) + ');';
-                                        client.query(sql, err => {
-                                            done();
-
-                                            if (err) {
-                                                generateError(self, '\t--[createTable] ' + err, sql);
-                                                rejectCreateTable();
-                                            } else {
-                                                log(self,
-                                                    '\t--[createTable] Table "' + self._schema + '"."' + tableName + '" is created...',
-                                                    self._dicTables[tableName].tableLogPath
-                                                );
-                                                resolveCreateTable();
-                                            }
-                                        });
+                                    for (let i = 0; i < rows.length; ++i) {
+                                        let strConvertedType  = mapDataTypes(self._dataTypesMap, rows[i].Type);
+                                        sql                  += '"' + rows[i].Field + '" ' + strConvertedType + ',';
                                     }
-                                });
-                            }
-                        });
-                    }
-                });
+
+                                    rows = null;
+                                    sql  = sql.slice(0, -1) + ');';
+                                    client.query(sql, err => {
+                                        done();
+
+                                        if (err) {
+                                            generateError(self, '\t--[createTable] ' + err, sql);
+                                            rejectCreateTable();
+                                        } else {
+                                            log(self,
+                                                '\t--[createTable] Table "' + self._schema + '"."' + tableName + '" is created...',
+                                                self._dicTables[tableName].tableLogPath
+                                            );
+                                            resolveCreateTable();
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
             });
-        },
-        () => generateError(self, '\t--[createTable] Cannot establish DB connections...')
-    );
+        });
+    });
 }
 
 /**
@@ -915,53 +903,54 @@ function createTable(tableName) {
  * @returns {Promise}
  */
 function processEnum(tableName) {
-    return new Promise(resolve => {
-        log(self, '\t--[processEnum] Defines "ENUMs" for table "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
-        let processEnumPromises = [];
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            log(self, '\t--[processEnum] Defines "ENUMs" for table "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
+            let processEnumPromises = [];
 
-        for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
-            if (self._dicTables[tableName].arrTableColumns[i].Type.indexOf('(') !== -1) {
-                let arrType = self._dicTables[tableName].arrTableColumns[i].Type.split('(');
+            for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
+                if (self._dicTables[tableName].arrTableColumns[i].Type.indexOf('(') !== -1) {
+                    let arrType = self._dicTables[tableName].arrTableColumns[i].Type.split('(');
 
-                if ('enum' === arrType[0]) {
-                    processEnumPromises.push(
-                        new Promise(resolveProcessEnum => {
-                            pg.connect(self._targetConString, (error, client, done) => {
-                                if (error) {
-                                    done();
-                                    let msg = '\t--[processEnum] Cannot connect to PostgreSQL server...\n' + error;
-                                    generateError(self, msg);
-                                    resolveProcessEnum();
-                                } else {
-                                    let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" '
-                                            + 'ADD CHECK ("' + self._dicTables[tableName].arrTableColumns[i].Field + '" IN (' + arrType[1] + ');';
+                    if (arrType[0] === 'enum') {
+                        processEnumPromises.push(
+                            new Promise(resolveProcessEnum => {
+                                self._pg.connect((error, client, done) => {
+                                    if (error) {
+                                        let msg = '\t--[processEnum] Cannot connect to PostgreSQL server...\n' + error;
+                                        generateError(self, msg);
+                                        resolveProcessEnum();
+                                    } else {
+                                        let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" '
+                                                + 'ADD CHECK ("' + self._dicTables[tableName].arrTableColumns[i].Field + '" IN (' + arrType[1] + ');';
 
-                                    client.query(sql, err => {
-                                        done();
+                                        client.query(sql, err => {
+                                            done();
 
-                                        if (err) {
-                                            let msg = '\t--[processEnum] Error while setting ENUM for "' + self._schema + '"."'
-                                                    + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+                                            if (err) {
+                                                let msg = '\t--[processEnum] Error while setting ENUM for "' + self._schema + '"."'
+                                                        + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
 
-                                            generateError(self, msg, sql);
-                                            resolveProcessEnum();
-                                        } else {
-                                            let success = '\t--[processEnum] Set "ENUM" for "' + self._schema + '"."' + tableName
-                                                        + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                                generateError(self, msg, sql);
+                                                resolveProcessEnum();
+                                            } else {
+                                                let success = '\t--[processEnum] Set "ENUM" for "' + self._schema + '"."' + tableName
+                                                            + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
 
-                                            log(self, success, self._dicTables[tableName].tableLogPath);
-                                            resolveProcessEnum();
-                                        }
-                                    });
-                                }
-                            });
-                        })
-                    );
+                                                log(self, success, self._dicTables[tableName].tableLogPath);
+                                                resolveProcessEnum();
+                                            }
+                                        });
+                                    }
+                                });
+                            })
+                        );
+                    }
                 }
             }
-        }
 
-        Promise.all(processEnumPromises).then(() => resolve());
+            Promise.all(processEnumPromises).then(() => resolve());
+        });
     });
 }
 
@@ -973,49 +962,50 @@ function processEnum(tableName) {
  * @returns {Promise}
  */
 function processNull(tableName) {
-    return new Promise(resolve => {
-        log(self, '\t--[processNull] Defines "NULLs" for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
-        let processNullPromises = [];
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            log(self, '\t--[processNull] Defines "NULLs" for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
+            let processNullPromises = [];
 
-        for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
-            if (self._dicTables[tableName].arrTableColumns[i].Null.toLowerCase() === 'no') {
-                processNullPromises.push(
-                    new Promise(resolveProcessNull => {
-                        pg.connect(self._targetConString, (error, client, done) => {
-                            if (error) {
-                                done();
-                                let msg = '\t--[processNull] Cannot connect to PostgreSQL server...\n' + error;
-                                generateError(self, msg);
-                                resolveProcessNull();
-                            } else {
-                                let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
-                                        + '" ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET NOT NULL;';
+            for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
+                if (self._dicTables[tableName].arrTableColumns[i].Null.toLowerCase() === 'no') {
+                    processNullPromises.push(
+                        new Promise(resolveProcessNull => {
+                            self._pg.connect((error, client, done) => {
+                                if (error) {
+                                    let msg = '\t--[processNull] Cannot connect to PostgreSQL server...\n' + error;
+                                    generateError(self, msg);
+                                    resolveProcessNull();
+                                } else {
+                                    let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
+                                            + '" ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET NOT NULL;';
 
-                                client.query(sql, err => {
-                                    done();
+                                    client.query(sql, err => {
+                                        done();
 
-                                    if (err) {
-                                        let msg = '\t--[processNull] Error while setting NULL for "' + self._schema + '"."'
-                                                + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+                                        if (err) {
+                                            let msg = '\t--[processNull] Error while setting NULL for "' + self._schema + '"."'
+                                                    + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
 
-                                        generateError(self, msg, sql);
-                                        resolveProcessNull();
-                                    } else {
-                                        let success = '\t--[processNull] Set NULL for "' + self._schema + '"."' + tableName
-                                                    + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                            generateError(self, msg, sql);
+                                            resolveProcessNull();
+                                        } else {
+                                            let success = '\t--[processNull] Set NULL for "' + self._schema + '"."' + tableName
+                                                        + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
 
-                                        log(self, success, self._dicTables[tableName].tableLogPath);
-                                        resolveProcessNull();
-                                    }
-                                });
-                            }
-                        });
-                    })
-                );
+                                            log(self, success, self._dicTables[tableName].tableLogPath);
+                                            resolveProcessNull();
+                                        }
+                                    });
+                                }
+                            });
+                        })
+                    );
+                }
             }
-        }
 
-        Promise.all(processNullPromises).then(() => resolve());
+            Promise.all(processNullPromises).then(() => resolve());
+        });
     });
 }
 
@@ -1027,72 +1017,73 @@ function processNull(tableName) {
  * @returns {Promise}
  */
 function processDefault(tableName) {
-    return new Promise(resolve => {
-        log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
-        let processDefaultPromises = [];
-        let sqlReservedValues      = {
-            'CURRENT_DATE'        : 'CURRENT_DATE',
-            '0000-00-00'          : "'-INFINITY'",
-            'CURRENT_TIME'        : 'CURRENT_TIME',
-            '00:00:00'            : '00:00:00',
-            'CURRENT_TIMESTAMP'   : 'CURRENT_TIMESTAMP',
-            '0000-00-00 00:00:00' : "'-INFINITY'",
-            'LOCALTIME'           : 'LOCALTIME',
-            'LOCALTIMESTAMP'      : 'LOCALTIMESTAMP',
-            'NULL'                : 'NULL',
-            'UTC_DATE'            : "(CURRENT_DATE AT TIME ZONE 'UTC')",
-            'UTC_TIME'            : "(CURRENT_TIME AT TIME ZONE 'UTC')",
-            'UTC_TIMESTAMP'       : "(NOW() AT TIME ZONE 'UTC')"
-        };
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
+            let processDefaultPromises = [];
+            let sqlReservedValues      = {
+                'CURRENT_DATE'        : 'CURRENT_DATE',
+                '0000-00-00'          : "'-INFINITY'",
+                'CURRENT_TIME'        : 'CURRENT_TIME',
+                '00:00:00'            : '00:00:00',
+                'CURRENT_TIMESTAMP'   : 'CURRENT_TIMESTAMP',
+                '0000-00-00 00:00:00' : "'-INFINITY'",
+                'LOCALTIME'           : 'LOCALTIME',
+                'LOCALTIMESTAMP'      : 'LOCALTIMESTAMP',
+                'NULL'                : 'NULL',
+                'UTC_DATE'            : "(CURRENT_DATE AT TIME ZONE 'UTC')",
+                'UTC_TIME'            : "(CURRENT_TIME AT TIME ZONE 'UTC')",
+                'UTC_TIMESTAMP'       : "(NOW() AT TIME ZONE 'UTC')"
+            };
 
-        for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
-            if (self._dicTables[tableName].arrTableColumns[i].Default) {
-                processDefaultPromises.push(
-                    new Promise(resolveProcessDefault => {
-                        pg.connect(self._targetConString, (error, client, done) => {
-                            if (error) {
-                                done();
-                                let msg = '\t--[processDefault] Cannot connect to PostgreSQL server...\n' + error;
-                                generateError(self, msg);
-                                resolveProcessDefault();
-                            } else {
-                                let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
-                                        + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET DEFAULT ';
-
-                                if (sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default]) {
-                                    sql += sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default] + ';';
+            for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
+                if (self._dicTables[tableName].arrTableColumns[i].Default) {
+                    processDefaultPromises.push(
+                        new Promise(resolveProcessDefault => {
+                            self._pg.connect((error, client, done) => {
+                                if (error) {
+                                    let msg = '\t--[processDefault] Cannot connect to PostgreSQL server...\n' + error;
+                                    generateError(self, msg);
+                                    resolveProcessDefault();
                                 } else {
-                                    sql += isFloatNumeric(self._dicTables[tableName].arrTableColumns[i].Default)
-                                           ? self._dicTables[tableName].arrTableColumns[i].Default + ';'
-                                           : "'" + self._dicTables[tableName].arrTableColumns[i].Default + "';";
-                                }
+                                    let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
+                                            + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET DEFAULT ';
 
-                                client.query(sql, err => {
-                                    done();
-
-                                    if (err) {
-                                        let msg = '\t--[processDefault] Error occurred when tried to set default value for "'
-                                                + self._schema + '"."' + tableName
-                                                + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
-
-                                        generateError(self, msg, sql);
-                                        resolveProcessDefault();
+                                    if (sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default]) {
+                                        sql += sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default] + ';';
                                     } else {
-                                        let success = '\t--[processDefault] Set default value for "' + self._schema + '"."' + tableName
-                                                    + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
-
-                                        log(self, success, self._dicTables[tableName].tableLogPath);
-                                        resolveProcessDefault();
+                                        sql += isFloatNumeric(self._dicTables[tableName].arrTableColumns[i].Default)
+                                               ? self._dicTables[tableName].arrTableColumns[i].Default + ';'
+                                               : "'" + self._dicTables[tableName].arrTableColumns[i].Default + "';";
                                     }
-                                });
-                            }
-                        });
-                    })
-                );
-            }
-        }
 
-        Promise.all(processDefaultPromises).then(() => resolve());
+                                    client.query(sql, err => {
+                                        done();
+
+                                        if (err) {
+                                            let msg = '\t--[processDefault] Error occurred when tried to set default value for "'
+                                                    + self._schema + '"."' + tableName
+                                                    + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+
+                                            generateError(self, msg, sql);
+                                            resolveProcessDefault();
+                                        } else {
+                                            let success = '\t--[processDefault] Set default value for "' + self._schema + '"."' + tableName
+                                                        + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+
+                                            log(self, success, self._dicTables[tableName].tableLogPath);
+                                            resolveProcessDefault();
+                                        }
+                                    });
+                                }
+                            });
+                        })
+                    );
+                }
+            }
+
+            Promise.all(processDefaultPromises).then(() => resolve());
+        });
     });
 }
 
@@ -1104,92 +1095,93 @@ function processDefault(tableName) {
  * @returns {Promise}
  */
 function createSequence(tableName) {
-    return new Promise(resolve => {
-        let createSequencePromises = [];
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            let createSequencePromises = [];
 
-        for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
-            if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
-                createSequencePromises.push(
-                    new Promise(resolveCreateSequence => {
-                        let seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
-                        log(self, '\t--[createSequence] Trying to create sequence : "' + self._schema + '"."' + seqName + '"', self._dicTables[tableName].tableLogPath);
-                        pg.connect(self._targetConString, (error, client, done) => {
-                            if (error) {
-                                done();
-                                let msg = '\t--[createSequence] Cannot connect to PostgreSQL server...\n' + error;
-                                generateError(self, msg);
-                                resolveCreateSequence();
-                            } else {
-                                let sql = 'CREATE SEQUENCE "' + self._schema + '"."' + seqName + '";';
-                                client.query(sql, err => {
-                                    if (err) {
-                                        done();
-                                        let errMsg = '\t--[createSequence] Failed to create sequence "' + self._schema + '"."' + seqName + '"';
-                                        generateError(self, errMsg, sql);
-                                        resolveCreateSequence();
-                                    } else {
-                                         sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" '
-                                             + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
-                                             + 'SET DEFAULT NEXTVAL(\'"' + self._schema + '"."' + seqName + '"\');';
+            for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
+                if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
+                    createSequencePromises.push(
+                        new Promise(resolveCreateSequence => {
+                            let seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
+                            log(self, '\t--[createSequence] Trying to create sequence : "' + self._schema + '"."' + seqName + '"', self._dicTables[tableName].tableLogPath);
+                            self._pg.connect((error, client, done) => {
+                                if (error) {
+                                    let msg = '\t--[createSequence] Cannot connect to PostgreSQL server...\n' + error;
+                                    generateError(self, msg);
+                                    resolveCreateSequence();
+                                } else {
+                                    let sql = 'CREATE SEQUENCE "' + self._schema + '"."' + seqName + '";';
+                                    client.query(sql, err => {
+                                        if (err) {
+                                            done();
+                                            let errMsg = '\t--[createSequence] Failed to create sequence "' + self._schema + '"."' + seqName + '"';
+                                            generateError(self, errMsg, sql);
+                                            resolveCreateSequence();
+                                        } else {
+                                             sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" '
+                                                 + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                                 + 'SET DEFAULT NEXTVAL(\'"' + self._schema + '"."' + seqName + '"\');';
 
-                                         client.query(sql, err2 => {
-                                             if (err2) {
-                                                 done();
-                                                 let err2Msg = '\t--[createSequence] Failed to set default value for "' + self._schema + '"."'
-                                                            + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...'
-                                                            + '\n\t--[createSequence] Note: sequence "' + self._schema + '"."' + seqName + '" was created...';
+                                             client.query(sql, err2 => {
+                                                 if (err2) {
+                                                     done();
+                                                     let err2Msg = '\t--[createSequence] Failed to set default value for "' + self._schema + '"."'
+                                                                + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...'
+                                                                + '\n\t--[createSequence] Note: sequence "' + self._schema + '"."' + seqName + '" was created...';
 
-                                                 generateError(self, err2Msg, sql);
-                                                 resolveCreateSequence();
-                                             } else {
-                                                   sql = 'ALTER SEQUENCE "' + self._schema + '"."' + seqName + '" '
-                                                       + 'OWNED BY "' + self._schema + '"."' + tableName
-                                                       + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '";';
+                                                     generateError(self, err2Msg, sql);
+                                                     resolveCreateSequence();
+                                                 } else {
+                                                       sql = 'ALTER SEQUENCE "' + self._schema + '"."' + seqName + '" '
+                                                           + 'OWNED BY "' + self._schema + '"."' + tableName
+                                                           + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '";';
 
-                                                   client.query(sql, err3 => {
-                                                        if (err3) {
-                                                            done();
-                                                            let err3Msg = '\t--[createSequence] Failed to relate sequence "' + self._schema + '"."' + seqName + '" to '
-                                                                       + '"' + self._schema + '"."'
-                                                                       + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                                       client.query(sql, err3 => {
+                                                            if (err3) {
+                                                                done();
+                                                                let err3Msg = '\t--[createSequence] Failed to relate sequence "' + self._schema + '"."' + seqName + '" to '
+                                                                           + '"' + self._schema + '"."'
+                                                                           + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
 
-                                                            generateError(self, err3Msg, sql);
-                                                            resolveCreateSequence();
-                                                        } else {
-                                                           sql = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
-                                                               + '(SELECT MAX("' + self._dicTables[tableName].arrTableColumns[i].Field + '") FROM "'
-                                                               + self._schema + '"."' + tableName + '"));';
+                                                                generateError(self, err3Msg, sql);
+                                                                resolveCreateSequence();
+                                                            } else {
+                                                               sql = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
+                                                                   + '(SELECT MAX("' + self._dicTables[tableName].arrTableColumns[i].Field + '") FROM "'
+                                                                   + self._schema + '"."' + tableName + '"));';
 
-                                                           client.query(sql, err4 => {
-                                                              done();
+                                                               client.query(sql, err4 => {
+                                                                  done();
 
-                                                              if (err4) {
-                                                                  let err4Msg = '\t--[createSequence] Failed to set max-value of "' + self._schema + '"."'
-                                                                              + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
-                                                                              + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
+                                                                  if (err4) {
+                                                                      let err4Msg = '\t--[createSequence] Failed to set max-value of "' + self._schema + '"."'
+                                                                                  + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                                                                  + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
 
-                                                                  generateError(self, err4Msg, sql);
-                                                                  resolveCreateSequence();
-                                                              } else {
-                                                                  let success = '\t--[createSequence] Sequence "' + self._schema + '"."' + seqName + '" is created...';
-                                                                  log(self, success, self._dicTables[tableName].tableLogPath);
-                                                                  resolveCreateSequence();
-                                                              }
-                                                           });
-                                                        }
-                                                   });
-                                               }
-                                         });
-                                     }
-                                });
-                            }
-                        });
-                    })
-                );
+                                                                      generateError(self, err4Msg, sql);
+                                                                      resolveCreateSequence();
+                                                                  } else {
+                                                                      let success = '\t--[createSequence] Sequence "' + self._schema + '"."' + seqName + '" is created...';
+                                                                      log(self, success, self._dicTables[tableName].tableLogPath);
+                                                                      resolveCreateSequence();
+                                                                  }
+                                                               });
+                                                            }
+                                                       });
+                                                   }
+                                             });
+                                         }
+                                    });
+                                }
+                            });
+                        })
+                    );
+                }
             }
-        }
 
-        Promise.all(createSequencePromises).then(() => resolve());
+            Promise.all(createSequencePromises).then(() => resolve());
+        });
     });
 }
 
@@ -1236,9 +1228,8 @@ function processIndexAndKey(tableName) {
                             for (let attr in objPgIndices) {
                                 processIndexAndKeyPromises.push(
                                     new Promise(resolveProcessIndexAndKeySql => {
-                                        pg.connect(self._targetConString, (pgError, pgClient, done) => {
+                                        self._pg.connect((pgError, pgClient, done) => {
                                             if (pgError) {
-                                                done();
                                                 let msg = '\t--[processIndexAndKey] Cannot connect to PostgreSQL server...\n' + pgError;
                                                 generateError(self, msg);
                                                 resolveProcessIndexAndKeySql();
@@ -1294,50 +1285,51 @@ function processIndexAndKey(tableName) {
  * @returns {Promise}
  */
 function processComment(tableName) {
-    return new Promise(resolve => {
-        log(self, '\t--[processComment] Creates comments for table "' + self._schema + '"."' + tableName + '"...', self._dicTables[tableName].tableLogPath);
-        let arrCommentPromises = [];
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            log(self, '\t--[processComment] Creates comments for table "' + self._schema + '"."' + tableName + '"...', self._dicTables[tableName].tableLogPath);
+            let arrCommentPromises = [];
 
-        for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
-            if (self._dicTables[tableName].arrTableColumns[i].Comment !== '') {
-                arrCommentPromises.push(
-                    new Promise(resolveComment => {
-                        pg.connect(self._targetConString, (error, client, done) => {
-                            if (error) {
-                                done();
-                                let msg = '\t--[processComment] Cannot connect to PostgreSQL server...\n' + error;
-                                generateError(self, msg);
-                                resolveComment();
-                            } else {
-                                let sql = 'COMMENT ON COLUMN "' + self._schema + '"."' + tableName + '"."'
-                                        + self._dicTables[tableName].arrTableColumns[i].Field
-                                        + '" IS \'' + self._dicTables[tableName].arrTableColumns[i].Comment + '\';';
+            for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
+                if (self._dicTables[tableName].arrTableColumns[i].Comment !== '') {
+                    arrCommentPromises.push(
+                        new Promise(resolveComment => {
+                            self._pg.connect((error, client, done) => {
+                                if (error) {
+                                    let msg = '\t--[processComment] Cannot connect to PostgreSQL server...\n' + error;
+                                    generateError(self, msg);
+                                    resolveComment();
+                                } else {
+                                    let sql = 'COMMENT ON COLUMN "' + self._schema + '"."' + tableName + '"."'
+                                            + self._dicTables[tableName].arrTableColumns[i].Field
+                                            + '" IS \'' + self._dicTables[tableName].arrTableColumns[i].Comment + '\';';
 
-                                client.query(sql, err => {
-                                    done();
+                                    client.query(sql, err => {
+                                        done();
 
-                                    if (err) {
-                                        let msg = '\t--[processComment] Error while processing comment for "' + self._schema + '"."'
-                                                + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+                                        if (err) {
+                                            let msg = '\t--[processComment] Error while processing comment for "' + self._schema + '"."'
+                                                    + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
 
-                                        generateError(self, msg, sql);
-                                        resolveComment();
-                                    } else {
-                                        let success = '\t--[processComment] Set comment for "' + self._schema + '"."' + tableName
-                                                      + '" column: "' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                            generateError(self, msg, sql);
+                                            resolveComment();
+                                        } else {
+                                            let success = '\t--[processComment] Set comment for "' + self._schema + '"."' + tableName
+                                                          + '" column: "' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
 
-                                        log(self, success, self._dicTables[tableName].tableLogPath);
-                                        resolveComment();
-                                    }
-                                });
-                            }
-                        });
-                    })
-                );
+                                            log(self, success, self._dicTables[tableName].tableLogPath);
+                                            resolveComment();
+                                        }
+                                    });
+                                }
+                            });
+                        })
+                    );
+                }
             }
-        }
 
-        Promise.all(arrCommentPromises).then(() => resolve());
+            Promise.all(arrCommentPromises).then(() => resolve());
+        });
     });
 }
 
@@ -1349,22 +1341,12 @@ function processComment(tableName) {
  * @returns {Promise}
  */
 function processTableBeforeDataLoading(tableName, stateLog) {
-    return connect(self).then(
-        () => {
-            return createTable(tableName);
-        },
-        () => {
-            generateError(self, '\t--[processTableBeforeDataLoading] Cannot establish DB connections...');
-        }
-    ).then(
-        () => {
-            return prepareArrayOfTablesAndChunkOffsets(tableName, stateLog);
-        },
-        () => {
-            generateError(self, '\t--[processTableBeforeDataLoading] Cannot create table "' + self._schema + '"."' + tableName + '"...');
-        }
-    ).catch(() => {
-        generateError(self, '\t--[processTableBeforeDataLoading] Cannot establish DB connections...');
+    return connect(self).then(() => {
+        return createTable(tableName);
+    }).then(() => {
+        return prepareArrayOfTablesAndChunkOffsets(tableName, stateLog);
+    }).catch(() => {
+        generateError(self, '\t--[processTableBeforeDataLoading] Cannot create table "' + self._schema + '"."' + tableName + '"...');
     });
 }
 
@@ -1382,12 +1364,12 @@ function closeConnections() {
                 }
 
                 log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
-                pg.end();
+                self._pg = null;
                 resolve();
             });
         } else {
             log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
-            pg.end();
+            self._pg = null;
             resolve();
         }
     });
@@ -1441,95 +1423,91 @@ function generateReport(endMsg) {
  * @returns {Promise}
  */
 function prepareArrayOfTablesAndChunkOffsets(tableName, stateLog) {
-    return connect(self).then(
-        () => {
-            return new Promise(resolve => {
-                if (stateLog) {
-                    return resolve();
-                }
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            if (stateLog) {
+                return resolve();
+            }
 
-                self._mysql.getConnection((error, connection) => {
-                    if (error) {
-                        // The connection is undefined.
-                        generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] Cannot connect to MySQL server...\n\t' + error);
-                        resolve();
-                    } else {
-                        // Determine current table size, apply "chunking".
-                        let sql = "SELECT ((data_length + index_length) / 1024 / 1024) AS size_in_mb "
-                                + "FROM information_schema.TABLES "
-                                + "WHERE table_schema = '" + self._mySqlDbName + "' "
-                                + "AND table_name = '" + tableName + "';";
+            self._mysql.getConnection((error, connection) => {
+                if (error) {
+                    // The connection is undefined.
+                    generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] Cannot connect to MySQL server...\n\t' + error);
+                    resolve();
+                } else {
+                    // Determine current table size, apply "chunking".
+                    let sql = "SELECT ((data_length + index_length) / 1024 / 1024) AS size_in_mb "
+                            + "FROM information_schema.TABLES "
+                            + "WHERE table_schema = '" + self._mySqlDbName + "' "
+                            + "AND table_name = '" + tableName + "';";
 
-                        connection.query(sql, (err, rows) => {
-                            if (err) {
+                    connection.query(sql, (err, rows) => {
+                        if (err) {
+                            connection.release();
+                            generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] ' + err, sql);
+                            resolve();
+                        } else {
+                            let tableSizeInMb      = +rows[0].size_in_mb;
+                            tableSizeInMb          = tableSizeInMb < 1 ? 1 : tableSizeInMb;
+                            rows                   = null;
+                            let strSelectFieldList = arrangeColumnsData(self._dicTables[tableName].arrTableColumns);
+                            sql                    = 'SELECT COUNT(1) AS rows_count FROM `' + tableName + '`;';
+
+                            connection.query(sql, (err2, rows2) => {
                                 connection.release();
-                                generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] ' + err, sql);
-                                resolve();
-                            } else {
-                                let tableSizeInMb      = +rows[0].size_in_mb;
-                                tableSizeInMb          = tableSizeInMb < 1 ? 1 : tableSizeInMb;
-                                rows                   = null;
-                                let strSelectFieldList = arrangeColumnsData(self._dicTables[tableName].arrTableColumns);
-                                sql                    = 'SELECT COUNT(1) AS rows_count FROM `' + tableName + '`;';
 
-                                connection.query(sql, (err2, rows2) => {
-                                    connection.release();
+                                if (err2) {
+                                    generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] ' + err2, sql);
+                                    resolve();
+                                } else {
+                                    let rowsCnt             = rows2[0].rows_count;
+                                    rows2                   = null;
+                                    let chunksCnt           = tableSizeInMb / self._dataChunkSize;
+                                    chunksCnt               = chunksCnt < 1 ? 1 : chunksCnt;
+                                    let rowsInChunk         = Math.ceil(rowsCnt / chunksCnt);
+                                    let arrDataPoolPromises = [];
+                                    let msg                 = '\t--[prepareArrayOfTablesAndChunkOffsets] Total rows to insert into '
+                                                            + '"' + self._schema + '"."' + tableName + '": ' + rowsCnt;
 
-                                    if (err2) {
-                                        generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] ' + err2, sql);
-                                        resolve();
-                                    } else {
-                                        let rowsCnt             = rows2[0].rows_count;
-                                        rows2                   = null;
-                                        let chunksCnt           = tableSizeInMb / self._dataChunkSize;
-                                        chunksCnt               = chunksCnt < 1 ? 1 : chunksCnt;
-                                        let rowsInChunk         = Math.ceil(rowsCnt / chunksCnt);
-                                        let arrDataPoolPromises = [];
-                                        let msg                 = '\t--[prepareArrayOfTablesAndChunkOffsets] Total rows to insert into '
-                                                                + '"' + self._schema + '"."' + tableName + '": ' + rowsCnt;
+                                    log(self, msg, self._dicTables[tableName].tableLogPath);
 
-                                        log(self, msg, self._dicTables[tableName].tableLogPath);
+                                    for (let offset = 0; offset < rowsCnt; offset += rowsInChunk) {
+                                        arrDataPoolPromises.push(new Promise(resolveDataUnit => {
+                                            self._pg.connect((error, client, done) => {
+                                                if (error) {
+                                                    generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] Cannot connect to PostgreSQL server...\n' + error);
+                                                    resolveDataUnit();
+                                                } else {
+                                                    let strJson = '{"_tableName":"' + tableName
+                                                                + '","_selectFieldList":"' + strSelectFieldList + '",'
+                                                                + '"_offset":' + offset + ','
+                                                                + '"_rowsInChunk":' + rowsInChunk + ','
+                                                                + '"_rowsCnt":' + rowsCnt + '}';
 
-                                        for (let offset = 0; offset < rowsCnt; offset += rowsInChunk) {
-                                            arrDataPoolPromises.push(new Promise(resolveDataUnit => {
-                                                pg.connect(self._targetConString, (error, client, done) => {
-                                                    if (error) {
+                                                    let sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '"("json") VALUES($1);';
+                                                    client.query(sql, [strJson], err => {
                                                         done();
-                                                        generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] Cannot connect to PostgreSQL server...\n' + error);
+
+                                                        if (err) {
+                                                            generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] INSERT failed...\n' + err, sql);
+                                                        }
+
                                                         resolveDataUnit();
-                                                    } else {
-                                                        let strJson = '{"_tableName":"' + tableName
-                                                                    + '","_selectFieldList":"' + strSelectFieldList + '",'
-                                                                    + '"_offset":' + offset + ','
-                                                                    + '"_rowsInChunk":' + rowsInChunk + ','
-                                                                    + '"_rowsCnt":' + rowsCnt + '}';
-
-                                                        let sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '"("json") VALUES($1);';
-                                                        client.query(sql, [strJson], err => {
-                                                            done();
-
-                                                            if (err) {
-                                                                generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] INSERT failed...\n' + err, sql);
-                                                            }
-
-                                                            resolveDataUnit();
-                                                        });
-                                                    }
-                                                });
-                                            }));
-                                        }
-
-                                        Promise.all(arrDataPoolPromises).then(() => resolve());
+                                                    });
+                                                }
+                                            });
+                                        }));
                                     }
-                                });
-                            }
-                        });
-                    }
-                });
+
+                                    Promise.all(arrDataPoolPromises).then(() => resolve());
+                                }
+                            });
+                        }
+                    });
+                }
             });
-        },
-        () => generateError(self, '\t--[prepareArrayOfTablesAndChunkOffsets] Cannot establish DB connections...')
-    );
+        });
+    });
 }
 
 /**
@@ -1538,32 +1516,33 @@ function prepareArrayOfTablesAndChunkOffsets(tableName, stateLog) {
  * @returns {Promise}
  */
 function readDataPool() {
-    return new Promise((resolve, reject) => {
-        pg.connect(self._targetConString, (error, client, done) => {
-            if (error) {
-                done();
-                generateError(self, '\t--[readDataPool] Cannot connect to PostgreSQL server...\n' + error);
-                reject();
-            } else {
-                let sql = 'SELECT id AS id, json AS json FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
-                client.query(sql, (err, arrDataPool) => {
-                    done();
+    return connect(self).then(() => {
+        return new Promise((resolve, reject) => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    generateError(self, '\t--[readDataPool] Cannot connect to PostgreSQL server...\n' + error);
+                    reject();
+                } else {
+                    let sql = 'SELECT id AS id, json AS json FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
+                    client.query(sql, (err, arrDataPool) => {
+                        done();
 
-                    if (err) {
-                        generateError(self, '\t--[readDataPool] ' + err, sql);
-                        return reject();
-                    }
+                        if (err) {
+                            generateError(self, '\t--[readDataPool] ' + err, sql);
+                            return reject();
+                        }
 
-                    for (let i = 0; i < arrDataPool.rows.length; ++i) {
-                        let obj = JSON.parse(arrDataPool.rows[i].json);
-                        obj._id = arrDataPool.rows[i].id;
-                        self._dataPool.push(obj);
-                    }
+                        for (let i = 0; i < arrDataPool.rows.length; ++i) {
+                            let obj = JSON.parse(arrDataPool.rows[i].json);
+                            obj._id = arrDataPool.rows[i].id;
+                            self._dataPool.push(obj);
+                        }
 
-                    log(self, '\t--[readDataPool] Data-Pool is loaded...');
-                    resolve();
-                });
-            }
+                        log(self, '\t--[readDataPool] Data-Pool is loaded...');
+                        resolve();
+                    });
+                }
+            });
         });
     });
 }
@@ -1579,8 +1558,10 @@ function dataPipe() {
     if (self._dataPool.length === 0) {
         return continueProcessAfterDataLoading();
     }
-
-    let loaderProcess = childProcess.fork(__dirname + '/DataLoader.js');
+    
+    let strDataLoaderPath = __dirname + '/DataLoader.js';
+    let options           = self._loaderMaxOldSpaceSize === 'DEFAULT' ? {} : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };
+    let loaderProcess     = childProcess.fork(strDataLoaderPath, options);
 
     loaderProcess.on('message', signal => {
         if (typeof signal === 'object') {
@@ -1675,8 +1656,7 @@ function continueProcessAfterDataLoading() {
  */
 module.exports = function(config) {
     console.log('\n\tNMIG - the database migration tool\n\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\t Boot...');
-    self                 = new Conversion(config);
-    pg.defaults.poolSize = self._maxPoolSizeTarget;
+    self = new Conversion(config);
 
     readDataTypesMap(self).then(
         createLogsDirectory,
