@@ -156,6 +156,12 @@
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
+    "set" : {
+        "increased_size"           : "",
+        "type"                     : "character varying(255)",
+        "mySqlVarLenPgSqlFixedLen" : false
+    },
+
     "tinytext" : {
         "increased_size"           : "",
         "type"                     : "text",
