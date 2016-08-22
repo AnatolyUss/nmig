@@ -43,6 +43,13 @@
     ],
     "pipe_width" : 10,
     
+    "loader_max_old_space_size_description" : [
+        "V8 memory limit of the loader process.",
+        "Possible values are: any number, representing memory limit (in MB),",
+        "or DEFAULT, representing V8 default limit for your current hardware."
+    ],
+    "loader_max_old_space_size" : "DEFAULT",
+    
     "encoding_description" : [
         "JavaScript encoding type.",
         "If not supplied, then utf-8 will be used as a default."
