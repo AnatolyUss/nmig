@@ -22,7 +22,6 @@
 
 const fs              = require('fs');
 const csvStringify    = require('./CsvStringifyModified');
-const isIntNumeric    = require('./IntegerValidator');
 const log             = require('./Logger');
 const generateError   = require('./ErrorGenerator');
 const connect         = require('./Connector');
