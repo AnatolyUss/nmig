@@ -24,7 +24,6 @@ const fs                  = require('fs');
 const childProcess        = require('child_process');
 const generateView        = require('./ViewGenerator');
 const arrangeColumnsData  = require('./ColumnsDataArranger');
-const isIntNumeric        = require('./IntegerValidator');
 const readDataTypesMap    = require('./DataTypesMapReader');
 const log                 = require('./Logger');
 const generateError       = require('./ErrorGenerator');
@@ -1558,7 +1557,7 @@ function dataPipe() {
     if (self._dataPool.length === 0) {
         return continueProcessAfterDataLoading();
     }
-    
+
     let strDataLoaderPath = __dirname + '/DataLoader.js';
     let options           = self._loaderMaxOldSpaceSize === 'DEFAULT' ? {} : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };
     let loaderProcess     = childProcess.fork(strDataLoaderPath, options);
