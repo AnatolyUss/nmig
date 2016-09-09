@@ -223,7 +223,7 @@
      if (columns) {
        for (i = j = 0, ref = columns.length; 0 <= ref ? j < ref : j > ref; i = 0 <= ref ? ++j : --j) {
          column = columns[i];
-         _line[i] = typeof line[column] === 'undefined' || line[column] === null ? '' : line[column];
+         _line[i] = typeof line[column] === 'undefined' ? null : line[column];
        }
      } else {
        for (column in line) {
@@ -265,7 +265,7 @@
            field = quote + field + quote;
          }
          newLine += field;
-       } else if (this.options.quotedEmpty || ((this.options.quotedEmpty == null) && line[i] === '' && this.options.quotedString)) {
+       } else if (this.options.quotedEmpty || ((this.options.quotedEmpty == null) && line[i] === '' && columns[i].indexOf('0000-00-00 00:00:00') === -1 && this.options.quotedString)) {
          newLine += quote + quote;
        }
        
