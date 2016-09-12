@@ -1009,6 +1009,42 @@ function processNull(tableName) {
 }
 
 /**
+ * Returns the default value for a column, with the needed transformations.
+ *
+ * @param   {Conversion}    self
+ * @param   {RowDataPacket} column
+ * @returns {String}
+ */
+function columnDefault(self, column) {
+    let sqlReservedValues      = {
+        'CURRENT_DATE'        : 'CURRENT_DATE',
+        '0000-00-00'          : "'-INFINITY'",
+        'CURRENT_TIME'        : 'CURRENT_TIME',
+        '00:00:00'            : '00:00:00',
+        'CURRENT_TIMESTAMP'   : 'CURRENT_TIMESTAMP',
+        '0000-00-00 00:00:00' : "'-INFINITY'",
+        'LOCALTIME'           : 'LOCALTIME',
+        'LOCALTIMESTAMP'      : 'LOCALTIMESTAMP',
+        'NULL'                : 'NULL',
+        'UTC_DATE'            : "(CURRENT_DATE AT TIME ZONE 'UTC')",
+        'UTC_TIME'            : "(CURRENT_TIME AT TIME ZONE 'UTC')",
+        'UTC_TIMESTAMP'       : "(NOW() AT TIME ZONE 'UTC')"
+    };
+
+    let reservedValue = sqlReservedValues[column.Default];
+    if (reservedValue) {
+        return reservedValue;
+    } else if (self._convertTinyintToBoolean && column.Type.indexOf('tinyint') !== -1) {
+        let value = parseInt(column.Default);
+        return value === 0 ? 'FALSE' : 'TRUE';
+    } else if (isFloatNumeric(column.Default)) {
+        return column.Default;
+    } else {
+        return  "'" + column.Default + "'";
+    }
+}
+
+/**
  * Define which columns of the given table have default value.
  * Set default values, if need.
  *
@@ -1020,23 +1056,9 @@ function processDefault(tableName) {
         return new Promise(resolve => {
             log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
             let processDefaultPromises = [];
-            let sqlReservedValues      = {
-                'CURRENT_DATE'        : 'CURRENT_DATE',
-                '0000-00-00'          : "'-INFINITY'",
-                'CURRENT_TIME'        : 'CURRENT_TIME',
-                '00:00:00'            : '00:00:00',
-                'CURRENT_TIMESTAMP'   : 'CURRENT_TIMESTAMP',
-                '0000-00-00 00:00:00' : "'-INFINITY'",
-                'LOCALTIME'           : 'LOCALTIME',
-                'LOCALTIMESTAMP'      : 'LOCALTIMESTAMP',
-                'NULL'                : 'NULL',
-                'UTC_DATE'            : "(CURRENT_DATE AT TIME ZONE 'UTC')",
-                'UTC_TIME'            : "(CURRENT_TIME AT TIME ZONE 'UTC')",
-                'UTC_TIMESTAMP'       : "(NOW() AT TIME ZONE 'UTC')"
-            };
 
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
-                if (self._dicTables[tableName].arrTableColumns[i].Default) {
+                if (self._dicTables[tableName].arrTableColumns[i].Default !== null) {
                     processDefaultPromises.push(
                         new Promise(resolveProcessDefault => {
                             self._pg.connect((error, client, done) => {
@@ -1046,15 +1068,8 @@ function processDefault(tableName) {
                                     resolveProcessDefault();
                                 } else {
                                     let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
-                                            + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET DEFAULT ';
-
-                                    if (sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default]) {
-                                        sql += sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default] + ';';
-                                    } else {
-                                        sql += isFloatNumeric(self._dicTables[tableName].arrTableColumns[i].Default)
-                                               ? self._dicTables[tableName].arrTableColumns[i].Default + ';'
-                                               : "'" + self._dicTables[tableName].arrTableColumns[i].Default + "';";
-                                    }
+                                            + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field
+                                            + '" SET DEFAULT ' + columnDefault(self, self._dicTables[tableName].arrTableColumns[i]) + ';';
 
                                     client.query(sql, err => {
                                         done();

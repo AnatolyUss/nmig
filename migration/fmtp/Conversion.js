@@ -80,4 +80,6 @@ module.exports = function Conversion(config) {
     this._pipeWidth             = this._pipeWidth > this._maxPoolSizeTarget ? this._maxPoolSizeTarget : this._pipeWidth;
     this._loaderMaxOldSpaceSize = this._config.loader_max_old_space_size;
     this._loaderMaxOldSpaceSize = isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
+
+    this._convertTinyintToBoolean = this._config.convert_tinyint_to_boolean;
 };
