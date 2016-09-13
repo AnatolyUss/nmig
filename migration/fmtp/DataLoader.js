@@ -153,7 +153,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
 
                                                             client.query(sqlCopy, (error, result) => {
                                                                 if (error) {
-                                                                    generateError(self, '\t--[populateTableWorker] ' + err, sqlCopy);
+                                                                    generateError(self, '\t--[populateTableWorker] ' + error, sqlCopy);
                                                                     let rejectedData = '\t--[populateTableWorker] Following MySQL query will return a data set, rejected by PostgreSQL:\n' + sql + '\n';
                                                                     log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
                                                                 } else {
