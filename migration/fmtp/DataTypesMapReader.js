@@ -39,6 +39,11 @@ module.exports = function(self) {
                 try {
                     self._dataTypesMap = JSON.parse(data.toString());
                     console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
+                    if(self._convertTinyintToBoolean) {
+                        self._dataTypesMap.tinyint.increased_size = '';
+                        self._dataTypesMap.tinyint.type           = 'boolean';
+                        console.log('\t--[readDataTypesMap] Will transform tinyint fields to boolean...');
+                    }
                     resolve();
                 } catch (err) {
                     console.log('\t--[readDataTypesMap] Cannot parse JSON from' + self._dataTypesMapAddr);

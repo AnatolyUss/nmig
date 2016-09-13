@@ -86,6 +86,12 @@
         "List (Array) of tables, that will not be migrated.",
         "By default, nmig will migrate all tables"
     ],
-    "exclude_tables": []
+    "exclude_tables": [],
+
+    "convert_tinyint_to_boolean_description": [
+        "In MySQL, boolean is just an alias of tinyint, and tinyint can contain a lot more values than 0 or 1.",
+        "If you are sure that in your database tinyint is used only as boolean, then set this option to true"
+    ],
+    "convert_tinyint_to_boolean": false
 }
 
