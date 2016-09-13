@@ -121,7 +121,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                         } else {
                             rowsInChunk = rows.length;
 
-                            csvStringify(rows, (csvError, csvString) => {
+                            csvStringify(rows, {quotedString: true}, (csvError, csvString) => {
                                 rows = null;
 
                                 if (csvError) {
