@@ -27,6 +27,7 @@ const generateError   = require('./ErrorGenerator');
 const connect         = require('./Connector');
 const Conversion      = require('./Conversion');
 const MessageToMaster = require('./MessageToMaster');
+const copyFrom        = require('pg-copy-streams').from;
 
 let self = null;
 
@@ -149,21 +150,49 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                             generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
                                                             deleteCsv(csvAddr, fd, () => resolvePopulateTableWorker());
                                                         } else {
-                                                            let sqlCopy = 'COPY "' + self._schema + '"."' + tableName + '" FROM ' + '\'' + csvAddr + '\' DELIMITER \'' + ',\'' + ' CSV;';
+                                                            let localCopy = false;
+                                                            let sqlCopy = 'COPY "' + self._schema + '"."' + tableName + '" FROM ' + (localCopy ? '\'' + csvAddr + '\'' : 'STDIN') + ' DELIMITER \'' + ',\'' + ' CSV;';
 
-                                                            client.query(sqlCopy, (error, result) => {
-                                                                if (error) {
-                                                                    generateError(self, '\t--[populateTableWorker] ' + error, sqlCopy);
-                                                                    let rejectedData = '\t--[populateTableWorker] Following MySQL query will return a data set, rejected by PostgreSQL:\n' + sql + '\n';
-                                                                    log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
-                                                                } else {
-                                                                    process.send(new MessageToMaster(tableName, result.rowCount, rowsCnt));
-                                                                }
-
+                                                            let complete = () => {
                                                                 deleteChunk(dataPoolId, client, done, () => {
                                                                     deleteCsv(csvAddr, fd, () => resolvePopulateTableWorker());
                                                                 });
-                                                            });
+                                                            }
+
+                                                            if (localCopy) {
+                                                                client.query(sqlCopy, (error, result) => {
+                                                                    if (error) {
+                                                                        generateError(self, '\t--[populateTableWorker] ' + error, sqlCopy);
+                                                                        let rejectedData = '\t--[populateTableWorker] Following MySQL query will return a data set, rejected by PostgreSQL:\n' + sql + '\n';
+                                                                        log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
+                                                                    } else {
+                                                                        process.send(new MessageToMaster(tableName, result.rowCount, rowsCnt));
+                                                                    }
+
+                                                                    complete();
+                                                                });
+                                                            } else {
+                                                                let stream = client.query(copyFrom(sqlCopy));
+                                                                let fileStream = fs.createReadStream(csvAddr);
+                                                                fileStream.on('error', (error) => {
+                                                                    generateError(self, '\t--[populateTableWorker] ' + error, sqlCopy);
+                                                                    let rejectedData = '\t--[populateTableWorker] Error reading table data:\n' + sql + '\n';
+                                                                    log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
+                                                                    complete();
+                                                                });
+                                                                stream.on('error', (error) => {
+                                                                    generateError(self, '\t--[populateTableWorker] ' + error, sqlCopy);
+                                                                    let rejectedData = '\t--[populateTableWorker] Following MySQL query will return a data set, rejected by PostgreSQL:\n' + sql + '\n';
+                                                                    log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
+                                                                    complete();
+                                                                });
+                                                                stream.on('end', () => {
+                                                                    // COPY FROM STDIN doesn't return the number of rows inserted
+//                                                                    process.send(new MessageToMaster(tableName, result.rowCount, rowsCnt));
+                                                                    complete();
+                                                                });
+                                                                fileStream.pipe(stream);
+                                                            }
                                                         }
                                                    });
                                                 }
