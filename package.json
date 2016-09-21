@@ -5,6 +5,7 @@
   "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
   "dependencies": {
     "mysql": "*",
-    "pg": "*"
+    "pg": "*",
+    "pg-copy-streams": "*"
   }
 }
