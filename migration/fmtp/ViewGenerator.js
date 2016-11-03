@@ -20,6 +20,11 @@
  */
 'use strict';
 
+const fs                    = require('fs');
+const log                   = require('./Logger');
+const generateError         = require('./ErrorGenerator');
+const migrationStateManager = require('./MigrationStateManager');
+
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
  *
@@ -28,12 +33,12 @@
  * @param   {String} mysqlViewCode
  * @returns {String}
  */
-module.exports = function(schema, viewName, mysqlViewCode) {
+function generateView(schema, viewName, mysqlViewCode) {
     mysqlViewCode        = mysqlViewCode.split('`').join('"');
     let queryStart       = mysqlViewCode.indexOf('AS');
     mysqlViewCode        = mysqlViewCode.slice(queryStart);
     let arrMysqlViewCode = mysqlViewCode.split(' ');
-    
+
     for (let i = 0; i < arrMysqlViewCode.length; ++i) {
         if (
             arrMysqlViewCode[i].toLowerCase() === 'from'
@@ -45,4 +50,117 @@ module.exports = function(schema, viewName, mysqlViewCode) {
     }
 
     return 'CREATE OR REPLACE VIEW "' + schema + '"."' + viewName + '" ' + arrMysqlViewCode.join(' ') + ';';
+}
+
+/**
+ * Writes a log, containing a view code.
+ *
+ * @param   {Conversion} self
+ * @param   {String}     viewName
+ * @param   {String}     sql
+ * @returns {undefined}
+ */
+function logNotCreatedView(self, viewName, sql) {
+    fs.stat(self._notCreatedViewsPath, (directoryDoesNotExist, stat) => {
+        if (directoryDoesNotExist) {
+            fs.mkdir(self._notCreatedViewsPath, self._0777, e => {
+                if (e) {
+                    log(self, '\t--[logNotCreatedView] ' + e);
+                } else {
+                    log(self, '\t--[logNotCreatedView] "not_created_views" directory is created...');
+                    // "not_created_views" directory is created. Can write the log...
+                    fs.open(self._notCreatedViewsPath + '/' + viewName + '.sql', 'w', self._0777, (error, fd) => {
+                        if (error) {
+                            log(self, error);
+                        } else {
+                            let buffer = new Buffer(sql, self._encoding);
+                            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                                buffer = null;
+                                fs.close(fd);
+                            });
+                        }
+                    });
+                }
+            });
+        } else if (!stat.isDirectory()) {
+            log(self, '\t--[logNotCreatedView] Cannot write the log due to unexpected error');
+        } else {
+            // "not_created_views" directory already exists. Can write the log...
+            fs.open(self._notCreatedViewsPath + '/' + viewName + '.sql', 'w', self._0777, (error, fd) => {
+                if (error) {
+                    log(self, error);
+                } else {
+                    let buffer = new Buffer(sql, self._encoding);
+                    fs.write(fd, buffer, 0, buffer.length, null, () => {
+                        buffer = null;
+                        fs.close(fd);
+                    });
+                }
+            });
+        }
+    });
+}
+
+/**
+ * Attempts to convert MySQL view to PostgreSQL view.
+ *
+ * @param   {Conversion} self
+ * @returns {Promise}
+ */
+module.exports = function(self) {
+    return migrationStateManager.get(self, 'views_loaded').then(isViewsLoaded => {
+        return new Promise(resolve => {
+            let createViewPromises = [];
+            
+            if (!isViewsLoaded) {
+                for (let i = 0; i < self._viewsToMigrate.length; ++i) {
+                    createViewPromises.push(
+                        new Promise(resolveProcessView2 => {
+                            self._mysql.getConnection((error, connection) => {
+                                if (error) {
+                                    // The connection is undefined.
+                                    generateError(self, '\t--[processView] Cannot connect to MySQL server...\n' + error);
+                                    resolveProcessView2();
+                                } else {
+                                    let sql = 'SHOW CREATE VIEW `' + self._viewsToMigrate[i] + '`;';
+                                    connection.query(sql, (strErr, rows) => {
+                                        connection.release();
+
+                                        if (strErr) {
+                                            generateError(self, '\t--[processView] ' + strErr, sql);
+                                            resolveProcessView2();
+                                        } else {
+                                            self._pg.connect((error, client, done) => {
+                                                if (error) {
+                                                    generateError(self, '\t--[processView] Cannot connect to PostgreSQL server...');
+                                                    resolveProcessView2();
+                                                } else {
+                                                    sql  = generateView(self._schema, self._viewsToMigrate[i], rows[0]['Create View']);
+                                                    rows = null;
+                                                    client.query(sql, err => {
+                                                        done();
+
+                                                        if (err) {
+                                                            generateError(self, '\t--[processView] ' + err, sql);
+                                                            logNotCreatedView(self, self._viewsToMigrate[i], sql);
+                                                            resolveProcessView2();
+                                                        } else {
+                                                            log(self, '\t--[processView] View "' + self._schema + '"."' + self._viewsToMigrate[i] + '" is created...');
+                                                            resolveProcessView2();
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        })
+                    );
+                }
+            }
+
+            Promise.all(createViewPromises).then(() => resolve());
+        });
+    });
 };

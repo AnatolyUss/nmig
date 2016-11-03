@@ -37,11 +37,18 @@
     ],
     "max_pool_size_target" : 10,
 
-	"pipe_width_description" : [
+    "pipe_width_description" : [
         "Maximal amount of data-chunks, processed in a single 'DataPipe' iteration.",
         "Note: 'pipe_width' should not be greater than 'max_pool_size_target'."
     ],
     "pipe_width" : 10,
+    
+    "loader_max_old_space_size_description" : [
+        "V8 memory limit of the loader process.",
+        "Possible values are: any number, representing memory limit (in MB),",
+        "or DEFAULT, representing V8 default limit for your current hardware."
+    ],
+    "loader_max_old_space_size" : "DEFAULT",
     
     "encoding_description" : [
         "JavaScript encoding type.",
@@ -56,18 +63,10 @@
     "schema" : "public",
     
     "data_chunk_size_description" : [
-        "During migration each table's data will be split into chunks of data_chunk_size (in KB).",
-        "If not supplied, then 100 KB will be used as a default."
+        "During migration each table's data will be split into chunks of data_chunk_size (in MB).",
+        "If not supplied, then 1 MB will be used as a default."
     ],
-    "data_chunk_size" : 100,
-
-    "copy_only_description" : [
-        "During migration each table's data will be split into chunks, and each chunk will be transmitted via COPY protocol.",
-        "By default, if transmission via COPY fails then current chunk's data will be transmitted via INSERT statments, which may last considerably longer.",
-        "This behavior can be disabled for tables, included into the list (Array) below."
-    ],
-    "copy_only" : [],
-
+    "data_chunk_size" : 1,
     "no_vacuum_description" : [
         "PostgreSQL VACUUM reclaims storage occupied by dead tuples. VACUUM is a very time-consuming procedure.",
         "By default, VACUUM will be performed automatically after migration (recommended)",
@@ -79,6 +78,12 @@
         "List (Array) of tables, that will not be migrated.",
         "By default, nmig will migrate all tables"
     ],
-    "exclude_tables": []
+    "exclude_tables": [],
+
+    "migrate_only_data_description" : [
+        "In order to skip schema migration, and just migrate data into a preset schema",
+        " - set this parameter true"
+    ],
+    "migrate_only_data" : false
 }
 

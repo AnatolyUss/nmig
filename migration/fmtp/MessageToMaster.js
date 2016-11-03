@@ -20,20 +20,17 @@
  */
 'use strict';
 
-const fs   = require('fs');
-const main = require('./migration/fmtp/Main');
-
-fs.readFile(__dirname + '/config.json', (error, data) => {
-    if (error) {
-        console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + __dirname + '/config.json');
-    } else {
-        try {
-            let config         = JSON.parse(data.toString());
-            config.tempDirPath = __dirname + '/temporary_directory';
-            config.logsDirPath = __dirname + '/logs_directory';
-            main(config);
-        } catch (err) {
-            console.log('\n\t--Cannot parse JSON from' + __dirname + '/config.json');
-        }
-    }
-});
+/**
+ * Representation of a message of DataLoader process to the master process regarding records,
+ * inserted to specified table.
+ * Constructor.
+ *
+ * @param {String} tableName
+ * @param {Number} rowsInserted
+ * @param {Number} totalRowsToInsert
+ */
+module.exports = function MessageToMaster(tableName, rowsInserted, totalRowsToInsert) {
+    this.tableName         = tableName;
+    this.rowsInserted      = rowsInserted;
+    this.totalRowsToInsert = totalRowsToInsert;
+};

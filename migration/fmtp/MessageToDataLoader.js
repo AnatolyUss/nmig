@@ -20,20 +20,15 @@
  */
 'use strict';
 
-const fs   = require('fs');
-const main = require('./migration/fmtp/Main');
-
-fs.readFile(__dirname + '/config.json', (error, data) => {
-    if (error) {
-        console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + __dirname + '/config.json');
-    } else {
-        try {
-            let config         = JSON.parse(data.toString());
-            config.tempDirPath = __dirname + '/temporary_directory';
-            config.logsDirPath = __dirname + '/logs_directory';
-            main(config);
-        } catch (err) {
-            console.log('\n\t--Cannot parse JSON from' + __dirname + '/config.json');
-        }
-    }
-});
+/**
+ * Representation of a message of the master process to DataLoader process.
+ * Contents migration's configuration and an array of "data-chunks".
+ * Constructor.
+ *
+ * @param {Object} config
+ * @param {Array}  chunks
+ */
+module.exports = function MessageToDataLoader(config, chunks) {
+    this.config = config;
+    this.chunks = chunks;
+};

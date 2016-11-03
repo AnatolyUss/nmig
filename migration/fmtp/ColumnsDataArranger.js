@@ -51,8 +51,8 @@ module.exports = function(arrTableColumns) {
             || arrTableColumns[i].Type.indexOf('date') !== -1
         ) {
             strRetVal += 'IF(`' + arrTableColumns[i].Field
-                      +  '` IN(\'0000-00-00\', \'0000-00-00 00:00:00\'), \'-INFINITY\', `'
-                      +  arrTableColumns[i].Field + '`),';
+                      +  '` IN(\'0000-00-00\', \'0000-00-00 00:00:00\'), \'-INFINITY\', CAST(`'
+                      +  arrTableColumns[i].Field + '` AS CHAR)),';
         } else {
             strRetVal += '`' + arrTableColumns[i].Field + '`,';
         }

@@ -19,21 +19,29 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 'use strict';
-const fs   = require('fs');
-const fmtp = require('./migration/fmtp/FromMySQL2PostgreSQL');
-const nmig = new fmtp.FromMySQL2PostgreSQL();
 
-fs.readFile(__dirname + '/config.json', (error, data) => {
-    if (error) {
-        console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + __dirname + '/config.json');
-    } else {
-        try {
-            let config         = JSON.parse(data.toString());
-            config.tempDirPath = __dirname + '/temporary_directory';
-            config.logsDirPath = __dirname + '/logs_directory';
-            nmig.run(config);
-        } catch (err) {
-            console.log('\n\t--Cannot parse JSON from' + __dirname + '/config.json');
+const fs  = require('fs');
+const log = require('./Logger');
+
+/**
+ * Writes a ditailed error message to the "/errors-only.log" file
+ *
+ * @param   {Conversion} self
+ * @param   {String}     message
+ * @param   {String}     sql
+ * @returns {undefined}
+ */
+module.exports = function(self, message, sql) {
+    message    += '\n\n\tSQL: ' + (sql || '') + '\n\n';
+    let buffer  = new Buffer(message, self._encoding);
+    log(self, message, undefined, true);
+
+    fs.open(self._errorLogsPath, 'a', self._0777, (error, fd) => {
+        if (!error) {
+            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                buffer = null;
+                fs.close(fd);
+            });
         }
-    }
-});
+    });
+};

@@ -1,0 +1,111 @@
+/*
+ * This file is a part of "NMIG" - the database migration tool.
+ *
+ * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program (please see the "LICENSE.md" file).
+ * If not, see <http://www.gnu.org/licenses/gpl.txt>.
+ *
+ * @author Anatoly Khaytovich <anatolyuss@gmail.com>
+ */
+'use strict';
+
+const Table                 = require('./Table');
+const createTable           = require('./TableProcessor');
+const connect               = require('./Connector');
+const log                   = require('./Logger');
+const generateError         = require('./ErrorGenerator');
+const prepareDataChunks     = require('./DataChunksProcessor');
+const migrationStateManager = require('./MigrationStateManager');
+
+/**
+ * Processes current table before data loading.
+ *
+ * @param   {Conversion} self
+ * @param   {String}     tableName
+ * @param   {Boolean}    stateLog
+ * @returns {Promise}
+ */
+function processTableBeforeDataLoading(self, tableName, stateLog) {
+    return connect(self).then(() => {
+        return createTable(self, tableName);
+    }).then(() => {
+        return prepareDataChunks(self, tableName, stateLog);
+    }).catch(() => {
+        generateError(self, '\t--[processTableBeforeDataLoading] Cannot create table "' + self._schema + '"."' + tableName + '"...');
+    });
+}
+
+/**
+ * Load source tables and views, that need to be migrated.
+ *
+ * @param   {Conversion} self
+ * @returns {Promise}
+ */
+module.exports = function(self) {
+    return migrationStateManager.get(self, 'tables_loaded').then(haveTablesLoaded => {
+        return new Promise((resolve, reject) => {
+            self._mysql.getConnection((error, connection) => {
+                if (error) {
+                    // The connection is undefined.
+                    generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
+                    reject();
+                } else {
+                    let sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
+                    connection.query(sql, (strErr, rows) => {
+                        connection.release();
+
+                        if (strErr) {
+                            generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
+                            reject();
+                        } else {
+                            let tablesCnt            = 0;
+                            let viewsCnt             = 0;
+                            let processTablePromises = [];
+
+                            for (let i = 0; i < rows.length; ++i) {
+                                let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
+
+                                if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
+                                    self._tablesToMigrate.push(relationName);
+                                    self._dicTables[relationName] = new Table(self._logsDirPath + '/' + relationName + '.log');
+                                    processTablePromises.push(processTableBeforeDataLoading(self, relationName, haveTablesLoaded));
+                                    tablesCnt++;
+                                } else if (rows[i].Table_type === 'VIEW') {
+                                    self._viewsToMigrate.push(relationName);
+                                    viewsCnt++;
+                                }
+                            }
+
+                            rows            = null;
+                            self._tablesCnt = tablesCnt;
+                            self._viewsCnt  = viewsCnt;
+                            let message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
+                                            + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n'
+                                            + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
+
+                            log(self, message);
+
+                            Promise.all(processTablePromises).then(
+                                () => {
+                                    migrationStateManager.set(self, 'tables_loaded').then(() => resolve());
+                                },
+                                () => reject()
+                            );
+                        }
+                    });
+                }
+            });
+        });
+    });
+};
