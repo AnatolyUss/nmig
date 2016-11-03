@@ -29,7 +29,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 <p><b>1.</b> Create a new database.<br />
    <b>Sample:</b>&nbsp;<code> CREATE DATABASE my_postgresql_database;</code></p>
 
-<p><b>2.</b> Download NMIG package and put it on the machine running your PostgreSQL.<br />
+<p><b>2.</b> Download NMIG package and put it on the machine running your PostgreSQL (not mandatory, but preferably).<br />
    <b>Sample:</b>&nbsp;<code>/path/to/nmig</code></p>
 
 <p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/config.json</code> with correct details.<br /></p>
@@ -60,7 +60,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
-<p>Current version is 2.1.0<br />
+<p>Current version is 2.2.0<br />
 (major version . improvements . bug fixes)</p>
 
 
