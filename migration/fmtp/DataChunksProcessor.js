@@ -47,7 +47,7 @@ module.exports = function(self, tableName, haveDataChunksProcessed) {
                     resolve();
                 } else {
                     // Determine current table size, apply "chunking".
-                    let sql = "SELECT ((data_length + index_length) / 1024 / 1024) AS size_in_mb "
+                    let sql = "SELECT (data_length / 1024 / 1024) AS size_in_mb "
                             + "FROM information_schema.tables "
                             + "WHERE table_schema = '" + self._mySqlDbName + "' "
                             + "AND table_name = '" + tableName + "';";
