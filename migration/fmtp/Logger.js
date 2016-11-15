@@ -22,6 +22,15 @@
 
 const fs = require('fs');
 
+let getBuffer = null;
+let version   = +process.version.split('.')[0].slice(1);
+
+if (version < 6) {
+    getBuffer = require('./OldBuffer');
+} else {
+    getBuffer = require('./NewBuffer');
+}
+
 /**
  * Outputs given log.
  * Writes given log to the "/all.log" file.
@@ -31,11 +40,12 @@ const fs = require('fs');
  * @param   {String}     log
  * @param   {String}     tableLogPath
  * @param   {Boolean}    isErrorLog
+ *
  * @returns {undefined}
  */
 module.exports = function(self, log, tableLogPath, isErrorLog) {
-    let buffer = new Buffer(log + '\n\n', self._encoding);
-
+    let buffer = getBuffer(log + '\n\n', self._encoding);
+    
     if (!isErrorLog) {
         console.log(log);
     }
@@ -49,7 +59,9 @@ module.exports = function(self, log, tableLogPath, isErrorLog) {
                             if (!error) {
                                 fs.write(fd, buffer, 0, buffer.length, null, () => {
                                     buffer = null;
-                                    fs.close(fd);
+                                    fs.close(fd, () => {
+                                        // Do nothing.
+                                    });
                                 });
                             }
                         });

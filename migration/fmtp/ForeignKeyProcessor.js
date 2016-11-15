@@ -30,6 +30,7 @@ const migrationStateManager = require('./MigrationStateManager');
  * @param   {Conversion} self
  * @param   {String}     tableName
  * @param   {Array}      rows
+ *
  * @returns {Promise}
  */
 function processForeignKeyWorker(self, tableName, rows) {
@@ -92,13 +93,14 @@ function processForeignKeyWorker(self, tableName, rows) {
  * Starts a process of foreign keys creation.
  *
  * @param   {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {
     return migrationStateManager.get(self, 'foreign_keys_loaded').then(isForeignKeysProcessed => {
         return new Promise(resolve => {
             let fkPromises = [];
-            
+
             if (!isForeignKeysProcessed) {
                 for (let i = 0; i < self._tablesToMigrate.length; ++i) {
                     let tableName = self._tablesToMigrate[i];
@@ -137,7 +139,7 @@ module.exports = function(self) {
                                           connection.release();
 
                                           if (err) {
-                                              generateError(self, self, '\t--[processForeignKey] ' + err, sql);
+                                              generateError(self, '\t--[processForeignKey] ' + err, sql);
                                               fkResolve();
                                           } else {
                                               processForeignKeyWorker(self, tableName, rows).then(() => {

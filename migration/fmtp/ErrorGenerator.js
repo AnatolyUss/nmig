@@ -23,24 +23,36 @@
 const fs  = require('fs');
 const log = require('./Logger');
 
+let getBuffer = null;
+let version   = +process.version.split('.')[0].slice(1);
+
+if (version < 6) {
+    getBuffer = require('./OldBuffer');
+} else {
+    getBuffer = require('./NewBuffer');
+}
+
 /**
  * Writes a ditailed error message to the "/errors-only.log" file
  *
  * @param   {Conversion} self
  * @param   {String}     message
  * @param   {String}     sql
+ *
  * @returns {undefined}
  */
 module.exports = function(self, message, sql) {
     message    += '\n\n\tSQL: ' + (sql || '') + '\n\n';
-    let buffer  = new Buffer(message, self._encoding);
+    let buffer  = getBuffer(message, self._encoding);
     log(self, message, undefined, true);
-
+    
     fs.open(self._errorLogsPath, 'a', self._0777, (error, fd) => {
         if (!error) {
             fs.write(fd, buffer, 0, buffer.length, null, () => {
                 buffer = null;
-                fs.close(fd);
+                fs.close(fd, () => {
+                    // Do nothing.
+                });
             });
         }
     });

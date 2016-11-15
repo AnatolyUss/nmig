@@ -1,6 +1,6 @@
 {
   "name": "nmig",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "The database migration app",
   "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
   "dependencies": {

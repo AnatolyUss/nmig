@@ -31,7 +31,15 @@ const MessageToMaster    = require('./MessageToMaster');
 const enforceConsistency = require('./ConsistencyEnforcer');
 const copyFrom           = pgCopyStreams.from;
 
-let self = null;
+let self      = null;
+let getBuffer = null;
+let version   = +process.version.split('.')[0].slice(1);
+
+if (version < 6) {
+    getBuffer = require('./OldBuffer');
+} else {
+    getBuffer = require('./NewBuffer');
+}
 
 process.on('message', signal => {
     self         = new Conversion(signal.config);
@@ -81,6 +89,7 @@ process.on('message', signal => {
  * @param   {Number}                   dataPoolId
  * @param   {Node-pg client|undefined} client
  * @param   {Function|undefined}       done
+ *
  * @returns {Promise}
  */
 function deleteChunk(dataPoolId, client, done) {
@@ -125,6 +134,7 @@ function deleteChunk(dataPoolId, client, done) {
  *
  * @param   {String}         csvAddr
  * @param   {FileDescriptor} fd
+ *
  * @returns {Promise}
  */
 function deleteCsv(csvAddr, fd) {
@@ -144,6 +154,7 @@ function deleteCsv(csvAddr, fd) {
  * @param   {String} strSelectFieldList
  * @param   {Number} offset
  * @param   {Number} rowsInChunk
+ *
  * @returns {String}
  */
 function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
@@ -159,6 +170,7 @@ function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
  * @param   {Number} rowsInChunk
  * @param   {Number} rowsCnt
  * @param   {Number} dataPoolId
+ *
  * @returns {Promise}
  */
 function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk, rowsCnt, dataPoolId) {
@@ -188,7 +200,7 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                 generateError(self, '\t--[populateTableWorker] ' + csvError);
                                 resolvePopulateTableWorker();
                             } else {
-                                let buffer = new Buffer(csvString, self._encoding);
+                                let buffer = getBuffer(csvString, self._encoding);
                                 csvString  = null;
 
                                 fs.open(csvAddr, 'w', self._0777, (csvErrorFputcsvOpen, fd) => {

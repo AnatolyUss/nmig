@@ -25,12 +25,22 @@ const log                   = require('./Logger');
 const generateError         = require('./ErrorGenerator');
 const migrationStateManager = require('./MigrationStateManager');
 
+let getBuffer = null;
+let version   = +process.version.split('.')[0].slice(1);
+
+if (version < 6) {
+    getBuffer = require('./OldBuffer');
+} else {
+    getBuffer = require('./NewBuffer');
+}
+
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
  *
  * @param   {String} schema
  * @param   {String} viewName
  * @param   {String} mysqlViewCode
+ *
  * @returns {String}
  */
 function generateView(schema, viewName, mysqlViewCode) {
@@ -58,6 +68,7 @@ function generateView(schema, viewName, mysqlViewCode) {
  * @param   {Conversion} self
  * @param   {String}     viewName
  * @param   {String}     sql
+ *
  * @returns {undefined}
  */
 function logNotCreatedView(self, viewName, sql) {
@@ -73,7 +84,7 @@ function logNotCreatedView(self, viewName, sql) {
                         if (error) {
                             log(self, error);
                         } else {
-                            let buffer = new Buffer(sql, self._encoding);
+                            let buffer = getBuffer(sql, self._encoding);
                             fs.write(fd, buffer, 0, buffer.length, null, () => {
                                 buffer = null;
                                 fs.close(fd);
@@ -90,7 +101,7 @@ function logNotCreatedView(self, viewName, sql) {
                 if (error) {
                     log(self, error);
                 } else {
-                    let buffer = new Buffer(sql, self._encoding);
+                    let buffer = getBuffer(sql, self._encoding);
                     fs.write(fd, buffer, 0, buffer.length, null, () => {
                         buffer = null;
                         fs.close(fd);
@@ -105,13 +116,14 @@ function logNotCreatedView(self, viewName, sql) {
  * Attempts to convert MySQL view to PostgreSQL view.
  *
  * @param   {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {
     return migrationStateManager.get(self, 'views_loaded').then(isViewsLoaded => {
         return new Promise(resolve => {
             let createViewPromises = [];
-            
+
             if (!isViewsLoaded) {
                 for (let i = 0; i < self._viewsToMigrate.length; ++i) {
                     createViewPromises.push(
