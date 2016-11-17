@@ -31,9 +31,10 @@ const migrationStateManager = require('./MigrationStateManager');
 /**
  * Processes current table before data loading.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
- * @param   {Boolean}    stateLog
+ * @param {Conversion} self
+ * @param {String}     tableName
+ * @param {Boolean}    stateLog
+ *
  * @returns {Promise}
  */
 function processTableBeforeDataLoading(self, tableName, stateLog) {
@@ -49,7 +50,8 @@ function processTableBeforeDataLoading(self, tableName, stateLog) {
 /**
  * Load source tables and views, that need to be migrated.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {

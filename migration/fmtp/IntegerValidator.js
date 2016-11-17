@@ -23,7 +23,8 @@
 /**
  * Checks if given value is integer number.
  *
- * @param   {String|Number} value
+ * @param {String|Number} value
+ * 
  * @returns {Boolean}
  */
 module.exports = function(value) {

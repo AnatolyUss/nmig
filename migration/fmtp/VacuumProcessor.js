@@ -27,7 +27,8 @@ const generateError = require('./ErrorGenerator');
 /**
  * Runs "vacuum full" and "analyze".
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {

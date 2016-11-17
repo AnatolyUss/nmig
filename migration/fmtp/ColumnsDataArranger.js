@@ -23,7 +23,8 @@
 /**
  * Arranges columns data before loading.
  *
- * @param   {Array} arrTableColumns
+ * @param {Array} arrTableColumns
+ * 
  * @returns {String}
  */
 module.exports = function(arrTableColumns) {

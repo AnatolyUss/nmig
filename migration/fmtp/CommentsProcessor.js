@@ -27,8 +27,9 @@ const connect       = require('./Connector');
 /**
  * Create table comments.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
  * @returns {Promise}
  */
 function processTableComments(self, tableName) {
@@ -88,8 +89,9 @@ function processTableComments(self, tableName) {
 /**
  * Create columns comments.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
  * @returns {Promise}
  */
 function processColumnsComments(self, tableName) {
@@ -141,8 +143,9 @@ function processColumnsComments(self, tableName) {
 /**
  * Migrate comments.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ * 
  * @returns {Promise}
  */
 module.exports = function(self, tableName) {

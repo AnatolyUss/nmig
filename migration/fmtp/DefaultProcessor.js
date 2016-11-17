@@ -27,7 +27,8 @@ const generateError = require('./ErrorGenerator');
 /**
  * Checks if given value is float number.
  *
- * @param   {String|Number} value
+ * @param {String|Number} value
+ * 
  * @returns {Boolean}
  */
 function isFloatNumeric(value) {
@@ -38,8 +39,9 @@ function isFloatNumeric(value) {
  * Define which columns of the given table have default value.
  * Set default values, if need.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
  * @returns {Promise}
  */
 module.exports = function(self, tableName) {

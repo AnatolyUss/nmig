@@ -29,8 +29,9 @@ const generateError = require('./ErrorGenerator');
  * This conversion performs in accordance to mapping rules in './DataTypesMap.json'.
  * './DataTypesMap.json' can be customized.
  *
- * @param   {Object} objDataTypesMap
- * @param   {String} mySqlDataType
+ * @param {Object} objDataTypesMap
+ * @param {String} mySqlDataType
+ *
  * @returns {String}
  */
 function mapDataTypes(objDataTypesMap, mySqlDataType) {
@@ -80,8 +81,9 @@ function mapDataTypes(objDataTypesMap, mySqlDataType) {
 /**
  * Migrates structure of a single table to PostgreSql server.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ * 
  * @returns {Promise}
  */
 module.exports = function(self, tableName) {
@@ -114,7 +116,7 @@ module.exports = function(self, tableName) {
                                     rejectCreateTable();
                                 } else {
                                     sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."' + tableName + '"(';
-                                    
+
                                     for (let i = 0; i < rows.length; ++i) {
                                         let strConvertedType  = mapDataTypes(self._dataTypesMap, rows[i].Type);
                                         sql                  += '"' + rows[i].Field + '" ' + strConvertedType + ',';

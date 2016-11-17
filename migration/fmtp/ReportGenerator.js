@@ -25,8 +25,9 @@ const log = require('./Logger');
 /**
  * Generates a summary report.
  *
- * @param   {Conversion} self
- * @param   {String}     endMsg
+ * @param {Conversion} self
+ * @param {String}     endMsg
+ *
  * @returns {undefined}
  */
 module.exports = function(self, endMsg) {

@@ -28,8 +28,9 @@ const generateError = require('./ErrorGenerator');
  * Define which columns of the given table can contain the "NULL" value.
  * Set an appropriate constraint, if need.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ * 
  * @returns {Promise}
  */
 module.exports = function(self, tableName) {

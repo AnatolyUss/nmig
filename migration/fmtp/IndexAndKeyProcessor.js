@@ -27,8 +27,9 @@ const generateError = require('./ErrorGenerator');
 /**
  * Create primary key and indices.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
  * @returns {Promise}
  */
 module.exports = function(self, tableName) {

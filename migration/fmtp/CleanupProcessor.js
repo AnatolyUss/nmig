@@ -27,7 +27,8 @@ const directoriesManager = require('./DirectoriesManager');
 /**
  * Closes DB connections.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 function closeConnections(self) {
@@ -53,7 +54,8 @@ function closeConnections(self) {
 /**
  * Closes DB connections and removes the "./temporary_directory".
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {

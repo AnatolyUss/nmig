@@ -37,9 +37,9 @@ if (version < 6) {
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
  *
- * @param   {String} schema
- * @param   {String} viewName
- * @param   {String} mysqlViewCode
+ * @param {String} schema
+ * @param {String} viewName
+ * @param {String} mysqlViewCode
  *
  * @returns {String}
  */
@@ -65,9 +65,9 @@ function generateView(schema, viewName, mysqlViewCode) {
 /**
  * Writes a log, containing a view code.
  *
- * @param   {Conversion} self
- * @param   {String}     viewName
- * @param   {String}     sql
+ * @param {Conversion} self
+ * @param {String}     viewName
+ * @param {String}     sql
  *
  * @returns {undefined}
  */
@@ -115,7 +115,7 @@ function logNotCreatedView(self, viewName, sql) {
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
  *
  * @returns {Promise}
  */

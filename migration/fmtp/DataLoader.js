@@ -86,9 +86,9 @@ process.on('message', signal => {
 /**
  * Delete given record from the data-pool.
  *
- * @param   {Number}                   dataPoolId
- * @param   {Node-pg client|undefined} client
- * @param   {Function|undefined}       done
+ * @param {Number}                   dataPoolId
+ * @param {Node-pg client|undefined} client
+ * @param {Function|undefined}       done
  *
  * @returns {Promise}
  */
@@ -132,8 +132,8 @@ function deleteChunk(dataPoolId, client, done) {
 /**
  * Delete given csv file.
  *
- * @param   {String}         csvAddr
- * @param   {FileDescriptor} fd
+ * @param {String}         csvAddr
+ * @param {FileDescriptor} fd
  *
  * @returns {Promise}
  */
@@ -150,10 +150,10 @@ function deleteCsv(csvAddr, fd) {
 /**
  * Build a MySQL query to retrieve the chunk of data.
  *
- * @param   {String} tableName
- * @param   {String} strSelectFieldList
- * @param   {Number} offset
- * @param   {Number} rowsInChunk
+ * @param {String} tableName
+ * @param {String} strSelectFieldList
+ * @param {Number} offset
+ * @param {Number} rowsInChunk
  *
  * @returns {String}
  */
@@ -164,12 +164,12 @@ function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
 /**
  * Load a chunk of data using "PostgreSQL COPY".
  *
- * @param   {String} tableName
- * @param   {String} strSelectFieldList
- * @param   {Number} offset
- * @param   {Number} rowsInChunk
- * @param   {Number} rowsCnt
- * @param   {Number} dataPoolId
+ * @param {String} tableName
+ * @param {String} strSelectFieldList
+ * @param {Number} offset
+ * @param {Number} rowsInChunk
+ * @param {Number} rowsCnt
+ * @param {Number} dataPoolId
  *
  * @returns {Promise}
  */

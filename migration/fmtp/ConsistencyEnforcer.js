@@ -23,8 +23,9 @@
 /**
  * Update consistency state.
  *
- * @param   {Conversion} self
- * @param   {Number}     dataPoolId
+ * @param {Conversion} self
+ * @param {Number}     dataPoolId
+ *
  * @returns {Promise}
  */
 function updateConsistencyState(self, dataPoolId) {
@@ -54,8 +55,9 @@ function updateConsistencyState(self, dataPoolId) {
 /**
  * Get consistency state.
  *
- * @param   {Conversion} self
- * @param   {Number}     dataPoolId
+ * @param {Conversion} self
+ * @param {Number}     dataPoolId
+ *
  * @returns {Promise}
  */
 function getConsistencyState(self, dataPoolId) {
@@ -89,8 +91,9 @@ function getConsistencyState(self, dataPoolId) {
  * In case of normal execution - it is a good practice.
  * In case of rerunning nmig after unexpected failure - it is absolutely mandatory.
  *
- * @param   {Conversion} self
- * @param   {Number}     chunkId
+ * @param {Conversion} self
+ * @param {Number}     chunkId
+ * 
  * @returns {Promise}
  */
 module.exports = function(self, chunkId) {

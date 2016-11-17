@@ -26,7 +26,8 @@ const fs = require('fs');
  * Reads "./DataTypesMap.json" and converts its json content to js object.
  * Appends this object to "FromMySQL2PostgreSQL" instance.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {

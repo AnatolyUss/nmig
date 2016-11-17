@@ -31,7 +31,8 @@ const generateReport = require('./ReportGenerator');
  * If not, than create connections.
  * Kill current process if can not connect.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ * 
  * @returns {Promise}
  */
 module.exports = function(self) {

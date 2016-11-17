@@ -27,7 +27,8 @@ const generateError = require('./ErrorGenerator');
  * Create a new database schema.
  * Insure a uniqueness of a new schema name.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {

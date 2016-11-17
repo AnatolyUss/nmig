@@ -36,16 +36,16 @@ if (version < 6) {
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/{tableName}.log" file.
  *
- * @param   {Conversion} self
- * @param   {String}     log
- * @param   {String}     tableLogPath
- * @param   {Boolean}    isErrorLog
- *
+ * @param {Conversion} self
+ * @param {String}     log
+ * @param {String}     tableLogPath
+ * @param {Boolean}    isErrorLog
+ * 
  * @returns {undefined}
  */
 module.exports = function(self, log, tableLogPath, isErrorLog) {
     let buffer = getBuffer(log + '\n\n', self._encoding);
-    
+
     if (!isErrorLog) {
         console.log(log);
     }

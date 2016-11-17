@@ -27,7 +27,8 @@ const generateError = require('./ErrorGenerator');
 /**
  * Create the "{schema}"."data_pool_{self._schema + self._mySqlDbName} temporary table."
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports.createDataPoolTable = function(self) {
@@ -61,7 +62,8 @@ module.exports.createDataPoolTable = function(self) {
 /**
  * Drop the "{schema}"."data_pool_{self._schema + self._mySqlDbName} temporary table."
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports.dropDataPoolTable = function(self) {
@@ -93,7 +95,8 @@ module.exports.dropDataPoolTable = function(self) {
 /**
  * Reads temporary table, and generates Data-pool.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ * 
  * @returns {Promise}
  */
 module.exports.readDataPool = function(self) {
@@ -112,7 +115,7 @@ module.exports.readDataPool = function(self) {
                             generateError(self, '\t--[DataPoolManager.readDataPool] ' + err, sql);
                             return reject();
                         }
-                        
+
                         for (let i = 0; i < arrDataPool.rows.length; ++i) {
                             let obj = JSON.parse(arrDataPool.rows[i].json);
                             obj._id = arrDataPool.rows[i].id;

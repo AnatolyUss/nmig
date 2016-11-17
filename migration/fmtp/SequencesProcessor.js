@@ -28,8 +28,9 @@ const generateError = require('./ErrorGenerator');
  * Define which column in given table has the "auto_increment" attribute.
  * Create an appropriate sequence.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
  * @returns {Promise}
  */
 module.exports = function(self, tableName) {

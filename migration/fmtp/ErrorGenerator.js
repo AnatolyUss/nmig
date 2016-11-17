@@ -35,17 +35,17 @@ if (version < 6) {
 /**
  * Writes a ditailed error message to the "/errors-only.log" file
  *
- * @param   {Conversion} self
- * @param   {String}     message
- * @param   {String}     sql
- *
+ * @param {Conversion} self
+ * @param {String}     message
+ * @param {String}     sql
+ * 
  * @returns {undefined}
  */
 module.exports = function(self, message, sql) {
     message    += '\n\n\tSQL: ' + (sql || '') + '\n\n';
     let buffer  = getBuffer(message, self._encoding);
     log(self, message, undefined, true);
-    
+
     fs.open(self._errorLogsPath, 'a', self._0777, (error, fd) => {
         if (!error) {
             fs.write(fd, buffer, 0, buffer.length, null, () => {

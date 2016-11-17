@@ -28,9 +28,10 @@ const arrangeColumnsData = require('./ColumnsDataArranger');
 /**
  * Prepares an array of tables and chunk offsets.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
- * @param   {Boolean}    haveDataChunksProcessed
+ * @param {Conversion} self
+ * @param {String}     tableName
+ * @param {Boolean}    haveDataChunksProcessed
+ * 
  * @returns {Promise}
  */
 module.exports = function(self, tableName, haveDataChunksProcessed) {

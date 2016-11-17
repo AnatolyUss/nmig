@@ -27,8 +27,9 @@ const generateError = require('./ErrorGenerator');
 /**
  * Get state-log.
  *
- * @param   {Conversion} self
- * @param   {String}     param
+ * @param {Conversion} self
+ * @param {String}     param
+ *
  * @returns {Promise}
  */
 module.exports.get = function(self, param) {
@@ -60,8 +61,9 @@ module.exports.get = function(self, param) {
 /**
  * Update the state-log.
  *
- * @param   {Conversion} self
- * @param   {String}     param
+ * @param {Conversion} self
+ * @param {String}     param
+ *
  * @returns {Promise}
  */
 module.exports.set = function(self, param) {
@@ -93,7 +95,8 @@ module.exports.set = function(self, param) {
 /**
  * Create the "{schema}"."state_logs_{self._schema + self._mySqlDbName} temporary table."
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports.createStateLogsTable = function(self) {
@@ -161,7 +164,8 @@ module.exports.createStateLogsTable = function(self) {
 /**
  * Drop the "{schema}"."state_logs_{self._schema + self._mySqlDbName} temporary table."
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports.dropStateLogsTable = function(self) {

@@ -50,7 +50,8 @@ let intProcessedDataUnits = 0;
 /**
  * Kill a process specified by the pid.
  *
- * @param   {Number} pid
+ * @param {Number} pid
+ *
  * @returns {undefined}
  */
 function killProcess(pid) {
@@ -164,7 +165,8 @@ function continueProcessAfterDataLoading() {
 /**
  * Runs migration according to user's configuration.
  *
- * @param   {Object} config
+ * @param {Object} config
+ *
  * @returns {undefined}
  */
 module.exports = function(config) {

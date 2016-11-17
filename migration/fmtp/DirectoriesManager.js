@@ -26,7 +26,8 @@ const log = require('./Logger');
 /**
  * Creates temporary directory.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports.createTemporaryDirectory = function(self) {
@@ -59,7 +60,8 @@ module.exports.createTemporaryDirectory = function(self) {
 /**
  * Removes temporary directory.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports.removeTemporaryDirectory = function(self) {
@@ -105,7 +107,8 @@ module.exports.removeTemporaryDirectory = function(self) {
 /**
  * Creates logs directory.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
+ *
  * @returns {Promise}
  */
 module.exports.createLogsDirectory = function(self) {

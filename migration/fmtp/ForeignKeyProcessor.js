@@ -27,9 +27,9 @@ const migrationStateManager = require('./MigrationStateManager');
 /**
  * Creates foreign keys for given table.
  *
- * @param   {Conversion} self
- * @param   {String}     tableName
- * @param   {Array}      rows
+ * @param {Conversion} self
+ * @param {String}     tableName
+ * @param {Array}      rows
  *
  * @returns {Promise}
  */
@@ -92,7 +92,7 @@ function processForeignKeyWorker(self, tableName, rows) {
 /**
  * Starts a process of foreign keys creation.
  *
- * @param   {Conversion} self
+ * @param {Conversion} self
  *
  * @returns {Promise}
  */
