@@ -83,7 +83,7 @@ module.exports = function(self, tableName) {
                                                     let columnName = objPgIndices[attr].column_name[0].slice(1, -1);
                                                     indexType      = 'index';
                                                     sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
-                                                                   + self._schema + '_' + tableName + '_' + columnName + '_idx" ON "'
+                                                                   + tableName + '_' + columnName + '_idx" ON "'
                                                                    + self._schema + '"."' + tableName + '" '
                                                                    + objPgIndices[attr].Index_type + ' (' + objPgIndices[attr].column_name.join(',') + ');';
                                                 }
