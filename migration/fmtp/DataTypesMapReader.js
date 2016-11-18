@@ -29,7 +29,7 @@ const fs = require('fs');
  * @param   {Conversion} self
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = function (self) {
     return new Promise((resolve, reject) => {
         fs.readFile(self._dataTypesMapAddr, (error, data) => {
             if (error) {
@@ -39,6 +39,11 @@ module.exports = function(self) {
                 try {
                     self._dataTypesMap = JSON.parse(data.toString());
                     console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
+                    if (self._convertTinyintToBoolean) {
+                        self._dataTypesMap.tinyint.increased_size = '';
+                        self._dataTypesMap.tinyint.type = 'boolean';
+                        console.log('\t--[readDataTypesMap] Will transform tinyint fields to boolean...');
+                    }
                     resolve();
                 } catch (err) {
                     console.log('\t--[readDataTypesMap] Cannot parse JSON from' + self._dataTypesMapAddr);
