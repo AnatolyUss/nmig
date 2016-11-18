@@ -67,6 +67,7 @@
         "If not supplied, then 1 MB will be used as a default."
     ],
     "data_chunk_size" : 1,
+
     "no_vacuum_description" : [
         "PostgreSQL VACUUM reclaims storage occupied by dead tuples. VACUUM is a very time-consuming procedure.",
         "By default, VACUUM will be performed automatically after migration (recommended)",
@@ -84,6 +85,12 @@
         "In order to skip schema migration, and just migrate data into a preset schema",
         " - set this parameter true"
     ],
-    "migrate_only_data" : false
+    "migrate_only_data" : false,
+
+    "convert_tinyint_to_boolean_description": [
+        "In MySQL, boolean is just an alias of tinyint, and tinyint can contain a lot more values than 0 or 1.",
+        "If you are sure that in your database tinyint is used only as boolean, then set this option to true"
+    ],
+    "convert_tinyint_to_boolean": true
 }
 

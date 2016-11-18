@@ -49,7 +49,6 @@ module.exports = function(self, tableName) {
                             resolveProcessIndexAndKey();
                         } else {
                             let objPgIndices               = Object.create(null);
-                            let cnt                        = 0;
                             let indexType                  = '';
                             let processIndexAndKeyPromises = [];
 
@@ -81,10 +80,10 @@ module.exports = function(self, tableName) {
 
                                                 } else {
                                                     // "schema_idxname_{integer}_idx" - is NOT a mistake.
-                                                    let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
+                                                    let columnName = objPgIndices[attr].column_name[0].slice(1, -1);
                                                     indexType      = 'index';
                                                     sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
-                                                                   + self._schema + '_' + tableName + '_' + columnName + '_idx" ON "'
+                                                                   + tableName + '_' + columnName + '_idx" ON "'
                                                                    + self._schema + '"."' + tableName + '" '
                                                                    + objPgIndices[attr].Index_type + ' (' + objPgIndices[attr].column_name.join(',') + ');';
                                                 }

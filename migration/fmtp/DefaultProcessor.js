@@ -77,6 +77,9 @@ module.exports = function(self, tableName) {
 
                                     if (sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default]) {
                                         sql += sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default] + ';';
+                                    } else if (self._convertTinyintToBoolean && self._dicTables[tableName].arrTableColumns[i].Type.indexOf('tinyint') !== -1) {
+                                        let value = parseInt(self._dicTables[tableName].arrTableColumns[i].Default);
+                                        sql += value === 0 ? 'FALSE' : 'TRUE';
                                     } else {
                                         sql += isFloatNumeric(self._dicTables[tableName].arrTableColumns[i].Default)
                                                ? self._dicTables[tableName].arrTableColumns[i].Default + ';'
