@@ -91,6 +91,6 @@
         "In MySQL, boolean is just an alias of tinyint, and tinyint can contain a lot more values than 0 or 1.",
         "If you are sure that in your database tinyint is used only as boolean, then set this option to true"
     ],
-    "convert_tinyint_to_boolean": false
+    "convert_tinyint_to_boolean": true
 }
 
