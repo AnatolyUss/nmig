@@ -28,9 +28,10 @@ fs.readFile(__dirname + '/config.json', (error, data) => {
         console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + __dirname + '/config.json');
     } else {
         try {
-            let config         = JSON.parse(data.toString());
-            config.tempDirPath = __dirname + '/temporary_directory';
-            config.logsDirPath = __dirname + '/logs_directory';
+            let config              = JSON.parse(data.toString());
+            config.tempDirPath      = __dirname + '/temporary_directory';
+            config.logsDirPath      = __dirname + '/logs_directory';
+            config.dataTypesMapAddr = __dirname + '/DataTypesMap.json';
             main(config);
         } catch (err) {
             console.log('\n\t--Cannot parse JSON from' + __dirname + '/config.json');
