@@ -20,20 +20,11 @@
  */
 'use strict';
 
-const connect       = require('./Connector');
-const log           = require('./Logger');
-const generateError = require('./ErrorGenerator');
-
-/**
- * Checks if given value is float number.
- *
- * @param {String|Number} value
- * 
- * @returns {Boolean}
- */
-function isFloatNumeric(value) {
-    return !isNaN(parseFloat(value)) && isFinite(value);
-}
+const connect        = require('./Connector');
+const log            = require('./Logger');
+const generateError  = require('./ErrorGenerator');
+const tableProcessor = require('./TableProcessor');
+const mapDataTypes   = tableProcessor.mapDataTypes;
 
 /**
  * Define which columns of the given table have default value.
@@ -49,6 +40,7 @@ module.exports = function(self, tableName) {
         return new Promise(resolve => {
             log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
             let processDefaultPromises = [];
+            let pgSqlNumericTypes      = ['money', 'numeric', 'decimal', 'double precision', 'real', 'bigint', 'int', 'smallint'];
             let sqlReservedValues      = {
                 'CURRENT_DATE'        : 'CURRENT_DATE',
                 '0000-00-00'          : "'-INFINITY'",
@@ -74,15 +66,16 @@ module.exports = function(self, tableName) {
                                     generateError(self, msg);
                                     resolveProcessDefault();
                                 } else {
-                                    let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
-                                            + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET DEFAULT ';
+                                    let pgSqlDataType = mapDataTypes(self._dataTypesMap, self._dicTables[tableName].arrTableColumns[i].Type);
+                                    let sql           = 'ALTER TABLE "' + self._schema + '"."' + tableName
+                                        + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET DEFAULT ';
 
                                     if (sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default]) {
                                         sql += sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default] + ';';
+                                    } else if (pgSqlNumericTypes.indexOf(pgSqlDataType) === -1) {
+                                        sql += "'" + self._dicTables[tableName].arrTableColumns[i].Default + "';";
                                     } else {
-                                        sql += isFloatNumeric(self._dicTables[tableName].arrTableColumns[i].Default)
-                                               ? self._dicTables[tableName].arrTableColumns[i].Default + ';'
-                                               : "'" + self._dicTables[tableName].arrTableColumns[i].Default + "';";
+                                        sql += self._dicTables[tableName].arrTableColumns[i].Default + ';';
                                     }
 
                                     client.query(sql, err => {

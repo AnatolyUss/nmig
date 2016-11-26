@@ -20,7 +20,16 @@
  */
 'use strict';
 
-const isIntNumeric = require('./IntegerValidator');
+/**
+ * Checks if given value is integer number.
+ *
+ * @param {String|Number} value
+ *
+ * @returns {Boolean}
+ */
+function isIntNumeric(value) {
+    return !isNaN(parseInt(value)) && isFinite(value);
+}
 
 /**
  * Constructor.

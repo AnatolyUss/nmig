@@ -78,15 +78,17 @@ function mapDataTypes(objDataTypesMap, mySqlDataType) {
     return retVal;
 }
 
+module.exports.mapDataTypes = mapDataTypes;
+
 /**
  * Migrates structure of a single table to PostgreSql server.
  *
  * @param {Conversion} self
  * @param {String}     tableName
- * 
+ *
  * @returns {Promise}
  */
-module.exports = function(self, tableName) {
+module.exports.createTable = function(self, tableName) {
     return connect(self).then(() => {
         return new Promise((resolveCreateTable, rejectCreateTable) => {
             log(self, '\t--[createTable] Currently creating table: `' + tableName + '`', self._dicTables[tableName].tableLogPath);

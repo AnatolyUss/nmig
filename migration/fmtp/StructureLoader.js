@@ -21,12 +21,13 @@
 'use strict';
 
 const Table                 = require('./Table');
-const createTable           = require('./TableProcessor');
+const tableProcessor        = require('./TableProcessor');
 const connect               = require('./Connector');
 const log                   = require('./Logger');
 const generateError         = require('./ErrorGenerator');
 const prepareDataChunks     = require('./DataChunksProcessor');
 const migrationStateManager = require('./MigrationStateManager');
+const createTable           = tableProcessor.createTable;
 
 /**
  * Processes current table before data loading.
