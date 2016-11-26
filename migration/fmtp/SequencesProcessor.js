@@ -25,6 +25,63 @@ const log           = require('./Logger');
 const generateError = require('./ErrorGenerator');
 
 /**
+ * Set sequence value.
+ *
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
+ * @returns {Promise}
+ */
+module.exports.setSequenceValue = function(self, tableName) {
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            let hasAutoIncrementColumnFound = false;
+
+            for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
+                if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
+                    hasAutoIncrementColumnFound = true;
+                    self._pg.connect((error, client, done) => {
+                        if (error) {
+                            let msg = '\t--[setSequenceValue] Cannot connect to PostgreSQL server...\n' + error;
+                            generateError(self, msg);
+                            resolve();
+                        } else {
+                            let seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
+                            let sql     = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
+                                + '(SELECT MAX("' + self._dicTables[tableName].arrTableColumns[i].Field + '") FROM "'
+                                + self._schema + '"."' + tableName + '"));';
+
+                            client.query(sql, err => {
+                               done();
+
+                               if (err) {
+                                   let errMsg = '\t--[setSequenceValue] Failed to set max-value of "' + self._schema + '"."'
+                                               + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                               + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
+
+                                   generateError(self, errMsg, sql);
+                                   resolve();
+                               } else {
+                                   let success = '\t--[setSequenceValue] Sequence "' + self._schema + '"."' + seqName + '" is created...';
+                                   log(self, success, self._dicTables[tableName].tableLogPath);
+                                   resolve();
+                               }
+                           });
+                        }
+                    });
+
+                    break; // The AUTO_INCREMENTed column was just processed.
+                }
+            }
+
+            if (!hasAutoIncrementColumnFound) {
+                resolve();
+            }
+        });
+    });
+}
+
+/**
  * Define which column in given table has the "auto_increment" attribute.
  * Create an appropriate sequence.
  *
@@ -33,7 +90,7 @@ const generateError = require('./ErrorGenerator');
  *
  * @returns {Promise}
  */
-module.exports = function(self, tableName) {
+module.exports.createSequence = function(self, tableName) {
     return connect(self).then(() => {
         return new Promise(resolve => {
             let createSequencePromises = [];
@@ -116,6 +173,8 @@ module.exports = function(self, tableName) {
                             });
                         })
                     );
+
+                    break; // The AUTO_INCREMENTed column was just processed.
                 }
             }
 

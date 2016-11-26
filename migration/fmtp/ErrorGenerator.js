@@ -38,7 +38,7 @@ if (version < 6) {
  * @param {Conversion} self
  * @param {String}     message
  * @param {String}     sql
- * 
+ *
  * @returns {undefined}
  */
 module.exports = function(self, message, sql) {
@@ -51,7 +51,7 @@ module.exports = function(self, message, sql) {
             fs.write(fd, buffer, 0, buffer.length, null, () => {
                 buffer = null;
                 fs.close(fd, () => {
-                    // Do nothing.
+                    // Each async function MUST have a callback (according to Node.js >= 7).
                 });
             });
         }

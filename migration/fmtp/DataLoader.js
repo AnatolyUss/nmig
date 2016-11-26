@@ -162,6 +162,48 @@ function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
 }
 
 /**
+ * Delete given record from the data-pool.
+ * Deleted related csv file.
+ *
+ * @param {Number}                   dataPoolId
+ * @param {Node-pg client|undefined} client
+ * @param {Function|undefined}       done
+ * @param {String}                   csvAddr
+ * @param {Number}                   fd
+ * @param {Function}                 callback
+ *
+ * @returns {undefined}
+ */
+function deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, callback) {
+    deleteChunk(dataPoolId, client, done).then(() => {
+        deleteCsv(csvAddr, fd).then(() => callback());
+    });
+}
+
+/**
+ * Process data-loading error.
+ *
+ * @param {String}                   streamError
+ * @param {String}                   sql
+ * @param {String}                   sqlCopy
+ * @param {String}                   tableName
+ * @param {Number}                   dataPoolId
+ * @param {Node-pg client|undefined} client
+ * @param {Function|undefined}       done
+ * @param {String}                   csvAddr
+ * @param {Number}                   fd
+ * @param {Function}                 callback
+ *
+ * @returns {undefined}
+ */
+function processDataError(streamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, callback) {
+    generateError(self, '\t--[populateTableWorker] ' + streamError, sqlCopy);
+    let rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
+    log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
+    deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, callback);
+}
+
+/**
  * Load a chunk of data using "PostgreSQL COPY".
  *
  * @param {String} tableName
@@ -222,31 +264,28 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                         deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
                                                     } else {
                                                         let sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + ',\'' + ' CSV;';
-                                                        let stream     = client.query(copyFrom(sqlCopy));
+                                                        let copyStream = client.query(copyFrom(sqlCopy));
                                                         let readStream = fs.createReadStream(csvAddr);
 
-                                                        readStream.on('end', () => {
+                                                        copyStream.on('end', () => {
                                                             /*
                                                              * COPY FROM STDIN does not return the number of rows inserted.
                                                              * But the transactional behavior still applies (no records inserted if at least one failed).
                                                              * That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
                                                              */
                                                             process.send(new MessageToMaster(tableName, rowsInChunk, rowsCnt));
-                                                            deleteChunk(dataPoolId, client, done).then(() => {
-                                                                deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
-                                                            });
+                                                            deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
+                                                        });
+
+                                                        copyStream.on('error', copyStreamError => {
+                                                            processDataError(copyStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
                                                         });
 
                                                         readStream.on('error', readStreamError => {
-                                                            generateError(self, '\t--[populateTableWorker] ' + readStreamError, sqlCopy);
-                                                            let rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
-                                                            log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
-                                                            deleteChunk(dataPoolId, client, done).then(() => {
-                                                                deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
-                                                            });
+                                                            processDataError(readStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
                                                         });
 
-                                                        readStream.pipe(stream);
+                                                        readStream.pipe(copyStream);
                                                     }
                                                });
                                             }

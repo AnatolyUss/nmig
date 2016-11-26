@@ -40,7 +40,7 @@ if (version < 6) {
  * @param {String}     log
  * @param {String}     tableLogPath
  * @param {Boolean}    isErrorLog
- * 
+ *
  * @returns {undefined}
  */
 module.exports = function(self, log, tableLogPath, isErrorLog) {
@@ -60,7 +60,7 @@ module.exports = function(self, log, tableLogPath, isErrorLog) {
                                 fs.write(fd, buffer, 0, buffer.length, null, () => {
                                     buffer = null;
                                     fs.close(fd, () => {
-                                        // Do nothing.
+                                        // Each async function MUST have a callback (according to Node.js >= 7).
                                     });
                                 });
                             }

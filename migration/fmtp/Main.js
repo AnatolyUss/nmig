@@ -33,7 +33,7 @@ const processComments         = require('./CommentsProcessor');
 const migrationStateManager   = require('./MigrationStateManager');
 const processIndexAndKey      = require('./IndexAndKeyProcessor');
 const processForeignKey       = require('./ForeignKeyProcessor');
-const createSequence          = require('./SequencesProcessor');
+const sequencesProcessor      = require('./SequencesProcessor');
 const runVacuumFullAndAnalyze = require('./VacuumProcessor');
 const processEnum             = require('./EnumProcessor');
 const processNull             = require('./NullProcessor');
@@ -98,67 +98,93 @@ function pipeData() {
 }
 
 /**
+ * Continues migration process after data loading, when migrate_only_data is true.
+ *
+ * @returns {undefined}
+ */
+function continueProcessAfterDataLoadingShort() {
+    let promises = [];
+
+    for (let i = 0; i < self._tablesToMigrate.length; ++i) {
+        let tableName = self._tablesToMigrate[i];
+        promises.push(sequencesProcessor.setSequenceValue(self, tableName));
+    }
+
+    Promise.all(promises).then(() => {
+        return dataPoolManager.dropDataPoolTable(self);
+    }).then(() => {
+        return runVacuumFullAndAnalyze(self);
+    }).then(() => {
+        return migrationStateManager.dropStateLogsTable(self);
+    }).then(() => {
+        return cleanup(self);
+    }).then(
+        () => generateReport(self, 'NMIG migration is accomplished.')
+    );
+}
+
+/**
+ * Continues migration process after data loading, when migrate_only_data is false.
+ *
+ * @returns {undefined}
+ */
+function continueProcessAfterDataLoadingLong() {
+    migrationStateManager.get(self, 'per_table_constraints_loaded').then(isTableConstraintsLoaded => {
+        let promises = [];
+        
+        if (!isTableConstraintsLoaded) {
+            for (let i = 0; i < self._tablesToMigrate.length; ++i) {
+                let tableName = self._tablesToMigrate[i];
+                promises.push(
+                    processEnum(self, tableName).then(() => {
+                        return processNull(self, tableName);
+                    }).then(() => {
+                        return processDefault(self, tableName);
+                    }).then(() => {
+                        return sequencesProcessor.createSequence(self, tableName);
+                    }).then(() => {
+                        return processIndexAndKey(self, tableName);
+                    }).then(() => {
+                        return processComments(self, tableName);
+                    })
+                );
+            }
+        }
+
+        Promise.all(promises).then(() => {
+            migrationStateManager.set(self, 'per_table_constraints_loaded').then(() => {
+                return processForeignKey(self);
+            }).then(() => {
+                return migrationStateManager.set(self, 'foreign_keys_loaded');
+            }).then(() => {
+                return dataPoolManager.dropDataPoolTable(self);
+            }).then(() => {
+                return processViews(self);
+            }).then(() => {
+                return migrationStateManager.set(self, 'views_loaded');
+            }).then(() => {
+                return runVacuumFullAndAnalyze(self);
+            }).then(() => {
+                return migrationStateManager.dropStateLogsTable(self);
+            }).then(() => {
+                return cleanup(self);
+            }).then(
+                () => generateReport(self, 'NMIG migration is accomplished.')
+            );
+        });
+    });
+}
+
+/**
  * Continues migration process after data loading.
  *
  * @returns {undefined}
  */
 function continueProcessAfterDataLoading() {
     if (self._migrateOnlyData) {
-        dataPoolManager.dropDataPoolTable(self).then(() => {
-            return runVacuumFullAndAnalyze(self);
-        }).then(() => {
-            return migrationStateManager.dropStateLogsTable(self);
-        }).then(() => {
-            return cleanup(self);
-        }).then(
-            () => generateReport(self, 'NMIG migration is accomplished.')
-        );
-
+        continueProcessAfterDataLoadingShort();
     } else {
-        migrationStateManager.get(self, 'per_table_constraints_loaded').then(isTableConstraintsLoaded => {
-            let promises = [];
-
-            if (!isTableConstraintsLoaded) {
-                for (let i = 0; i < self._tablesToMigrate.length; ++i) {
-                    let tableName = self._tablesToMigrate[i];
-                    promises.push(
-                        processEnum(self, tableName).then(() => {
-                            return processNull(self, tableName);
-                        }).then(() => {
-                            return processDefault(self, tableName);
-                        }).then(() => {
-                            return createSequence(self, tableName);
-                        }).then(() => {
-                            return processIndexAndKey(self, tableName);
-                        }).then(() => {
-                            return processComments(self, tableName);
-                        })
-                    );
-                }
-            }
-
-            Promise.all(promises).then(() => {
-                migrationStateManager.set(self, 'per_table_constraints_loaded').then(() => {
-                    return processForeignKey(self);
-                }).then(() => {
-                    return migrationStateManager.set(self, 'foreign_keys_loaded');
-                }).then(() => {
-                    return dataPoolManager.dropDataPoolTable(self);
-                }).then(() => {
-                    return processViews(self);
-                }).then(() => {
-                    return migrationStateManager.set(self, 'views_loaded');
-                }).then(() => {
-                    return runVacuumFullAndAnalyze(self);
-                }).then(() => {
-                    return migrationStateManager.dropStateLogsTable(self);
-                }).then(() => {
-                    return cleanup(self);
-                }).then(
-                    () => generateReport(self, 'NMIG migration is accomplished.')
-                );
-            });
-        });
+        continueProcessAfterDataLoadingLong();
     }
 }
 
