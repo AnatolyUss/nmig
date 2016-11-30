@@ -89,4 +89,8 @@ module.exports = function Conversion(config) {
     this._loaderMaxOldSpaceSize = this._config.loader_max_old_space_size;
     this._loaderMaxOldSpaceSize = isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
     this._migrateOnlyData       = this._config.migrate_only_data;
+    this._maxLoaderProcesses    = this._config.max_loader_processes !== undefined &&
+                                  isIntNumeric(this._config.max_loader_processes)
+                                  ? +this._config.max_loader_processes
+                                  : 1;
 };

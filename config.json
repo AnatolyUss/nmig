@@ -8,9 +8,11 @@
             "host"     : "localhost",
             "port"     : 3306,
             "database" : "test_db",
+            "database" : "rightcom_db",
             "charset"  : "UTF8",
             "user"     : "root",
-            "password" : "0123456789"
+            "password" : "0123456789",
+            "password" : ""
     },
 
     "max_pool_size_source_description" : [
@@ -27,9 +29,11 @@
             "host"     : "localhost",
             "port"     : 5432,
             "database" : "test_db",
+            "database" : "rightcom_db",
             "charset"  : "UTF8",
             "user"     : "postgres",
-            "password" : "0123456789"
+            "password" : "0123456789",
+            "password" : "7370142533"
     },
 
     "max_pool_size_target_description" : [
@@ -42,6 +46,13 @@
         "Note: 'pipe_width' should not be greater than 'max_pool_size_target'."
     ],
     "pipe_width" : 10,
+
+    "max_loader_processes_description" : [
+        "Each 'DataPipe' iteration processed by a separate process (o.s. thread).",
+        "max_loader_processes is a maximal amount of simultaneously running loader processes."
+        "If not supplied, then max_loader_processes is one."
+    ],
+    "max_loader_processes" : 3,
 
     "loader_max_old_space_size_description" : [
         "V8 memory limit of the loader process.",
@@ -67,7 +78,7 @@
         "If not supplied, then 1 MB will be used as a default."
     ],
     "data_chunk_size" : 1,
-    
+
     "no_vacuum_description" : [
         "PostgreSQL VACUUM reclaims storage occupied by dead tuples. VACUUM is a very time-consuming procedure.",
         "By default, VACUUM will be performed automatically after migration (recommended)",

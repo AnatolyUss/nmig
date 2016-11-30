@@ -74,6 +74,14 @@ function pipeData() {
         return continueProcessAfterDataLoading();
     }
 
+    for (let i = 0; i < self._maxLoaderProcesses; ++i) {
+        //
+    }
+
+    /*if (self._dataPool.length === 0) {
+        return continueProcessAfterDataLoading();
+    }
+    
     let strDataLoaderPath = __dirname + '/DataLoader.js';
     let options           = self._loaderMaxOldSpaceSize === 'DEFAULT' ? {} : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };
     let loaderProcess     = childProcess.fork(strDataLoaderPath, options);
@@ -94,7 +102,7 @@ function pipeData() {
 
     let intEnd  = self._dataPool.length - (self._dataPool.length - self._pipeWidth - intProcessedDataUnits);
     let message = new MessageToDataLoader(self._config, self._dataPool.slice(intProcessedDataUnits, intEnd));
-    loaderProcess.send(message);
+    loaderProcess.send(message);*/
 }
 
 /**
@@ -131,7 +139,7 @@ function continueProcessAfterDataLoadingShort() {
 function continueProcessAfterDataLoadingLong() {
     migrationStateManager.get(self, 'per_table_constraints_loaded').then(isTableConstraintsLoaded => {
         let promises = [];
-        
+
         if (!isTableConstraintsLoaded) {
             for (let i = 0; i < self._tablesToMigrate.length; ++i) {
                 let tableName = self._tablesToMigrate[i];
