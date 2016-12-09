@@ -20,181 +20,17 @@
  */
 'use strict';
 
-const fs                      = require('fs');
-const childProcess            = require('child_process');
-const processViews            = require('./ViewGenerator');
 const readDataTypesMap        = require('./DataTypesMapReader');
 const log                     = require('./Logger');
 const generateError           = require('./ErrorGenerator');
-const MessageToDataLoader     = require('./MessageToDataLoader');
 const Conversion              = require('./Conversion');
-const generateReport          = require('./ReportGenerator');
-const processComments         = require('./CommentsProcessor');
 const migrationStateManager   = require('./MigrationStateManager');
-const processIndexAndKey      = require('./IndexAndKeyProcessor');
-const processForeignKey       = require('./ForeignKeyProcessor');
-const sequencesProcessor      = require('./SequencesProcessor');
-const runVacuumFullAndAnalyze = require('./VacuumProcessor');
-const processEnum             = require('./EnumProcessor');
-const processNull             = require('./NullProcessor');
-const processDefault          = require('./DefaultProcessor');
 const createSchema            = require('./SchemaProcessor');
 const cleanup                 = require('./CleanupProcessor');
 const dataPoolManager         = require('./DataPoolManager');
 const directoriesManager      = require('./DirectoriesManager');
 const loadStructureToMigrate  = require('./StructureLoader');
-
-let self                  = null;
-let intProcessedDataUnits = 0;
-
-/**
- * Kill a process specified by the pid.
- *
- * @param {Number} pid
- *
- * @returns {undefined}
- */
-function killProcess(pid) {
-    try {
-        process.kill(pid);
-    } catch (killError) {
-        generateError(self, '\t--[killProcess] ' + killError);
-    }
-}
-
-/**
- * Instructs DataLoader which DataUnits should be loaded.
- * No need to check the state-log.
- * If dataPool's length is zero, then nmig will proceed to the next step.
- *
- * @returns {undefined}
- */
-function pipeData() {
-    if (self._dataPool.length === 0) {
-        return continueProcessAfterDataLoading();
-    }
-
-    for (let i = 0; i < self._maxLoaderProcesses; ++i) {
-        //
-    }
-
-    /*if (self._dataPool.length === 0) {
-        return continueProcessAfterDataLoading();
-    }
-    
-    let strDataLoaderPath = __dirname + '/DataLoader.js';
-    let options           = self._loaderMaxOldSpaceSize === 'DEFAULT' ? {} : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };
-    let loaderProcess     = childProcess.fork(strDataLoaderPath, options);
-
-    loaderProcess.on('message', signal => {
-        if (typeof signal === 'object') {
-            self._dicTables[signal.tableName].totalRowsInserted += signal.rowsInserted;
-            let msg = '\t--[pipeData]  For now inserted: ' + self._dicTables[signal.tableName].totalRowsInserted + ' rows, '
-                    + 'Total rows to insert into "' + self._schema + '"."' + signal.tableName + '": ' + signal.totalRowsToInsert;
-
-            log(self, msg);
-        } else {
-            killProcess(loaderProcess.pid);
-            intProcessedDataUnits += self._pipeWidth;
-            return intProcessedDataUnits < self._dataPool.length ? pipeData() : continueProcessAfterDataLoading();
-        }
-    });
-
-    let intEnd  = self._dataPool.length - (self._dataPool.length - self._pipeWidth - intProcessedDataUnits);
-    let message = new MessageToDataLoader(self._config, self._dataPool.slice(intProcessedDataUnits, intEnd));
-    loaderProcess.send(message);*/
-}
-
-/**
- * Continues migration process after data loading, when migrate_only_data is true.
- *
- * @returns {undefined}
- */
-function continueProcessAfterDataLoadingShort() {
-    let promises = [];
-
-    for (let i = 0; i < self._tablesToMigrate.length; ++i) {
-        let tableName = self._tablesToMigrate[i];
-        promises.push(sequencesProcessor.setSequenceValue(self, tableName));
-    }
-
-    Promise.all(promises).then(() => {
-        return dataPoolManager.dropDataPoolTable(self);
-    }).then(() => {
-        return runVacuumFullAndAnalyze(self);
-    }).then(() => {
-        return migrationStateManager.dropStateLogsTable(self);
-    }).then(() => {
-        return cleanup(self);
-    }).then(
-        () => generateReport(self, 'NMIG migration is accomplished.')
-    );
-}
-
-/**
- * Continues migration process after data loading, when migrate_only_data is false.
- *
- * @returns {undefined}
- */
-function continueProcessAfterDataLoadingLong() {
-    migrationStateManager.get(self, 'per_table_constraints_loaded').then(isTableConstraintsLoaded => {
-        let promises = [];
-
-        if (!isTableConstraintsLoaded) {
-            for (let i = 0; i < self._tablesToMigrate.length; ++i) {
-                let tableName = self._tablesToMigrate[i];
-                promises.push(
-                    processEnum(self, tableName).then(() => {
-                        return processNull(self, tableName);
-                    }).then(() => {
-                        return processDefault(self, tableName);
-                    }).then(() => {
-                        return sequencesProcessor.createSequence(self, tableName);
-                    }).then(() => {
-                        return processIndexAndKey(self, tableName);
-                    }).then(() => {
-                        return processComments(self, tableName);
-                    })
-                );
-            }
-        }
-
-        Promise.all(promises).then(() => {
-            migrationStateManager.set(self, 'per_table_constraints_loaded').then(() => {
-                return processForeignKey(self);
-            }).then(() => {
-                return migrationStateManager.set(self, 'foreign_keys_loaded');
-            }).then(() => {
-                return dataPoolManager.dropDataPoolTable(self);
-            }).then(() => {
-                return processViews(self);
-            }).then(() => {
-                return migrationStateManager.set(self, 'views_loaded');
-            }).then(() => {
-                return runVacuumFullAndAnalyze(self);
-            }).then(() => {
-                return migrationStateManager.dropStateLogsTable(self);
-            }).then(() => {
-                return cleanup(self);
-            }).then(
-                () => generateReport(self, 'NMIG migration is accomplished.')
-            );
-        });
-    });
-}
-
-/**
- * Continues migration process after data loading.
- *
- * @returns {undefined}
- */
-function continueProcessAfterDataLoading() {
-    if (self._migrateOnlyData) {
-        continueProcessAfterDataLoadingShort();
-    } else {
-        continueProcessAfterDataLoadingLong();
-    }
-}
+const pipeData                = require('./DataPipeManager');
 
 /**
  * Runs migration according to user's configuration.
@@ -205,7 +41,7 @@ function continueProcessAfterDataLoading() {
  */
 module.exports = function(config) {
     console.log('\n\tNMIG - the database migration tool\n\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\t Boot...');
-    self = new Conversion(config);
+    const self = new Conversion(config);
 
     readDataTypesMap(self).then(
         () => {
@@ -228,7 +64,7 @@ module.exports = function(config) {
             return createSchema(self);
         },
         () => {
-            let msg = '\t--[Main] The temporary directory [' + self._tempDirPath + '] already exists...'
+            const msg = '\t--[Main] The temporary directory [' + self._tempDirPath + '] already exists...'
                     + '\n\t  Please, remove this directory and rerun NMIG...';
 
             log(self, msg);
@@ -266,7 +102,9 @@ module.exports = function(config) {
             return cleanup(self);
         }
     ).then(
-        pipeData,
+        () => {
+            pipeData(self);
+        },
         () => {
             generateError(self, '\t--[Main] NMIG failed to load Data-Units pool...');
             return cleanup(self);
