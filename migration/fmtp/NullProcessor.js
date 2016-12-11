@@ -30,14 +30,14 @@ const generateError = require('./ErrorGenerator');
  *
  * @param {Conversion} self
  * @param {String}     tableName
- * 
+ *
  * @returns {Promise}
  */
 module.exports = function(self, tableName) {
     return connect(self).then(() => {
         return new Promise(resolve => {
             log(self, '\t--[processNull] Defines "NOT NULLs" for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
-            let processNullPromises = [];
+            const processNullPromises = [];
 
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Null.toLowerCase() === 'no') {
@@ -45,25 +45,25 @@ module.exports = function(self, tableName) {
                         new Promise(resolveProcessNull => {
                             self._pg.connect((error, client, done) => {
                                 if (error) {
-                                    let msg = '\t--[processNull] Cannot connect to PostgreSQL server...\n' + error;
+                                    const msg = '\t--[processNull] Cannot connect to PostgreSQL server...\n' + error;
                                     generateError(self, msg);
                                     resolveProcessNull();
                                 } else {
-                                    let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
-                                            + '" ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET NOT NULL;';
+                                    const sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
+                                        + '" ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET NOT NULL;';
 
                                     client.query(sql, err => {
                                         done();
 
                                         if (err) {
-                                            let msg = '\t--[processNull] Error while setting NOT NULL for "' + self._schema + '"."'
-                                                    + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+                                            const msg2 = '\t--[processNull] Error while setting NOT NULL for "' + self._schema + '"."'
+                                                + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
 
-                                            generateError(self, msg, sql);
+                                            generateError(self, msg2, sql);
                                             resolveProcessNull();
                                         } else {
-                                            let success = '\t--[processNull] Set NOT NULL for "' + self._schema + '"."' + tableName
-                                                        + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                            const success = '\t--[processNull] Set NOT NULL for "' + self._schema + '"."' + tableName
+                                                + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
 
                                             log(self, success, self._dicTables[tableName].tableLogPath);
                                             resolveProcessNull();

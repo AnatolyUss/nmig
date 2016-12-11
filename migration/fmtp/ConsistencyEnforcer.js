@@ -35,8 +35,8 @@ function updateConsistencyState(self, dataPoolId) {
                 generateError(self, '\t--[ConsistencyEnforcer.updateConsistencyState] Cannot connect to PostgreSQL server...\n' + error);
                 resolve();
             } else {
-                let sql = 'UPDATE "' + self._schema + '"."data_pool_' + self._schema
-                        + self._mySqlDbName + '" SET is_started = TRUE WHERE id = ' + dataPoolId + ';';
+                const sql = 'UPDATE "' + self._schema + '"."data_pool_' + self._schema
+                    + self._mySqlDbName + '" SET is_started = TRUE WHERE id = ' + dataPoolId + ';';
 
                 client.query(sql, err => {
                     done();
@@ -67,8 +67,8 @@ function getConsistencyState(self, dataPoolId) {
                 generateError(self, '\t--[ConsistencyEnforcer.getConsistencyState] Cannot connect to PostgreSQL server...\n' + error);
                 resolve(false);
             } else {
-                let sql = 'SELECT is_started AS is_started FROM "' + self._schema + '"."data_pool_' + self._schema
-                        + self._mySqlDbName + '" WHERE id = ' + dataPoolId + ';';
+                const sql = 'SELECT is_started AS is_started FROM "' + self._schema + '"."data_pool_' + self._schema
+                    + self._mySqlDbName + '" WHERE id = ' + dataPoolId + ';';
 
                 client.query(sql, (err, data) => {
                     done();
@@ -93,7 +93,7 @@ function getConsistencyState(self, dataPoolId) {
  *
  * @param {Conversion} self
  * @param {Number}     chunkId
- * 
+ *
  * @returns {Promise}
  */
 module.exports = function(self, chunkId) {

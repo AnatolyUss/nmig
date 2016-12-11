@@ -32,15 +32,15 @@ const generateReport = require('./ReportGenerator');
  * Kill current process if can not connect.
  *
  * @param {Conversion} self
- * 
+ *
  * @returns {Promise}
  */
 module.exports = function(self) {
     return new Promise(resolve => {
-        let mysqlConnectionPromise = new Promise((mysqlResolve, mysqlReject) => {
+        const mysqlConnectionPromise = new Promise((mysqlResolve, mysqlReject) => {
             if (!self._mysql) {
                 self._sourceConString.connectionLimit = self._maxPoolSizeSource;
-                let pool                              = mysql.createPool(self._sourceConString);
+                const pool                            = mysql.createPool(self._sourceConString);
 
                 if (pool) {
                     self._mysql = pool;
@@ -54,20 +54,20 @@ module.exports = function(self) {
             }
         });
 
-        let pgConnectionPromise = new Promise((pgResolve, pgReject) => {
+        const pgConnectionPromise = new Promise((pgResolve, pgReject) => {
             if (!self._pg) {
                 self._targetConString.max = self._maxPoolSizeTarget;
-                let pool                  = new pg.Pool(self._targetConString);
+                const pool                = new pg.Pool(self._targetConString);
 
                 if (pool) {
                     self._pg = pool;
 
                     self._pg.on('error', error => {
-                        let message = 'Cannot connect to PostgreSQL server...\n' + error.message + '\n' + error.stack;
+                        const message = 'Cannot connect to PostgreSQL server...\n' + error.message + '\n' + error.stack;
                         generateError(self, message);
                         generateReport(self, message);
                     });
-
+                    
                     pgResolve();
                 } else {
                     log(self, '\t--[connect] Cannot connect to PostgreSQL server...');

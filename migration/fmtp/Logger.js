@@ -22,8 +22,8 @@
 
 const fs = require('fs');
 
+const version = +process.version.split('.')[0].slice(1);
 let getBuffer = null;
-let version   = +process.version.split('.')[0].slice(1);
 
 if (version < 6) {
     getBuffer = require('./OldBuffer');

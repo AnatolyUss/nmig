@@ -35,21 +35,21 @@ const generateError = require('./ErrorGenerator');
  * @returns {String}
  */
 function mapDataTypes(objDataTypesMap, mySqlDataType) {
-    let retVal               = '';
-    let arrDataTypeDetails   = mySqlDataType.split(' ');
-    mySqlDataType            = arrDataTypeDetails[0].toLowerCase();
-    let increaseOriginalSize = arrDataTypeDetails.indexOf('unsigned') !== -1 || arrDataTypeDetails.indexOf('zerofill') !== -1;
-    arrDataTypeDetails       = null;
+    let retVal                 = '';
+    let arrDataTypeDetails     = mySqlDataType.split(' ');
+    mySqlDataType              = arrDataTypeDetails[0].toLowerCase();
+    const increaseOriginalSize = arrDataTypeDetails.indexOf('unsigned') !== -1 || arrDataTypeDetails.indexOf('zerofill') !== -1;
+    arrDataTypeDetails         = null;
 
     if (mySqlDataType.indexOf('(') === -1) {
         // No parentheses detected.
         retVal = increaseOriginalSize ? objDataTypesMap[mySqlDataType].increased_size : objDataTypesMap[mySqlDataType].type;
     } else {
         // Parentheses detected.
-        let arrDataType             = mySqlDataType.split('(');
-        let strDataType             = arrDataType[0].toLowerCase();
-        let strDataTypeDisplayWidth = arrDataType[1];
-        arrDataType                 = null;
+        let arrDataType               = mySqlDataType.split('(');
+        const strDataType             = arrDataType[0].toLowerCase();
+        const strDataTypeDisplayWidth = arrDataType[1];
+        arrDataType                   = null;
 
         if ('enum' === strDataType || 'set' === strDataType) {
             retVal = 'character varying(255)';
@@ -58,13 +58,13 @@ function mapDataTypes(objDataTypesMap, mySqlDataType) {
         } else if ('decimal(19,2)' === mySqlDataType || objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen) {
             // Should be converted without a length definition.
             retVal = increaseOriginalSize
-                     ? objDataTypesMap[strDataType].increased_size
-                     : objDataTypesMap[strDataType].type;
+                ? objDataTypesMap[strDataType].increased_size
+                : objDataTypesMap[strDataType].type;
         } else {
             // Should be converted with a length definition.
             retVal = increaseOriginalSize
-                     ? objDataTypesMap[strDataType].increased_size + '(' + strDataTypeDisplayWidth
-                     : objDataTypesMap[strDataType].type + '(' + strDataTypeDisplayWidth;
+                ? objDataTypesMap[strDataType].increased_size + '(' + strDataTypeDisplayWidth
+                : objDataTypesMap[strDataType].type + '(' + strDataTypeDisplayWidth;
         }
     }
 
@@ -120,8 +120,8 @@ module.exports.createTable = function(self, tableName) {
                                     sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."' + tableName + '"(';
 
                                     for (let i = 0; i < rows.length; ++i) {
-                                        let strConvertedType  = mapDataTypes(self._dataTypesMap, rows[i].Type);
-                                        sql                  += '"' + rows[i].Field + '" ' + strConvertedType + ',';
+                                        const strConvertedType  = mapDataTypes(self._dataTypesMap, rows[i].Type);
+                                        sql                    += '"' + rows[i].Field + '" ' + strConvertedType + ',';
                                     }
 
                                     rows = null;
@@ -133,10 +133,12 @@ module.exports.createTable = function(self, tableName) {
                                             generateError(self, '\t--[createTable] ' + err, sql);
                                             rejectCreateTable();
                                         } else {
-                                            log(self,
+                                            log(
+                                                self,
                                                 '\t--[createTable] Table "' + self._schema + '"."' + tableName + '" is created...',
                                                 self._dicTables[tableName].tableLogPath
                                             );
+
                                             resolveCreateTable();
                                         }
                                     });

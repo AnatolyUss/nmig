@@ -39,9 +39,9 @@ module.exports = function(self, endMsg) {
     hours             = hours < 10 ? '0' + hours : hours;
     minutes           = minutes < 10 ? '0' + minutes : minutes;
     seconds           = seconds < 10 ? '0' + seconds : seconds;
-    let output        = '\t--[generateReport] ' + endMsg
-                      + '\n\t--[generateReport] Total time: ' + hours + ':' + minutes + ':' + seconds
-                      + '\n\t--[generateReport] (hours:minutes:seconds)';
+    const output      = '\t--[generateReport] ' + endMsg
+        + '\n\t--[generateReport] Total time: ' + hours + ':' + minutes + ':' + seconds
+        + '\n\t--[generateReport] (hours:minutes:seconds)';
 
     log(self, output);
     process.exit();

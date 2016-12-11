@@ -35,8 +35,8 @@ const migrationStateManager = require('./MigrationStateManager');
  */
 function processForeignKeyWorker(self, tableName, rows) {
     return new Promise(resolve => {
-        let constraintsPromises = [];
-        let objConstraints      = Object.create(null);
+        const constraintsPromises = [];
+        const objConstraints      = Object.create(null);
 
         for (let i = 0; i < rows.length; ++i) {
             if (rows[i].CONSTRAINT_NAME in objConstraints) {
@@ -63,10 +63,10 @@ function processForeignKeyWorker(self, tableName, rows) {
                             generateError(self, '\t--[processForeignKeyWorker] Cannot connect to PostgreSQL server...');
                             resolveConstraintPromise();
                         } else {
-                            let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" ADD FOREIGN KEY ('
-                                    + objConstraints[attr].column_name.join(',') + ') REFERENCES "' + self._schema + '"."'
-                                    + objConstraints[attr].referenced_table_name + '" (' + objConstraints[attr].referenced_column_name.join(',')
-                                    + ') ON UPDATE ' + objConstraints[attr].update_rule + ' ON DELETE ' + objConstraints[attr].delete_rule + ';';
+                            const sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" ADD FOREIGN KEY ('
+                                + objConstraints[attr].column_name.join(',') + ') REFERENCES "' + self._schema + '"."'
+                                + objConstraints[attr].referenced_table_name + '" (' + objConstraints[attr].referenced_column_name.join(',')
+                                + ') ON UPDATE ' + objConstraints[attr].update_rule + ' ON DELETE ' + objConstraints[attr].delete_rule + ';';
 
                             objConstraints[attr] = null;
                             client.query(sql, err => {
@@ -99,11 +99,11 @@ function processForeignKeyWorker(self, tableName, rows) {
 module.exports = function(self) {
     return migrationStateManager.get(self, 'foreign_keys_loaded').then(isForeignKeysProcessed => {
         return new Promise(resolve => {
-            let fkPromises = [];
+            const fkPromises = [];
 
             if (!isForeignKeysProcessed) {
                 for (let i = 0; i < self._tablesToMigrate.length; ++i) {
-                    let tableName = self._tablesToMigrate[i];
+                    const tableName = self._tablesToMigrate[i];
                     log(self, '\t--[processForeignKey] Search foreign keys for table "' + self._schema + '"."' + tableName + '"...');
                     fkPromises.push(
                         new Promise(fkResolve => {
@@ -113,27 +113,27 @@ module.exports = function(self) {
                                     generateError(self, '\t--[processForeignKey] Cannot connect to MySQL server...\n' + error);
                                     fkResolve();
                                 } else {
-                                    let sql = "SELECT cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME, "
-                                            + "cRefs.UPDATE_RULE, cRefs.DELETE_RULE, cRefs.CONSTRAINT_NAME "
-                                            + "FROM INFORMATION_SCHEMA.`COLUMNS` AS cols "
-                                            + "INNER JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS refs "
-                                            + "ON refs.TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                            + "AND refs.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                            + "AND refs.TABLE_NAME = cols.TABLE_NAME "
-                                            + "AND refs.COLUMN_NAME = cols.COLUMN_NAME "
-                                            + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cRefs "
-                                            + "ON cRefs.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
-                                            + "AND cRefs.CONSTRAINT_NAME = refs.CONSTRAINT_NAME "
-                                            + "LEFT JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS links "
-                                            + "ON links.TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                            + "AND links.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
-                                            + "AND links.REFERENCED_TABLE_NAME = cols.TABLE_NAME "
-                                            + "AND links.REFERENCED_COLUMN_NAME = cols.COLUMN_NAME "
-                                            + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cLinks "
-                                            + "ON cLinks.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
-                                            + "AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME "
-                                            + "WHERE cols.TABLE_SCHEMA = '" + self._mySqlDbName + "' "
-                                            + "AND cols.TABLE_NAME = '" + tableName + "';";
+                                    const sql = "SELECT cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME, "
+                                        + "cRefs.UPDATE_RULE, cRefs.DELETE_RULE, cRefs.CONSTRAINT_NAME "
+                                        + "FROM INFORMATION_SCHEMA.`COLUMNS` AS cols "
+                                        + "INNER JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS refs "
+                                        + "ON refs.TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                        + "AND refs.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                        + "AND refs.TABLE_NAME = cols.TABLE_NAME "
+                                        + "AND refs.COLUMN_NAME = cols.COLUMN_NAME "
+                                        + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cRefs "
+                                        + "ON cRefs.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
+                                        + "AND cRefs.CONSTRAINT_NAME = refs.CONSTRAINT_NAME "
+                                        + "LEFT JOIN INFORMATION_SCHEMA.`KEY_COLUMN_USAGE` AS links "
+                                        + "ON links.TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                        + "AND links.REFERENCED_TABLE_SCHEMA = cols.TABLE_SCHEMA "
+                                        + "AND links.REFERENCED_TABLE_NAME = cols.TABLE_NAME "
+                                        + "AND links.REFERENCED_COLUMN_NAME = cols.COLUMN_NAME "
+                                        + "LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cLinks "
+                                        + "ON cLinks.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
+                                        + "AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME "
+                                        + "WHERE cols.TABLE_SCHEMA = '" + self._mySqlDbName + "' "
+                                        + "AND cols.TABLE_NAME = '" + tableName + "';";
 
                                       connection.query(sql, (err, rows) => {
                                           connection.release();

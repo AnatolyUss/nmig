@@ -21,12 +21,13 @@
 'use strict';
 
 const fs                    = require('fs');
+const path                  = require('path');
 const log                   = require('./Logger');
 const generateError         = require('./ErrorGenerator');
 const migrationStateManager = require('./MigrationStateManager');
 
+const version = +process.version.split('.')[0].slice(1);
 let getBuffer = null;
-let version   = +process.version.split('.')[0].slice(1);
 
 if (version < 6) {
     getBuffer = require('./OldBuffer');
@@ -44,10 +45,10 @@ if (version < 6) {
  * @returns {String}
  */
 function generateView(schema, viewName, mysqlViewCode) {
-    mysqlViewCode        = mysqlViewCode.split('`').join('"');
-    let queryStart       = mysqlViewCode.indexOf('AS');
-    mysqlViewCode        = mysqlViewCode.slice(queryStart);
-    let arrMysqlViewCode = mysqlViewCode.split(' ');
+    mysqlViewCode          = mysqlViewCode.split('`').join('"');
+    const queryStart       = mysqlViewCode.indexOf('AS');
+    mysqlViewCode          = mysqlViewCode.slice(queryStart);
+    const arrMysqlViewCode = mysqlViewCode.split(' ');
 
     for (let i = 0; i < arrMysqlViewCode.length; ++i) {
         if (
@@ -80,7 +81,7 @@ function logNotCreatedView(self, viewName, sql) {
                 } else {
                     log(self, '\t--[logNotCreatedView] "not_created_views" directory is created...');
                     // "not_created_views" directory is created. Can write the log...
-                    fs.open(self._notCreatedViewsPath + '/' + viewName + '.sql', 'w', self._0777, (error, fd) => {
+                    fs.open(path.join(self._notCreatedViewsPath, viewName + '.sql'), 'w', self._0777, (error, fd) => {
                         if (error) {
                             log(self, error);
                         } else {
@@ -97,7 +98,7 @@ function logNotCreatedView(self, viewName, sql) {
             log(self, '\t--[logNotCreatedView] Cannot write the log due to unexpected error');
         } else {
             // "not_created_views" directory already exists. Can write the log...
-            fs.open(self._notCreatedViewsPath + '/' + viewName + '.sql', 'w', self._0777, (error, fd) => {
+            fs.open(path.join(self._notCreatedViewsPath, viewName + '.sql'), 'w', self._0777, (error, fd) => {
                 if (error) {
                     log(self, error);
                 } else {
@@ -122,7 +123,7 @@ function logNotCreatedView(self, viewName, sql) {
 module.exports = function(self) {
     return migrationStateManager.get(self, 'views_loaded').then(isViewsLoaded => {
         return new Promise(resolve => {
-            let createViewPromises = [];
+            const createViewPromises = [];
 
             if (!isViewsLoaded) {
                 for (let i = 0; i < self._viewsToMigrate.length; ++i) {

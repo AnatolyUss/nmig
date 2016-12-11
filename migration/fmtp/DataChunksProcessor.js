@@ -31,7 +31,7 @@ const arrangeColumnsData = require('./ColumnsDataArranger');
  * @param {Conversion} self
  * @param {String}     tableName
  * @param {Boolean}    haveDataChunksProcessed
- * 
+ *
  * @returns {Promise}
  */
 module.exports = function(self, tableName, haveDataChunksProcessed) {
@@ -59,11 +59,11 @@ module.exports = function(self, tableName, haveDataChunksProcessed) {
                             generateError(self, '\t--[prepareDataChunks] ' + err, sql);
                             resolve();
                         } else {
-                            let tableSizeInMb      = +rows[0].size_in_mb;
-                            tableSizeInMb          = tableSizeInMb < 1 ? 1 : tableSizeInMb;
-                            rows                   = null;
-                            let strSelectFieldList = arrangeColumnsData(self._dicTables[tableName].arrTableColumns);
-                            sql                    = 'SELECT COUNT(1) AS rows_count FROM `' + tableName + '`;';
+                            let tableSizeInMb        = +rows[0].size_in_mb;
+                            tableSizeInMb            = tableSizeInMb < 1 ? 1 : tableSizeInMb;
+                            rows                     = null;
+                            const strSelectFieldList = arrangeColumnsData(self._dicTables[tableName].arrTableColumns);
+                            sql                      = 'SELECT COUNT(1) AS rows_count FROM `' + tableName + '`;';
 
                             connection.query(sql, (err2, rows2) => {
                                 connection.release();
@@ -72,14 +72,14 @@ module.exports = function(self, tableName, haveDataChunksProcessed) {
                                     generateError(self, '\t--[prepareDataChunks] ' + err2, sql);
                                     resolve();
                                 } else {
-                                    let rowsCnt             = rows2[0].rows_count;
-                                    rows2                   = null;
-                                    let chunksCnt           = tableSizeInMb / self._dataChunkSize;
-                                    chunksCnt               = chunksCnt < 1 ? 1 : chunksCnt;
-                                    let rowsInChunk         = Math.ceil(rowsCnt / chunksCnt);
-                                    let arrDataPoolPromises = [];
-                                    let msg                 = '\t--[prepareDataChunks] Total rows to insert into '
-                                                            + '"' + self._schema + '"."' + tableName + '": ' + rowsCnt;
+                                    const rowsCnt             = rows2[0].rows_count;
+                                    rows2                     = null;
+                                    let chunksCnt             = tableSizeInMb / self._dataChunkSize;
+                                    chunksCnt                 = chunksCnt < 1 ? 1 : chunksCnt;
+                                    const rowsInChunk         = Math.ceil(rowsCnt / chunksCnt);
+                                    const arrDataPoolPromises = [];
+                                    const msg                 = '\t--[prepareDataChunks] Total rows to insert into '
+                                        + '"' + self._schema + '"."' + tableName + '": ' + rowsCnt;
 
                                     log(self, msg, self._dicTables[tableName].tableLogPath);
 
@@ -90,14 +90,14 @@ module.exports = function(self, tableName, haveDataChunksProcessed) {
                                                     generateError(self, '\t--[prepareDataChunks] Cannot connect to PostgreSQL server...\n' + error);
                                                     resolveDataUnit();
                                                 } else {
-                                                    let strJson = '{"_tableName":"' + tableName
-                                                                + '","_selectFieldList":"' + strSelectFieldList + '",'
-                                                                + '"_offset":' + offset + ','
-                                                                + '"_rowsInChunk":' + rowsInChunk + ','
-                                                                + '"_rowsCnt":' + rowsCnt + '}';
+                                                    const strJson = '{"_tableName":"' + tableName
+                                                        + '","_selectFieldList":"' + strSelectFieldList + '",'
+                                                        + '"_offset":' + offset + ','
+                                                        + '"_rowsInChunk":' + rowsInChunk + ','
+                                                        + '"_rowsCnt":' + rowsCnt + '}';
 
-                                                    let sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema
-                                                            + self._mySqlDbName + '"("is_started", "json") VALUES(FALSE, $1);';
+                                                    sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema
+                                                        + self._mySqlDbName + '"("is_started", "json") VALUES(FALSE, $1);';
 
                                                     client.query(sql, [strJson], err => {
                                                         done();

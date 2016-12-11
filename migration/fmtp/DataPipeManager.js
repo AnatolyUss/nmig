@@ -125,7 +125,7 @@ module.exports = function(self) {
         return processConstraints(self);
     }
 
-    const strDataLoaderPath = path.join(__dirname, '/DataLoader.js');
+    const strDataLoaderPath = path.join(__dirname, 'DataLoader.js');
     const options           = self._loaderMaxOldSpaceSize === 'DEFAULT'
         ? Object.create(null)
         : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };

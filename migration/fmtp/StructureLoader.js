@@ -64,7 +64,7 @@ module.exports = function(self) {
                     generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
                     reject();
                 } else {
-                    let sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
+                    const sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
                     connection.query(sql, (strErr, rows) => {
                         connection.release();
 
@@ -72,12 +72,12 @@ module.exports = function(self) {
                             generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
                             reject();
                         } else {
-                            let tablesCnt            = 0;
-                            let viewsCnt             = 0;
-                            let processTablePromises = [];
+                            let tablesCnt              = 0;
+                            let viewsCnt               = 0;
+                            const processTablePromises = [];
 
                             for (let i = 0; i < rows.length; ++i) {
-                                let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
+                                const relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
                                 if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
                                     self._tablesToMigrate.push(relationName);

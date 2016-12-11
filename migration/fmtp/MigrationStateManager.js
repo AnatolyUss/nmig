@@ -40,7 +40,7 @@ module.exports.get = function(self, param) {
                     generateError(self, '\t--[MigrationStateManager.get] Cannot connect to PostgreSQL server...\n' + error);
                     resolve(false);
                 } else {
-                    let sql = 'SELECT ' + param + ' FROM "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
+                    const sql = 'SELECT ' + param + ' FROM "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
 
                     client.query(sql, (err, data) => {
                         done();
@@ -74,8 +74,8 @@ module.exports.set = function(self, param) {
                     generateError(self, '\t--[MigrationStateManager.set] Cannot connect to PostgreSQL server...\n' + error);
                     resolve();
                 } else {
-                    let sql = 'UPDATE "' + self._schema + '"."state_logs_'
-                            + self._schema + self._mySqlDbName + '" SET ' + param + ' = TRUE;';
+                    const sql = 'UPDATE "' + self._schema + '"."state_logs_'
+                        + self._schema + self._mySqlDbName + '" SET ' + param + ' = TRUE;';
 
                     client.query(sql, err => {
                         done();
@@ -138,18 +138,18 @@ module.exports.createStateLogsTable = function(self) {
                                             generateError(self, '\t--[createStateLogsTable] ' + errorInsert, sql);
                                             reject();
                                         } else {
-                                            let msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
-                                                    + self._schema + self._mySqlDbName + '" is created...';
+                                            const msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
+                                                + self._schema + self._mySqlDbName + '" is created...';
 
                                             log(self, msg);
                                             resolve();
                                         }
                                     });
                                 } else {
-                                    let msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
-                                            + self._schema + self._mySqlDbName + '" is created...';
+                                    const msg2 = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
+                                        + self._schema + self._mySqlDbName + '" is created...';
 
-                                    log(self, msg);
+                                    log(self, msg2);
                                     resolve();
                                 }
                             });
@@ -176,10 +176,10 @@ module.exports.dropStateLogsTable = function(self) {
                     generateError(self, '\t--[dropStateLogsTable] Cannot connect to PostgreSQL server...\n' + error);
                     resolve();
                 } else {
-                    let sql = 'DROP TABLE "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
+                    const sql = 'DROP TABLE "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
                     client.query(sql, err => {
                         done();
-
+                        
                         if (err) {
                             generateError(self, '\t--[dropStateLogsTable] ' + err, sql);
                         } else {

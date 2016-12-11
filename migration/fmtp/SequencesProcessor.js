@@ -42,12 +42,12 @@ module.exports.setSequenceValue = function(self, tableName) {
                     hasAutoIncrementColumnFound = true;
                     self._pg.connect((error, client, done) => {
                         if (error) {
-                            let msg = '\t--[setSequenceValue] Cannot connect to PostgreSQL server...\n' + error;
+                            const msg = '\t--[setSequenceValue] Cannot connect to PostgreSQL server...\n' + error;
                             generateError(self, msg);
                             resolve();
                         } else {
-                            let seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
-                            let sql     = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
+                            const seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
+                            const sql     = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
                                 + '(SELECT MAX("' + self._dicTables[tableName].arrTableColumns[i].Field + '") FROM "'
                                 + self._schema + '"."' + tableName + '"));';
 
@@ -55,14 +55,14 @@ module.exports.setSequenceValue = function(self, tableName) {
                                done();
 
                                if (err) {
-                                   let errMsg = '\t--[setSequenceValue] Failed to set max-value of "' + self._schema + '"."'
-                                               + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
-                                               + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
+                                   const errMsg = '\t--[setSequenceValue] Failed to set max-value of "' + self._schema + '"."'
+                                       + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                       + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
 
                                    generateError(self, errMsg, sql);
                                    resolve();
                                } else {
-                                   let success = '\t--[setSequenceValue] Sequence "' + self._schema + '"."' + seqName + '" is created...';
+                                   const success = '\t--[setSequenceValue] Sequence "' + self._schema + '"."' + seqName + '" is created...';
                                    log(self, success, self._dicTables[tableName].tableLogPath);
                                    resolve();
                                }
@@ -93,17 +93,17 @@ module.exports.setSequenceValue = function(self, tableName) {
 module.exports.createSequence = function(self, tableName) {
     return connect(self).then(() => {
         return new Promise(resolve => {
-            let createSequencePromises = [];
+            const createSequencePromises = [];
 
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
                     createSequencePromises.push(
                         new Promise(resolveCreateSequence => {
-                            let seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
+                            const seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
                             log(self, '\t--[createSequence] Trying to create sequence : "' + self._schema + '"."' + seqName + '"', self._dicTables[tableName].tableLogPath);
                             self._pg.connect((error, client, done) => {
                                 if (error) {
-                                    let msg = '\t--[createSequence] Cannot connect to PostgreSQL server...\n' + error;
+                                    const msg = '\t--[createSequence] Cannot connect to PostgreSQL server...\n' + error;
                                     generateError(self, msg);
                                     resolveCreateSequence();
                                 } else {
@@ -111,7 +111,7 @@ module.exports.createSequence = function(self, tableName) {
                                     client.query(sql, err => {
                                         if (err) {
                                             done();
-                                            let errMsg = '\t--[createSequence] Failed to create sequence "' + self._schema + '"."' + seqName + '"';
+                                            const errMsg = '\t--[createSequence] Failed to create sequence "' + self._schema + '"."' + seqName + '"';
                                             generateError(self, errMsg, sql);
                                             resolveCreateSequence();
                                         } else {
@@ -122,9 +122,9 @@ module.exports.createSequence = function(self, tableName) {
                                              client.query(sql, err2 => {
                                                  if (err2) {
                                                      done();
-                                                     let err2Msg = '\t--[createSequence] Failed to set default value for "' + self._schema + '"."'
-                                                                + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...'
-                                                                + '\n\t--[createSequence] Note: sequence "' + self._schema + '"."' + seqName + '" was created...';
+                                                     const err2Msg = '\t--[createSequence] Failed to set default value for "' + self._schema + '"."'
+                                                         + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...'
+                                                         + '\n\t--[createSequence] Note: sequence "' + self._schema + '"."' + seqName + '" was created...';
 
                                                      generateError(self, err2Msg, sql);
                                                      resolveCreateSequence();
@@ -136,9 +136,9 @@ module.exports.createSequence = function(self, tableName) {
                                                        client.query(sql, err3 => {
                                                             if (err3) {
                                                                 done();
-                                                                let err3Msg = '\t--[createSequence] Failed to relate sequence "' + self._schema + '"."' + seqName + '" to '
-                                                                           + '"' + self._schema + '"."'
-                                                                           + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                                                const err3Msg = '\t--[createSequence] Failed to relate sequence "' + self._schema + '"."' + seqName + '" to '
+                                                                    + '"' + self._schema + '"."'
+                                                                    + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
 
                                                                 generateError(self, err3Msg, sql);
                                                                 resolveCreateSequence();
@@ -151,14 +151,14 @@ module.exports.createSequence = function(self, tableName) {
                                                                   done();
 
                                                                   if (err4) {
-                                                                      let err4Msg = '\t--[createSequence] Failed to set max-value of "' + self._schema + '"."'
-                                                                                  + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
-                                                                                  + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
+                                                                      const err4Msg = '\t--[createSequence] Failed to set max-value of "' + self._schema + '"."'
+                                                                          + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                                                          + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
 
                                                                       generateError(self, err4Msg, sql);
                                                                       resolveCreateSequence();
                                                                   } else {
-                                                                      let success = '\t--[createSequence] Sequence "' + self._schema + '"."' + seqName + '" is created...';
+                                                                      const success = '\t--[createSequence] Sequence "' + self._schema + '"."' + seqName + '" is created...';
                                                                       log(self, success, self._dicTables[tableName].tableLogPath);
                                                                       resolveCreateSequence();
                                                                   }

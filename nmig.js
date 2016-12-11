@@ -21,20 +21,23 @@
 'use strict';
 
 const fs   = require('fs');
+const path = require('path');
 const main = require('./migration/fmtp/Main');
 
-fs.readFile(__dirname + '/config.json', (error, data) => {
+const strPathToConfig = path.join(__dirname, 'config.json');
+
+fs.readFile(strPathToConfig, (error, data) => {
     if (error) {
-        console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + __dirname + '/config.json');
+        console.log('\n\t--Cannot run migration\nCannot read configuration info from ' + strPathToConfig);
     } else {
         try {
-            let config              = JSON.parse(data.toString());
-            config.tempDirPath      = __dirname + '/temporary_directory';
-            config.logsDirPath      = __dirname + '/logs_directory';
-            config.dataTypesMapAddr = __dirname + '/DataTypesMap.json';
+            const config            = JSON.parse(data.toString());
+            config.tempDirPath      = path.join(__dirname, 'temporary_directory');
+            config.logsDirPath      = path.join(__dirname, 'logs_directory');
+            config.dataTypesMapAddr = path.join(__dirname, 'DataTypesMap.json');
             main(config);
         } catch (err) {
-            console.log('\n\t--Cannot parse JSON from' + __dirname + '/config.json');
+            console.log('\n\t--Cannot parse JSON from ' + strPathToConfig);
         }
     }
 });

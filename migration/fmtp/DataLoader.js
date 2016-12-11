@@ -21,6 +21,7 @@
 'use strict';
 
 const fs                 = require('fs');
+const path               = require('path');
 const pgCopyStreams      = require('pg-copy-streams');
 const csvStringify       = require('./CsvStringifyModified');
 const log                = require('./Logger');
@@ -31,9 +32,8 @@ const MessageToMaster    = require('./MessageToMaster');
 const enforceConsistency = require('./ConsistencyEnforcer');
 const copyFrom           = pgCopyStreams.from;
 
-let self      = null;
+const version = +process.version.split('.')[0].slice(1);
 let getBuffer = null;
-let version   = +process.version.split('.')[0].slice(1);
 
 if (version < 6) {
     getBuffer = require('./OldBuffer');
@@ -42,8 +42,8 @@ if (version < 6) {
 }
 
 process.on('message', signal => {
-    self         = new Conversion(signal.config);
-    let promises = [];
+    const self     = new Conversion(signal.config);
+    const promises = [];
     log(self, '\t--[loadData] Loading the data...');
 
     for (let i = 0; i < signal.chunks.length; ++i) {
@@ -53,6 +53,7 @@ process.on('message', signal => {
             }).then(isNormalFlow => {
                 if (isNormalFlow) {
                     return populateTableWorker(
+                        self,
                         signal.chunks[i]._tableName,
                         signal.chunks[i]._selectFieldList,
                         signal.chunks[i]._offset,
@@ -62,20 +63,20 @@ process.on('message', signal => {
                     );
                 }
 
-                let sql = buildChunkQuery(
+                const sql = buildChunkQuery(
                     signal.chunks[i]._tableName,
                     signal.chunks[i]._selectFieldList,
                     signal.chunks[i]._offset,
                     signal.chunks[i]._rowsInChunk
                 );
 
-                let strTwelveSpaces = '            ';
-                let rejectedData    = '\n\t--[loadData] Possible data duplication alert!\n\t ' + strTwelveSpaces
+                const strTwelveSpaces = '            ';
+                const rejectedData    = '\n\t--[loadData] Possible data duplication alert!\n\t ' + strTwelveSpaces
                                     + 'Data, retrievable by following MySQL query:\n' + sql + '\n\t ' + strTwelveSpaces
                                     + 'may already be migrated.\n\t' + strTwelveSpaces + ' Please, check it.';
 
-                log(self, rejectedData, self._logsDirPath + '/' + signal.chunks[i]._tableName + '.log');
-                return deleteChunk(signal.chunks[i]._id);
+                log(self, rejectedData, path.join(self._logsDirPath, signal.chunks[i]._tableName + '.log'));
+                return deleteChunk(self, signal.chunks[i]._id);
             })
         );
     }
@@ -86,16 +87,18 @@ process.on('message', signal => {
 /**
  * Delete given record from the data-pool.
  *
+ * @param {Conversion}               self
  * @param {Number}                   dataPoolId
  * @param {Node-pg client|undefined} client
  * @param {Function|undefined}       done
  *
  * @returns {Promise}
  */
-function deleteChunk(dataPoolId, client, done) {
+function deleteChunk(self, dataPoolId, client, done) {
     return new Promise(resolve => {
         if (client) {
-            let sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" ' + 'WHERE id = ' + dataPoolId + ';';
+            const sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
+                + '" ' + 'WHERE id = ' + dataPoolId + ';';
 
             client.query(sql, err => {
                 done();
@@ -112,7 +115,8 @@ function deleteChunk(dataPoolId, client, done) {
                     generateError(self, '\t--[deleteChunk] Cannot connect to PostgreSQL server...\n' + error);
                     resolve();
                 } else {
-                    let sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" ' + 'WHERE id = ' + dataPoolId + ';';
+                    const sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
+                        + '" ' + 'WHERE id = ' + dataPoolId + ';';
 
                     client.query(sql, err => {
                         done();
@@ -165,6 +169,7 @@ function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
  * Delete given record from the data-pool.
  * Deleted related csv file.
  *
+ * @param {Conversion}               self
  * @param {Number}                   dataPoolId
  * @param {Node-pg client|undefined} client
  * @param {Function|undefined}       done
@@ -174,8 +179,8 @@ function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
  *
  * @returns {undefined}
  */
-function deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, callback) {
-    deleteChunk(dataPoolId, client, done).then(() => {
+function deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, callback) {
+    deleteChunk(self, dataPoolId, client, done).then(() => {
         deleteCsv(csvAddr, fd).then(() => callback());
     });
 }
@@ -183,6 +188,7 @@ function deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, callback) {
 /**
  * Process data-loading error.
  *
+ * @param {Conversion}               self
  * @param {String}                   streamError
  * @param {String}                   sql
  * @param {String}                   sqlCopy
@@ -196,26 +202,27 @@ function deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, callback) {
  *
  * @returns {undefined}
  */
-function processDataError(streamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, callback) {
+function processDataError(self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, callback) {
     generateError(self, '\t--[populateTableWorker] ' + streamError, sqlCopy);
-    let rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
-    log(self, rejectedData, self._logsDirPath + '/' + tableName + '.log');
-    deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, callback);
+    const rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
+    log(self, rejectedData, path.join(self._logsDirPath, tableName + '.log'));
+    deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, callback);
 }
 
 /**
  * Load a chunk of data using "PostgreSQL COPY".
  *
- * @param {String} tableName
- * @param {String} strSelectFieldList
- * @param {Number} offset
- * @param {Number} rowsInChunk
- * @param {Number} rowsCnt
- * @param {Number} dataPoolId
+ * @param {Conversion} self
+ * @param {String}     tableName
+ * @param {String}     strSelectFieldList
+ * @param {Number}     offset
+ * @param {Number}     rowsInChunk
+ * @param {Number}     rowsCnt
+ * @param {Number}     dataPoolId
  *
  * @returns {Promise}
  */
-function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk, rowsCnt, dataPoolId) {
+function populateTableWorker(self, tableName, strSelectFieldList, offset, rowsInChunk, rowsCnt, dataPoolId) {
     return new Promise(resolvePopulateTableWorker => {
         self._mysql.getConnection((error, connection) => {
             if (error) {
@@ -223,8 +230,8 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                 generateError(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
                 resolvePopulateTableWorker();
             } else {
-                let csvAddr = self._tempDirPath + '/' + tableName + offset + '.csv';
-                let sql     = buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk);
+                const csvAddr = path.join(self._tempDirPath, tableName + offset + '.csv');
+                const sql     = buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk);
 
                 connection.query(sql, (err, rows) => {
                     connection.release();
@@ -263,9 +270,9 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                         generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
                                                         deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
                                                     } else {
-                                                        let sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + ',\'' + ' CSV;';
-                                                        let copyStream = client.query(copyFrom(sqlCopy));
-                                                        let readStream = fs.createReadStream(csvAddr);
+                                                        const sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + ',\'' + ' CSV;';
+                                                        const copyStream = client.query(copyFrom(sqlCopy));
+                                                        const readStream = fs.createReadStream(csvAddr);
 
                                                         copyStream.on('end', () => {
                                                             /*
@@ -274,15 +281,15 @@ function populateTableWorker(tableName, strSelectFieldList, offset, rowsInChunk,
                                                              * That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
                                                              */
                                                             process.send(new MessageToMaster(tableName, rowsInChunk, rowsCnt));
-                                                            deleteChunkAndCsv(dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
+                                                            deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
                                                         });
 
                                                         copyStream.on('error', copyStreamError => {
-                                                            processDataError(copyStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
+                                                            processDataError(self, copyStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
                                                         });
 
                                                         readStream.on('error', readStreamError => {
-                                                            processDataError(readStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
+                                                            processDataError(self, readStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
                                                         });
 
                                                         readStream.pipe(copyStream);

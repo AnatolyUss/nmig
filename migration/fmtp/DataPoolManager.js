@@ -39,8 +39,8 @@ module.exports.createDataPoolTable = function(self) {
                     generateError(self, '\t--[DataPoolManager.createDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
                     reject();
                 } else {
-                    let sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
-                            + '"("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN);';
+                    const sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
+                        + '"("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN);';
 
                     client.query(sql, err => {
                         done();
@@ -74,7 +74,8 @@ module.exports.dropDataPoolTable = function(self) {
                     generateError(self, '\t--[DataPoolManager.dropDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
                     resolve();
                 } else {
-                    let sql = 'DROP TABLE "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
+                    const sql = 'DROP TABLE "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
+
                     client.query(sql, err => {
                         done();
 
@@ -96,7 +97,7 @@ module.exports.dropDataPoolTable = function(self) {
  * Reads temporary table, and generates Data-pool.
  *
  * @param {Conversion} self
- * 
+ *
  * @returns {Promise}
  */
 module.exports.readDataPool = function(self) {
@@ -107,7 +108,7 @@ module.exports.readDataPool = function(self) {
                     generateError(self, '\t--[DataPoolManager.readDataPool] Cannot connect to PostgreSQL server...\n' + error);
                     reject();
                 } else {
-                    let sql = 'SELECT id AS id, json AS json FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
+                    const sql = 'SELECT id AS id, json AS json FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
                     client.query(sql, (err, arrDataPool) => {
                         done();
 
@@ -117,8 +118,8 @@ module.exports.readDataPool = function(self) {
                         }
 
                         for (let i = 0; i < arrDataPool.rows.length; ++i) {
-                            let obj = JSON.parse(arrDataPool.rows[i].json);
-                            obj._id = arrDataPool.rows[i].id;
+                            const obj = JSON.parse(arrDataPool.rows[i].json);
+                            obj._id   = arrDataPool.rows[i].id;
                             self._dataPool.push(obj);
                         }
 

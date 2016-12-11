@@ -39,9 +39,9 @@ module.exports = function(self, tableName) {
     return connect(self).then(() => {
         return new Promise(resolve => {
             log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
-            let processDefaultPromises = [];
-            let pgSqlNumericTypes      = ['money', 'numeric', 'decimal', 'double precision', 'real', 'bigint', 'int', 'smallint'];
-            let sqlReservedValues      = {
+            const processDefaultPromises = [];
+            const pgSqlNumericTypes      = ['money', 'numeric', 'decimal', 'double precision', 'real', 'bigint', 'int', 'smallint'];
+            const sqlReservedValues      = {
                 'CURRENT_DATE'        : 'CURRENT_DATE',
                 '0000-00-00'          : "'-INFINITY'",
                 'CURRENT_TIME'        : 'CURRENT_TIME',
@@ -62,12 +62,12 @@ module.exports = function(self, tableName) {
                         new Promise(resolveProcessDefault => {
                             self._pg.connect((error, client, done) => {
                                 if (error) {
-                                    let msg = '\t--[processDefault] Cannot connect to PostgreSQL server...\n' + error;
+                                    const msg = '\t--[processDefault] Cannot connect to PostgreSQL server...\n' + error;
                                     generateError(self, msg);
                                     resolveProcessDefault();
                                 } else {
-                                    let pgSqlDataType = mapDataTypes(self._dataTypesMap, self._dicTables[tableName].arrTableColumns[i].Type);
-                                    let sql           = 'ALTER TABLE "' + self._schema + '"."' + tableName
+                                    const pgSqlDataType = mapDataTypes(self._dataTypesMap, self._dicTables[tableName].arrTableColumns[i].Type);
+                                    let sql             = 'ALTER TABLE "' + self._schema + '"."' + tableName
                                         + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET DEFAULT ';
 
                                     if (sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default]) {
@@ -82,14 +82,14 @@ module.exports = function(self, tableName) {
                                         done();
 
                                         if (err) {
-                                            let msg = '\t--[processDefault] Error occurred when tried to set default value for "'
+                                            const msg2 = '\t--[processDefault] Error occurred when tried to set default value for "'
                                                     + self._schema + '"."' + tableName
                                                     + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
 
-                                            generateError(self, msg, sql);
+                                            generateError(self, msg2, sql);
                                             resolveProcessDefault();
                                         } else {
-                                            let success = '\t--[processDefault] Set default value for "' + self._schema + '"."' + tableName
+                                            const success = '\t--[processDefault] Set default value for "' + self._schema + '"."' + tableName
                                                         + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
 
                                             log(self, success, self._dicTables[tableName].tableLogPath);

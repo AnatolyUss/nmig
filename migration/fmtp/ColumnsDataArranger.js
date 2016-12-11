@@ -18,13 +18,13 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
- 'use strict';
+'use strict';
 
 /**
  * Arranges columns data before loading.
  *
  * @param {Array} arrTableColumns
- * 
+ *
  * @returns {String}
  */
 module.exports = function(arrTableColumns) {

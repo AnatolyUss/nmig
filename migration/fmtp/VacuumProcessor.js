@@ -34,12 +34,12 @@ const generateError = require('./ErrorGenerator');
 module.exports = function(self) {
     return connect(self).then(() => {
         return new Promise(resolve => {
-            let vacuumPromises = [];
+            const vacuumPromises = [];
 
             for (let i = 0; i < self._tablesToMigrate.length; ++i) {
                 if (self._noVacuum.indexOf(self._tablesToMigrate[i]) === -1) {
-                    let msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
-                            + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
+                    const msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
+                        + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
 
                     log(self, msg);
                     vacuumPromises.push(
@@ -49,7 +49,7 @@ module.exports = function(self) {
                                     generateError(self, '\t--[runVacuumFullAndAnalyze] Cannot connect to PostgreSQL server...');
                                     resolveVacuum();
                                 } else {
-                                    let sql = 'VACUUM (FULL, ANALYZE) "' + self._schema + '"."' + self._tablesToMigrate[i] + '";';
+                                    const sql = 'VACUUM (FULL, ANALYZE) "' + self._schema + '"."' + self._tablesToMigrate[i] + '";';
                                     client.query(sql, err => {
                                         done();
 
@@ -57,7 +57,7 @@ module.exports = function(self) {
                                             generateError(self, '\t--[runVacuumFullAndAnalyze] ' + err, sql);
                                             resolveVacuum();
                                         } else {
-                                            let msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
+                                            const msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
                                             log(self, msg2);
                                             resolveVacuum();
                                         }

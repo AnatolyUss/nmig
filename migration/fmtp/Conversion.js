@@ -20,6 +20,8 @@
  */
 'use strict';
 
+const path = require('path');
+
 /**
  * Checks if given value is integer number.
  *
@@ -43,9 +45,9 @@ module.exports = function Conversion(config) {
     this._tempDirPath                = this._config.tempDirPath;
     this._logsDirPath                = this._config.logsDirPath;
     this._dataTypesMapAddr           = this._config.dataTypesMapAddr;
-    this._allLogsPath                = this._logsDirPath + '/all.log';
-    this._errorLogsPath              = this._logsDirPath + '/errors-only.log';
-    this._notCreatedViewsPath        = this._logsDirPath + '/not_created_views';
+    this._allLogsPath                = path.join(this._logsDirPath, 'all.log');
+    this._errorLogsPath              = path.join(this._logsDirPath, 'errors-only.log');
+    this._notCreatedViewsPath        = path.join(this._logsDirPath, 'not_created_views');
     this._noVacuum                   = this._config.no_vacuum;
     this._excludeTables              = this._config.exclude_tables;
     this._timeBegin                  = new Date();

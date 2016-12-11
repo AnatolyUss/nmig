@@ -49,10 +49,10 @@ module.exports = function(self, tableName) {
                             generateError(self, '\t--[processIndexAndKey] ' + err, sql);
                             resolveProcessIndexAndKey();
                         } else {
-                            let objPgIndices               = Object.create(null);
-                            let cnt                        = 0;
-                            let indexType                  = '';
-                            let processIndexAndKeyPromises = [];
+                            const objPgIndices               = Object.create(null);
+                            const processIndexAndKeyPromises = [];
+                            let cnt                          = 0;
+                            let indexType                    = '';
 
                             for (let i = 0; i < arrIndices.length; ++i) {
                                 if (arrIndices[i].Key_name in objPgIndices) {
@@ -71,7 +71,7 @@ module.exports = function(self, tableName) {
                                     new Promise(resolveProcessIndexAndKeySql => {
                                         self._pg.connect((pgError, pgClient, done) => {
                                             if (pgError) {
-                                                let msg = '\t--[processIndexAndKey] Cannot connect to PostgreSQL server...\n' + pgError;
+                                                const msg = '\t--[processIndexAndKey] Cannot connect to PostgreSQL server...\n' + pgError;
                                                 generateError(self, msg);
                                                 resolveProcessIndexAndKeySql();
                                             } else {
@@ -82,12 +82,12 @@ module.exports = function(self, tableName) {
 
                                                 } else {
                                                     // "schema_idxname_{integer}_idx" - is NOT a mistake.
-                                                    let columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
-                                                    indexType      = 'index';
-                                                    sql            = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
-                                                                   + self._schema + '_' + tableName + '_' + columnName + '_idx" ON "'
-                                                                   + self._schema + '"."' + tableName + '" '
-                                                                   + objPgIndices[attr].Index_type + ' (' + objPgIndices[attr].column_name.join(',') + ');';
+                                                    const columnName = objPgIndices[attr].column_name[0].slice(1, -1) + cnt++;
+                                                    indexType        = 'index';
+                                                    sql              = 'CREATE ' + (objPgIndices[attr].is_unique ? 'UNIQUE ' : '') + 'INDEX "'
+                                                        + self._schema + '_' + tableName + '_' + columnName + '_idx" ON "'
+                                                        + self._schema + '"."' + tableName + '" '
+                                                        + objPgIndices[attr].Index_type + ' (' + objPgIndices[attr].column_name.join(',') + ');';
                                                 }
 
                                                 pgClient.query(sql, err2 => {
@@ -107,7 +107,7 @@ module.exports = function(self, tableName) {
                             }
 
                             Promise.all(processIndexAndKeyPromises).then(() => {
-                                let success = '\t--[processIndexAndKey] "' + self._schema + '"."' + tableName + '": PK/indices are successfully set...';
+                                const success = '\t--[processIndexAndKey] "' + self._schema + '"."' + tableName + '": PK/indices are successfully set...';
                                 log(self, success, self._dicTables[tableName].tableLogPath);
                                 resolveProcessIndexAndKey();
                             });

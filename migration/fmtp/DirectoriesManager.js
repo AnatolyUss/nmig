@@ -20,8 +20,9 @@
  */
 'use strict';
 
-const fs  = require('fs');
-const log = require('./Logger');
+const fs   = require('fs');
+const path = require('path');
+const log  = require('./Logger');
 
 /**
  * Creates temporary directory.
@@ -37,7 +38,7 @@ module.exports.createTemporaryDirectory = function(self) {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._tempDirPath, self._0777, e => {
                     if (e) {
-                        let msg = '\t--[DirectoriesManager.createTemporaryDirectory] Cannot perform a migration due to impossibility to create '
+                        const msg = '\t--[DirectoriesManager.createTemporaryDirectory] Cannot perform a migration due to impossibility to create '
                                 + '"temporary_directory": ' + self._tempDirPath;
 
                         log(self, msg);
@@ -77,11 +78,11 @@ module.exports.removeTemporaryDirectory = function(self) {
                 resolve();
 
             } else {
-                let promises = [];
+                const promises = [];
 
                 for (let i = 0; i < arrContents.length; ++i) {
                     promises.push(new Promise(resolveUnlink => {
-                        fs.unlink(self._tempDirPath + '/' + arrContents[i], () => resolveUnlink());
+                        fs.unlink(path.join(self._tempDirPath, arrContents[i]), () => resolveUnlink());
                     }));
                 }
 
@@ -118,8 +119,8 @@ module.exports.createLogsDirectory = function(self) {
             if (directoryDoesNotExist) {
                 fs.mkdir(self._logsDirPath, self._0777, e => {
                     if (e) {
-                        let msg = '\t--[DirectoriesManager.createLogsDirectory] Cannot perform a migration due to impossibility to create '
-                                + '"logs_directory": ' + self._logsDirPath;
+                        const msg = '\t--[DirectoriesManager.createLogsDirectory] Cannot perform a migration due to impossibility to create '
+                            + '"logs_directory": ' + self._logsDirPath;
 
                         console.log(msg);
                         reject();
