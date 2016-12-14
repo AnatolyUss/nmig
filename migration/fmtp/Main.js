@@ -31,6 +31,7 @@ const dataPoolManager         = require('./DataPoolManager');
 const directoriesManager      = require('./DirectoriesManager');
 const loadStructureToMigrate  = require('./StructureLoader');
 const pipeData                = require('./DataPipeManager');
+const boot                    = require('./BootProcessor');
 
 /**
  * Runs migration according to user's configuration.
@@ -40,10 +41,10 @@ const pipeData                = require('./DataPipeManager');
  * @returns {undefined}
  */
 module.exports = function(config) {
-    console.log('\n\tNMIG - the database migration tool\n\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\t Boot...');
     const self = new Conversion(config);
-
-    readDataTypesMap(self).then(
+    boot(self).then(() => {
+        return readDataTypesMap(self);
+    }).then(
         () => {
             return directoriesManager.createLogsDirectory(self);
         },

@@ -151,9 +151,10 @@ module.exports = function(self, tableName) {
         return new Promise(resolve => {
             const msg = '\t--[CommentsProcessor] Creates comments for table "' + self._schema + '"."' + tableName + '"...';
             log(self, msg, self._dicTables[tableName].tableLogPath);
-            const tableCommentsPromise   = processTableComments(self, tableName);
-            const columnsCommentsPromise = processColumnsComments(self, tableName);
-            Promise.all([tableCommentsPromise, columnsCommentsPromise]).then(() => resolve());
+            Promise.all([
+                processTableComments(self, tableName),
+                processColumnsComments(self, tableName)
+            ]).then(() => resolve());
         });
     });
 };
