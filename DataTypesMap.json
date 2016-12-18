@@ -134,19 +134,19 @@
 
     "point" : {
         "increased_size"           : "",
-        "type"                     : "point",
+        "type"                     : "geometry",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "linestring" : {
         "increased_size"           : "",
-        "type"                     : "line",
+        "type"                     : "geometry",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 
     "polygon" : {
         "increased_size"           : "",
-        "type"                     : "polygon",
+        "type"                     : "geometry",
         "mySqlVarLenPgSqlFixedLen" : false
     },
 

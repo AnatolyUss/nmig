@@ -57,6 +57,7 @@ module.exports = function Conversion(config) {
     this._0777                       = '0777';
     this._mysql                      = null;
     this._pg                         = null;
+    this._mysqlVersion               = '5.6.21'; // Simply a default value.
     this._tablesToMigrate            = [];
     this._viewsToMigrate             = [];
     this._isProcessConstraintsLocked = false;

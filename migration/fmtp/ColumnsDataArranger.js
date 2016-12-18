@@ -24,10 +24,11 @@
  * Arranges columns data before loading.
  *
  * @param {Array} arrTableColumns
+ * @param {Number} mysqlVersion
  *
  * @returns {String}
  */
-module.exports = function(arrTableColumns) {
+module.exports = function(arrTableColumns, mysqlVersion) {
     let strRetVal = '';
 
     for (let i = 0; i < arrTableColumns.length; ++i) {
@@ -37,7 +38,9 @@ module.exports = function(arrTableColumns) {
             || arrTableColumns[i].Type.indexOf('linestring') !== -1
             || arrTableColumns[i].Type.indexOf('polygon') !== -1
         ) {
-            strRetVal += 'HEX(ST_AsWKB(`' + arrTableColumns[i].Field + '`)),';
+            strRetVal += mysqlVersion >= 5.76
+                ? 'HEX(ST_AsWKB(`' + arrTableColumns[i].Field + '`)),'
+                : 'HEX(AsWKB(`' + arrTableColumns[i].Field + '`)),';
         } else if (
             arrTableColumns[i].Type.indexOf('blob') !== -1
             || arrTableColumns[i].Type.indexOf('binary') !== -1

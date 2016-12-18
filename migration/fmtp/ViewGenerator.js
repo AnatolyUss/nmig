@@ -88,7 +88,9 @@ function logNotCreatedView(self, viewName, sql) {
                             let buffer = getBuffer(sql, self._encoding);
                             fs.write(fd, buffer, 0, buffer.length, null, () => {
                                 buffer = null;
-                                fs.close(fd);
+                                fs.close(fd, () => {
+                                    // Each async function MUST have a callback (according to Node.js >= 7).
+                                });
                             });
                         }
                     });
@@ -105,7 +107,9 @@ function logNotCreatedView(self, viewName, sql) {
                     let buffer = getBuffer(sql, self._encoding);
                     fs.write(fd, buffer, 0, buffer.length, null, () => {
                         buffer = null;
-                        fs.close(fd);
+                        fs.close(fd, () => {
+                            // Each async function MUST have a callback (according to Node.js >= 7).
+                        });
                     });
                 }
             });
@@ -121,11 +125,11 @@ function logNotCreatedView(self, viewName, sql) {
  * @returns {Promise}
  */
 module.exports = function(self) {
-    return migrationStateManager.get(self, 'views_loaded').then(isViewsLoaded => {
+    return migrationStateManager.get(self, 'views_loaded').then(hasViewsLoaded => {
         return new Promise(resolve => {
             const createViewPromises = [];
 
-            if (!isViewsLoaded) {
+            if (!hasViewsLoaded) {
                 for (let i = 0; i < self._viewsToMigrate.length; ++i) {
                     createViewPromises.push(
                         new Promise(resolveProcessView2 => {

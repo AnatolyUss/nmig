@@ -20,6 +20,8 @@
  */
 'use strict';
 
+const connect = require('./Connector');
+
 /**
  * Boot the migration.
  *
@@ -28,29 +30,57 @@
  * @returns {Promise}
  */
 module.exports = function(self) {
-    return new Promise(resolve => {
-        const logo = '\n\t/\\_  |\\  /\\/\\ /\\___'
-            + '\n\t|  \\ | |\\ | | | __'
-            + '\n\t| |\\\\| || | | | \\_ \\'
-            + '\n\t| | \\| || | | |__/ |'
-            + '\n\t\\|   \\/ /_|/______/'
-            + '\n\n\tNMIG - the database migration tool'
-            + '\n\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
-            + '\t--[boot] The configuration has been just loaded.'
-            + '\n\t--[boot] NMIG is ready to start.\n\t--[boot] Proceed? [Y/n]';
-
-        console.log(logo);
-        process
-            .stdin
-            .resume()
-            .setEncoding(self._encoding)
-            .on('data', stdin => {
-                if (stdin.indexOf('Y') !== -1) {
-                    resolve();
-                } else {
-                    console.log('\t--[boot] Migration aborted.\n');
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            self._pg.connect((error, client, done) => {
+                if (error) {
+                    console.log('\t--[boot] Cannot connect to PostgreSQL server...\n' + error);
+                    done();
                     process.exit();
+                } else {
+                    const sql = 'SELECT EXISTS(SELECT 1 FROM information_schema.tables '
+                        + 'WHERE table_schema = \'' + self._schema
+                        + '\' AND table_name = \'state_logs_' + self._schema + self._mySqlDbName + '\');';
+
+                    client.query(sql, (err, result) => {
+                        done();
+
+                        if (err) {
+                            console.log('\t--[boot] Error when executed query:\n' + sql + '\nError message:\n' + err);
+                            process.exit();
+                        } else {
+                            const isExists = !!result.rows[0].exists;
+                            const logo     = '\n\t/\\_  |\\  /\\/\\ /\\___'
+                                + '\n\t|  \\ | |\\ | | | __'
+                                + '\n\t| |\\\\| || | | | \\_ \\'
+                                + '\n\t| | \\| || | | |__/ |'
+                                + '\n\t\\|   \\/ /_|/______/'
+                                + '\n\n\tNMIG - the database migration tool'
+                                + '\n\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
+                                + '\t--[boot] The configuration has been just loaded.'
+                                + (isExists
+                                    ? '\n\t--[boot] NMIG is ready to restart after some failure.'
+                                          + '\n\t--[boot] Consider checking log files at the end of migration.'
+                                    : '\n\t--[boot] NMIG is ready to start.')
+                                + '\n\t--[boot] Proceed? [Y/n]';
+
+                            console.log(logo);
+                            process
+                                .stdin
+                                .resume()
+                                .setEncoding(self._encoding)
+                                .on('data', stdin => {
+                                    if (stdin.indexOf('Y') !== -1) {
+                                        resolve();
+                                    } else {
+                                        console.log('\t--[boot] Migration aborted.\n');
+                                        process.exit();
+                                    }
+                                });
+                        }
+                    });
                 }
             });
+        });
     });
 };

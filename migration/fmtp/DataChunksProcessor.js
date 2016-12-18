@@ -62,9 +62,9 @@ module.exports = function(self, tableName, haveDataChunksProcessed) {
                             let tableSizeInMb        = +rows[0].size_in_mb;
                             tableSizeInMb            = tableSizeInMb < 1 ? 1 : tableSizeInMb;
                             rows                     = null;
-                            const strSelectFieldList = arrangeColumnsData(self._dicTables[tableName].arrTableColumns);
+                            const strSelectFieldList = arrangeColumnsData(self._dicTables[tableName].arrTableColumns, self._mysqlVersion);
                             sql                      = 'SELECT COUNT(1) AS rows_count FROM `' + tableName + '`;';
-
+                            
                             connection.query(sql, (err2, rows2) => {
                                 connection.release();
 

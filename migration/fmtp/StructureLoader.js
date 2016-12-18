@@ -49,6 +49,43 @@ function processTableBeforeDataLoading(self, tableName, stateLog) {
 }
 
 /**
+ * Get the MySQL version.
+ *
+ * @param {Conversion} self
+ *
+ * @returns {Promise}
+ */
+function getMySqlVersion(self) {
+    return connect(self).then(() => {
+        return new Promise(resolve => {
+            self._mysql.getConnection((error, connection) => {
+                if (error) {
+                    // The connection is undefined.
+                    generateError(self, '\t--[getMySqlVersion] Cannot connect to MySQL server...\n' + error);
+                    resolve();
+                } else {
+                    const sql = 'SELECT VERSION() AS mysql_version;';
+                    connection.query(sql, (err, rows) => {
+                        connection.release();
+
+                        if (err) {
+                            generateError(self, '\t--[getMySqlVersion] ' + err, sql);
+                            resolve();
+                        } else {
+                            const arrVersion   = rows[0].mysql_version.split('.');
+                            const majorVersion = arrVersion[0];
+                            const minorVersion = arrVersion.slice(1).join('');
+                            self._mysqlVersion = +(majorVersion + '.' + minorVersion);
+                            resolve();
+                        }
+                    });
+                }
+            });
+        });
+    });
+}
+
+/**
  * Load source tables and views, that need to be migrated.
  *
  * @param {Conversion} self
@@ -56,58 +93,60 @@ function processTableBeforeDataLoading(self, tableName, stateLog) {
  * @returns {Promise}
  */
 module.exports = function(self) {
-    return migrationStateManager.get(self, 'tables_loaded').then(haveTablesLoaded => {
-        return new Promise((resolve, reject) => {
-            self._mysql.getConnection((error, connection) => {
-                if (error) {
-                    // The connection is undefined.
-                    generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
-                    reject();
-                } else {
-                    const sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
-                    connection.query(sql, (strErr, rows) => {
-                        connection.release();
+    return getMySqlVersion(self).then(() => {
+        return migrationStateManager.get(self, 'tables_loaded').then(haveTablesLoaded => {
+            return new Promise((resolve, reject) => {
+                self._mysql.getConnection((error, connection) => {
+                    if (error) {
+                        // The connection is undefined.
+                        generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
+                        reject();
+                    } else {
+                        const sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
+                        connection.query(sql, (strErr, rows) => {
+                            connection.release();
 
-                        if (strErr) {
-                            generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
-                            reject();
-                        } else {
-                            let tablesCnt              = 0;
-                            let viewsCnt               = 0;
-                            const processTablePromises = [];
+                            if (strErr) {
+                                generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
+                                reject();
+                            } else {
+                                let tablesCnt              = 0;
+                                let viewsCnt               = 0;
+                                const processTablePromises = [];
 
-                            for (let i = 0; i < rows.length; ++i) {
-                                const relationName = rows[i]['Tables_in_' + self._mySqlDbName];
+                                for (let i = 0; i < rows.length; ++i) {
+                                    const relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
-                                if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
-                                    self._tablesToMigrate.push(relationName);
-                                    self._dicTables[relationName] = new Table(self._logsDirPath + '/' + relationName + '.log');
-                                    processTablePromises.push(processTableBeforeDataLoading(self, relationName, haveTablesLoaded));
-                                    tablesCnt++;
-                                } else if (rows[i].Table_type === 'VIEW') {
-                                    self._viewsToMigrate.push(relationName);
-                                    viewsCnt++;
+                                    if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
+                                        self._tablesToMigrate.push(relationName);
+                                        self._dicTables[relationName] = new Table(self._logsDirPath + '/' + relationName + '.log');
+                                        processTablePromises.push(processTableBeforeDataLoading(self, relationName, haveTablesLoaded));
+                                        tablesCnt++;
+                                    } else if (rows[i].Table_type === 'VIEW') {
+                                        self._viewsToMigrate.push(relationName);
+                                        viewsCnt++;
+                                    }
                                 }
+
+                                rows            = null;
+                                self._tablesCnt = tablesCnt;
+                                self._viewsCnt  = viewsCnt;
+                                let message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
+                                                + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n'
+                                                + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
+
+                                log(self, message);
+
+                                Promise.all(processTablePromises).then(
+                                    () => {
+                                        migrationStateManager.set(self, 'tables_loaded').then(() => resolve());
+                                    },
+                                    () => reject()
+                                );
                             }
-
-                            rows            = null;
-                            self._tablesCnt = tablesCnt;
-                            self._viewsCnt  = viewsCnt;
-                            let message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
-                                            + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n'
-                                            + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
-
-                            log(self, message);
-
-                            Promise.all(processTablePromises).then(
-                                () => {
-                                    migrationStateManager.set(self, 'tables_loaded').then(() => resolve());
-                                },
-                                () => reject()
-                            );
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
         });
     });
