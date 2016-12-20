@@ -12,6 +12,12 @@
         "   In any other case <mySqlVarLenPgSqlFixedLen> should be false."
     ],
 
+    "json" : {
+        "increased_size"           : "",
+        "type"                     : "json",
+        "mySqlVarLenPgSqlFixedLen" : false
+    },
+
     "bit" : {
         "increased_size"           : "bit varying",
         "type"                     : "bit varying",
