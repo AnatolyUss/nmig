@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ const boot                    = require('./BootProcessor');
  */
 module.exports = function(config) {
     const self = new Conversion(config);
+
     boot(self).then(() => {
         return readDataTypesMap(self);
     }).then(

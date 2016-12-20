@@ -1,0 +1,46 @@
+{
+    "README" : [
+        "This JSON document represents an additional configuration options.",
+        "These options (currently only renaming) will be applied during migration if, and only if",
+        "the 'enable_extra_config' attribute from 'config.json' is set true.",
+        "By default the 'enable_extra_config' is false, hence the options",
+        "described here will not take effect.",
+        "Following lines are an example of expected renaming format.",
+        "Feel free to modify them."
+    ],
+
+    "tables" : [
+        {
+            "name" : {
+                "current" : "admins",
+                "new" : "renamed_admins"
+            },
+
+            "columns" : [
+                {
+                    "current" : "username",
+                    "new" : "renamed_username"
+                },
+
+                {
+                    "current" : "password",
+                    "new" : "renamed_password"
+                }
+            ]
+        },
+
+        {
+            "name" : {
+                "current" : "groups",
+                "new" : "renamed_groups"
+            },
+
+            "columns" : [
+                {
+                    "current" : "title",
+                    "new" : "renamed_title"
+                }
+            ]
+        }
+    ]
+}

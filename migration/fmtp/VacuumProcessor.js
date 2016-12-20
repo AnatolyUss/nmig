@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@
  */
 'use strict';
 
-const connect       = require('./Connector');
-const log           = require('./Logger');
-const generateError = require('./ErrorGenerator');
+const connect              = require('./Connector');
+const log                  = require('./Logger');
+const generateError        = require('./ErrorGenerator');
+const extraConfigProcessor = require('./ExtraConfigProcessor');
 
 /**
  * Runs "vacuum full" and "analyze".
@@ -37,7 +38,7 @@ module.exports = function(self) {
             const vacuumPromises = [];
 
             for (let i = 0; i < self._tablesToMigrate.length; ++i) {
-                if (self._noVacuum.indexOf(self._tablesToMigrate[i]) === -1) {
+                if (self._noVacuum.indexOf(extraConfigProcessor.getTableName(self, self._tablesToMigrate[i], true)) === -1) {
                     const msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'
                         + self._schema + '"."' + self._tablesToMigrate[i] + '"...';
 
@@ -57,7 +58,9 @@ module.exports = function(self) {
                                             generateError(self, '\t--[runVacuumFullAndAnalyze] ' + err, sql);
                                             resolveVacuum();
                                         } else {
-                                            const msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
+                                            const msg2 = '\t--[runVacuumFullAndAnalyze] Table "' + self._schema
+                                                + '"."' + self._tablesToMigrate[i] + '" is VACUUMed...';
+
                                             log(self, msg2);
                                             resolveVacuum();
                                         }

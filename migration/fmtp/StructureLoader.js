@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ const log                   = require('./Logger');
 const generateError         = require('./ErrorGenerator');
 const prepareDataChunks     = require('./DataChunksProcessor');
 const migrationStateManager = require('./MigrationStateManager');
+const extraConfigProcessor  = require('./ExtraConfigProcessor');
 const createTable           = tableProcessor.createTable;
 
 /**
@@ -115,9 +116,10 @@ module.exports = function(self) {
                                 const processTablePromises = [];
 
                                 for (let i = 0; i < rows.length; ++i) {
-                                    const relationName = rows[i]['Tables_in_' + self._mySqlDbName];
+                                    let relationName = rows[i]['Tables_in_' + self._mySqlDbName];
 
                                     if (rows[i].Table_type === 'BASE TABLE' && self._excludeTables.indexOf(relationName) === -1) {
+                                        relationName = extraConfigProcessor.getTableName(self, relationName, false);
                                         self._tablesToMigrate.push(relationName);
                                         self._dicTables[relationName] = new Table(self._logsDirPath + '/' + relationName + '.log');
                                         processTablePromises.push(processTableBeforeDataLoading(self, relationName, haveTablesLoaded));

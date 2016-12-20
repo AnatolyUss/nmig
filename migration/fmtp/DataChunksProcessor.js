@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +20,11 @@
  */
 'use strict';
 
-const connect            = require('./Connector');
-const log                = require('./Logger');
-const generateError      = require('./ErrorGenerator');
-const arrangeColumnsData = require('./ColumnsDataArranger');
+const connect              = require('./Connector');
+const log                  = require('./Logger');
+const generateError        = require('./ErrorGenerator');
+const arrangeColumnsData   = require('./ColumnsDataArranger');
+const extraConfigProcessor = require('./ExtraConfigProcessor');
 
 /**
  * Prepares an array of tables and chunk offsets.
@@ -48,10 +49,11 @@ module.exports = function(self, tableName, haveDataChunksProcessed) {
                     resolve();
                 } else {
                     // Determine current table size, apply "chunking".
-                    let sql = "SELECT (data_length / 1024 / 1024) AS size_in_mb "
-                            + "FROM information_schema.tables "
-                            + "WHERE table_schema = '" + self._mySqlDbName + "' "
-                            + "AND table_name = '" + tableName + "';";
+                    const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
+                    let sql                 = "SELECT (data_length / 1024 / 1024) AS size_in_mb "
+                        + "FROM information_schema.tables "
+                        + "WHERE table_schema = '" + self._mySqlDbName + "' "
+                        + "AND table_name = '" + originalTableName + "';";
 
                     connection.query(sql, (err, rows) => {
                         if (err) {
@@ -62,9 +64,12 @@ module.exports = function(self, tableName, haveDataChunksProcessed) {
                             let tableSizeInMb        = +rows[0].size_in_mb;
                             tableSizeInMb            = tableSizeInMb < 1 ? 1 : tableSizeInMb;
                             rows                     = null;
-                            const strSelectFieldList = arrangeColumnsData(self._dicTables[tableName].arrTableColumns, self._mysqlVersion);
-                            sql                      = 'SELECT COUNT(1) AS rows_count FROM `' + tableName + '`;';
-                            
+                            sql                      = 'SELECT COUNT(1) AS rows_count FROM `' + originalTableName + '`;';
+                            const strSelectFieldList = arrangeColumnsData(
+                                self._dicTables[tableName].arrTableColumns,
+                                self._mysqlVersion
+                            );
+
                             connection.query(sql, (err2, rows2) => {
                                 connection.release();
 

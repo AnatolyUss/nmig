@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@
  */
 'use strict';
 
-const connect       = require('./Connector');
-const log           = require('./Logger');
-const generateError = require('./ErrorGenerator');
+const connect               = require('./Connector');
+const log                   = require('./Logger');
+const generateError         = require('./ErrorGenerator');
+const extraConfigProcessor  = require('./ExtraConfigProcessor');
 
 /**
  * Create primary key and indices.
@@ -41,7 +42,8 @@ module.exports = function(self, tableName) {
                     generateError(self, '\t--[processIndexAndKey] Cannot connect to MySQL server...\n\t' + error);
                     resolveProcessIndexAndKey();
                 } else {
-                    let sql = 'SHOW INDEX FROM `' + tableName + '`;';
+                    const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
+                    let sql                 = 'SHOW INDEX FROM `' + originalTableName + '`;';
                     connection.query(sql, (err, arrIndices) => {
                         connection.release();
 
@@ -55,12 +57,14 @@ module.exports = function(self, tableName) {
                             let indexType                    = '';
 
                             for (let i = 0; i < arrIndices.length; ++i) {
+                                const pgColumnName = extraConfigProcessor.getColumnName(self, originalTableName, arrIndices[i].Column_name, false);
+
                                 if (arrIndices[i].Key_name in objPgIndices) {
-                                    objPgIndices[arrIndices[i].Key_name].column_name.push('"' + arrIndices[i].Column_name + '"');
+                                    objPgIndices[arrIndices[i].Key_name].column_name.push('"' + pgColumnName + '"');
                                 } else {
                                     objPgIndices[arrIndices[i].Key_name] = {
                                         is_unique   : arrIndices[i].Non_unique === 0 ? true : false,
-                                        column_name : ['"' + arrIndices[i].Column_name + '"'],
+                                        column_name : ['"' + pgColumnName + '"'],
                                         Index_type  : ' USING ' + (arrIndices[i].Index_type === 'SPATIAL' ? 'GIST' : arrIndices[i].Index_type)
                                     };
                                 }

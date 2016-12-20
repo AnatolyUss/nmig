@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,9 @@ const path                  = require('path');
 const log                   = require('./Logger');
 const generateError         = require('./ErrorGenerator');
 const migrationStateManager = require('./MigrationStateManager');
-
-const version = +process.version.split('.')[0].slice(1);
-let getBuffer = null;
-
-if (version < 6) {
-    getBuffer = require('./OldBuffer');
-} else {
-    getBuffer = require('./NewBuffer');
-}
+const getBuffer             = +process.version.split('.')[0].slice(1) < 6
+    ? require('./OldBuffer')
+    : require('./NewBuffer');
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.

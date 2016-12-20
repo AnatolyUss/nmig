@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@
  */
 'use strict';
 
-const connect       = require('./Connector');
-const log           = require('./Logger');
-const generateError = require('./ErrorGenerator');
+const connect              = require('./Connector');
+const log                  = require('./Logger');
+const generateError        = require('./ErrorGenerator');
+const extraConfigProcessor = require('./ExtraConfigProcessor');
 
 /**
  * Set sequence value.
@@ -36,6 +37,7 @@ module.exports.setSequenceValue = function(self, tableName) {
     return connect(self).then(() => {
         return new Promise(resolve => {
             let hasAutoIncrementColumnFound = false;
+            const originalTableName         = extraConfigProcessor.getTableName(self, tableName, true);
 
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
@@ -46,9 +48,16 @@ module.exports.setSequenceValue = function(self, tableName) {
                             generateError(self, msg);
                             resolve();
                         } else {
-                            const seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
+                            const columnName = extraConfigProcessor.getColumnName(
+                                self,
+                                originalTableName,
+                                self._dicTables[tableName].arrTableColumns[i].Field,
+                                false
+                            );
+
+                            const seqName = tableName + '_' + columnName + '_seq';
                             const sql     = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
-                                + '(SELECT MAX("' + self._dicTables[tableName].arrTableColumns[i].Field + '") FROM "'
+                                + '(SELECT MAX("' + columnName + '") FROM "'
                                 + self._schema + '"."' + tableName + '"));';
 
                             client.query(sql, err => {
@@ -56,7 +65,7 @@ module.exports.setSequenceValue = function(self, tableName) {
 
                                if (err) {
                                    const errMsg = '\t--[setSequenceValue] Failed to set max-value of "' + self._schema + '"."'
-                                       + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                       + tableName + '"."' + columnName + '" '
                                        + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
 
                                    generateError(self, errMsg, sql);
@@ -94,12 +103,20 @@ module.exports.createSequence = function(self, tableName) {
     return connect(self).then(() => {
         return new Promise(resolve => {
             const createSequencePromises = [];
+            const originalTableName      = extraConfigProcessor.getTableName(self, tableName, true);
 
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
                     createSequencePromises.push(
                         new Promise(resolveCreateSequence => {
-                            const seqName = tableName + '_' + self._dicTables[tableName].arrTableColumns[i].Field + '_seq';
+                            const columnName = extraConfigProcessor.getColumnName(
+                                self,
+                                originalTableName,
+                                self._dicTables[tableName].arrTableColumns[i].Field,
+                                false
+                            );
+
+                            const seqName = tableName + '_' + columnName + '_seq';
                             log(self, '\t--[createSequence] Trying to create sequence : "' + self._schema + '"."' + seqName + '"', self._dicTables[tableName].tableLogPath);
                             self._pg.connect((error, client, done) => {
                                 if (error) {
@@ -116,35 +133,33 @@ module.exports.createSequence = function(self, tableName) {
                                             resolveCreateSequence();
                                         } else {
                                              sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" '
-                                                 + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                                 + 'ALTER COLUMN "' + columnName + '" '
                                                  + 'SET DEFAULT NEXTVAL(\'"' + self._schema + '"."' + seqName + '"\');';
 
                                              client.query(sql, err2 => {
                                                  if (err2) {
                                                      done();
                                                      const err2Msg = '\t--[createSequence] Failed to set default value for "' + self._schema + '"."'
-                                                         + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...'
+                                                         + tableName + '"."' + columnName + '"...'
                                                          + '\n\t--[createSequence] Note: sequence "' + self._schema + '"."' + seqName + '" was created...';
 
                                                      generateError(self, err2Msg, sql);
                                                      resolveCreateSequence();
                                                  } else {
                                                        sql = 'ALTER SEQUENCE "' + self._schema + '"."' + seqName + '" '
-                                                           + 'OWNED BY "' + self._schema + '"."' + tableName
-                                                           + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '";';
+                                                           + 'OWNED BY "' + self._schema + '"."' + tableName + '"."' + columnName + '";';
 
                                                        client.query(sql, err3 => {
                                                             if (err3) {
                                                                 done();
                                                                 const err3Msg = '\t--[createSequence] Failed to relate sequence "' + self._schema + '"."' + seqName + '" to '
-                                                                    + '"' + self._schema + '"."'
-                                                                    + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                                                    + '"' + self._schema + '"."' + tableName + '"."' + columnName + '"...';
 
                                                                 generateError(self, err3Msg, sql);
                                                                 resolveCreateSequence();
                                                             } else {
                                                                sql = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
-                                                                   + '(SELECT MAX("' + self._dicTables[tableName].arrTableColumns[i].Field + '") FROM "'
+                                                                   + '(SELECT MAX("' + columnName + '") FROM "'
                                                                    + self._schema + '"."' + tableName + '"));';
 
                                                                client.query(sql, err4 => {
@@ -152,7 +167,7 @@ module.exports.createSequence = function(self, tableName) {
 
                                                                   if (err4) {
                                                                       const err4Msg = '\t--[createSequence] Failed to set max-value of "' + self._schema + '"."'
-                                                                          + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '" '
+                                                                          + tableName + '"."' + columnName + '" '
                                                                           + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
 
                                                                       generateError(self, err4Msg, sql);

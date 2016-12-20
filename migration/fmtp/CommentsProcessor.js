@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@
  */
 'use strict';
 
-const log           = require('./Logger');
-const generateError = require('./ErrorGenerator');
-const connect       = require('./Connector');
+const log                   = require('./Logger');
+const generateError         = require('./ErrorGenerator');
+const connect               = require('./Connector');
+const extraConfigProcessor  = require('./ExtraConfigProcessor');
 
 /**
  * Create table comments.
@@ -43,7 +44,7 @@ function processTableComments(self, tableName) {
                 let sql = "SELECT table_comment AS table_comment "
                         + "FROM information_schema.tables "
                         + "WHERE table_schema = '" + self._mySqlDbName + "' "
-                        + "AND table_name = '" + tableName + "';";
+                        + "AND table_name = '" + extraConfigProcessor.getTableName(self, tableName, true) + "';";
 
                 connection.query(sql, (err, rows) => {
                     connection.release();
@@ -96,6 +97,7 @@ function processTableComments(self, tableName) {
 function processColumnsComments(self, tableName) {
     return new Promise(resolve => {
         const arrCommentPromises = [];
+        const originalTableName  = extraConfigProcessor.getTableName(self, tableName, true);
 
         for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
             if (self._dicTables[tableName].arrTableColumns[i].Comment !== '') {
@@ -106,22 +108,28 @@ function processColumnsComments(self, tableName) {
                                 generateError(self, '\t--[processColumnsComments] Cannot connect to PostgreSQL server...\n' + error);
                                 resolveComment();
                             } else {
+                                const columnName = extraConfigProcessor.getColumnName(
+                                    self,
+                                    originalTableName,
+                                    self._dicTables[tableName].arrTableColumns[i].Field,
+                                    false
+                                );
+
                                 const sql = 'COMMENT ON COLUMN "' + self._schema + '"."' + tableName + '"."'
-                                    + self._dicTables[tableName].arrTableColumns[i].Field
-                                    + '" IS \'' + self._dicTables[tableName].arrTableColumns[i].Comment + '\';';
+                                    + columnName + '" IS \'' + self._dicTables[tableName].arrTableColumns[i].Comment + '\';';
 
                                 client.query(sql, err => {
                                     done();
 
                                     if (err) {
                                         const msg = '\t--[processColumnsComments] Error while processing comment for "' + self._schema + '"."'
-                                            + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+                                            + tableName + '"."' + columnName + '"...\n' + err;
 
                                         generateError(self, msg, sql);
                                         resolveComment();
                                     } else {
                                         const success = '\t--[processColumnsComments] Set comment for "' + self._schema + '"."' + tableName
-                                            + '" column: "' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                            + '" column: "' + columnName + '"...';
 
                                         log(self, success, self._dicTables[tableName].tableLogPath);
                                         resolveComment();

@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +66,7 @@ function dataPoolProcessed(self) {
 }
 
 /**
- * Instructs DataLoader which DataUnits should be loaded.
+ * Instructs DataLoader which data segments should be loaded.
  * No need to check the state-log.
  * If dataPool's length is zero, then nmig will proceed to the next step.
  *
@@ -85,7 +85,7 @@ function pipeData(self, strDataLoaderPath, options, currentIndex) {
 
     if (reachedLastIndex(self, currentIndex)) {
         /*
-         * Not all of data chunks were processed, but current "execution branch" has processed all of its chunks.
+         * Not all of data segments were processed, but current "execution branch" has processed all of its segments.
          * In this case no "loader" process will be spawned.
          * The processConstraints() function will be invoked from another "execution branch".
          */

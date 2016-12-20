@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 const log                   = require('./Logger');
 const generateError         = require('./ErrorGenerator');
 const migrationStateManager = require('./MigrationStateManager');
+const extraConfigProcessor  = require('./ExtraConfigProcessor');
 
 /**
  * Creates foreign keys for given table.
@@ -37,16 +38,27 @@ function processForeignKeyWorker(self, tableName, rows) {
     return new Promise(resolve => {
         const constraintsPromises = [];
         const objConstraints      = Object.create(null);
+        const originalTableName   = extraConfigProcessor.getTableName(self, tableName, true);
 
         for (let i = 0; i < rows.length; ++i) {
+            const currentColumnName           = extraConfigProcessor.getColumnName(self, originalTableName, rows[i].COLUMN_NAME, false);
+            const currentReferencedTableName  = extraConfigProcessor.getTableName(self, rows[i].REFERENCED_TABLE_NAME, false);
+            const originalReferencedTableName = extraConfigProcessor.getTableName(self, rows[i].REFERENCED_TABLE_NAME, true);
+            const currentReferencedColumnName = extraConfigProcessor.getColumnName(
+                self,
+                originalReferencedTableName,
+                rows[i].REFERENCED_COLUMN_NAME,
+                false
+            );
+            
             if (rows[i].CONSTRAINT_NAME in objConstraints) {
-                objConstraints[rows[i].CONSTRAINT_NAME].column_name.push('"' + rows[i].COLUMN_NAME + '"');
-                objConstraints[rows[i].CONSTRAINT_NAME].referenced_column_name.push('"' + rows[i].REFERENCED_COLUMN_NAME + '"');
+                objConstraints[rows[i].CONSTRAINT_NAME].column_name.push('"' + currentColumnName + '"');
+                objConstraints[rows[i].CONSTRAINT_NAME].referenced_column_name.push('"' + currentReferencedColumnName + '"');
             } else {
                 objConstraints[rows[i].CONSTRAINT_NAME]                        = Object.create(null);
-                objConstraints[rows[i].CONSTRAINT_NAME].column_name            = ['"' + rows[i].COLUMN_NAME + '"'];
-                objConstraints[rows[i].CONSTRAINT_NAME].referenced_column_name = ['"' + rows[i].REFERENCED_COLUMN_NAME + '"'];
-                objConstraints[rows[i].CONSTRAINT_NAME].referenced_table_name  = rows[i].REFERENCED_TABLE_NAME;
+                objConstraints[rows[i].CONSTRAINT_NAME].column_name            = ['"' + currentColumnName + '"'];
+                objConstraints[rows[i].CONSTRAINT_NAME].referenced_column_name = ['"' + currentReferencedColumnName + '"'];
+                objConstraints[rows[i].CONSTRAINT_NAME].referenced_table_name  = currentReferencedTableName;
                 objConstraints[rows[i].CONSTRAINT_NAME].update_rule            = rows[i].UPDATE_RULE;
                 objConstraints[rows[i].CONSTRAINT_NAME].delete_rule            = rows[i].DELETE_RULE;
             }
@@ -54,7 +66,7 @@ function processForeignKeyWorker(self, tableName, rows) {
 
         rows = null;
 
-        for (let attr in objConstraints) {
+        for (const attr in objConstraints) {
             constraintsPromises.push(
                 new Promise(resolveConstraintPromise => {
                     self._pg.connect((error, client, done) => {
@@ -133,7 +145,7 @@ module.exports = function(self) {
                                         + "ON cLinks.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA "
                                         + "AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME "
                                         + "WHERE cols.TABLE_SCHEMA = '" + self._mySqlDbName + "' "
-                                        + "AND cols.TABLE_NAME = '" + tableName + "';";
+                                        + "AND cols.TABLE_NAME = '" + extraConfigProcessor.getTableName(self, tableName, true) + "';";
 
                                       connection.query(sql, (err, rows) => {
                                           connection.release();

@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@
  */
 'use strict';
 
-const connect       = require('./Connector');
-const log           = require('./Logger');
-const generateError = require('./ErrorGenerator');
+const connect               = require('./Connector');
+const log                   = require('./Logger');
+const generateError         = require('./ErrorGenerator');
+const extraConfigProcessor  = require('./ExtraConfigProcessor');
 
 /**
  * Define which columns of the given table are of type "enum".
@@ -38,6 +39,7 @@ module.exports = function(self, tableName) {
         return new Promise(resolve => {
             log(self, '\t--[processEnum] Defines "ENUMs" for table "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
             const processEnumPromises = [];
+            const originalTableName   = extraConfigProcessor.getTableName(self, tableName, true);
 
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Type.indexOf('(') !== -1) {
@@ -52,21 +54,28 @@ module.exports = function(self, tableName) {
                                         generateError(self, msg);
                                         resolveProcessEnum();
                                     } else {
+                                        const columnName = extraConfigProcessor.getColumnName(
+                                            self,
+                                            originalTableName,
+                                            self._dicTables[tableName].arrTableColumns[i].Field,
+                                            false
+                                        );
+
                                         const sql = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" '
-                                            + 'ADD CHECK ("' + self._dicTables[tableName].arrTableColumns[i].Field + '" IN (' + arrType[1] + ');';
+                                            + 'ADD CHECK ("' + columnName + '" IN (' + arrType[1] + ');';
 
                                         client.query(sql, err => {
                                             done();
 
                                             if (err) {
                                                 const msg2 = '\t--[processEnum] Error while setting ENUM for "' + self._schema + '"."'
-                                                    + tableName + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+                                                    + tableName + '"."' + columnName + '"...\n' + err;
 
                                                 generateError(self, msg2, sql);
                                                 resolveProcessEnum();
                                             } else {
                                                 const success = '\t--[processEnum] Set "ENUM" for "' + self._schema + '"."' + tableName
-                                                            + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                                            + '"."' + columnName + '"...';
 
                                                 log(self, success, self._dicTables[tableName].tableLogPath);
                                                 resolveProcessEnum();

@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,8 +56,8 @@ module.exports = function(self) {
                                 + '\n\t| | \\| || | | |__/ |'
                                 + '\n\t\\|   \\/ /_|/______/'
                                 + '\n\n\tNMIG - the database migration tool'
-                                + '\n\tCopyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
-                                + '\t--[boot] The configuration has been just loaded.'
+                                + '\n\tCopyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
+                                + '\t--[boot] Configuration has been just loaded.'
                                 + (isExists
                                     ? '\n\t--[boot] NMIG is ready to restart after some failure.'
                                           + '\n\t--[boot] Consider checking log files at the end of migration.'
@@ -70,11 +70,13 @@ module.exports = function(self) {
                                 .resume()
                                 .setEncoding(self._encoding)
                                 .on('data', stdin => {
-                                    if (stdin.indexOf('Y') !== -1) {
-                                        resolve();
-                                    } else {
+                                    if (stdin.indexOf('n') !== -1) {
                                         console.log('\t--[boot] Migration aborted.\n');
                                         process.exit();
+                                    }
+
+                                    if (stdin.indexOf('Y') !== -1) {
+                                        resolve();
                                     }
                                 });
                         }

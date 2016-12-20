@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,10 @@
  */
 'use strict';
 
-const connect       = require('./Connector');
-const log           = require('./Logger');
-const generateError = require('./ErrorGenerator');
+const connect              = require('./Connector');
+const log                  = require('./Logger');
+const generateError        = require('./ErrorGenerator');
+const extraConfigProcessor = require('./ExtraConfigProcessor');
 
 /**
  * Converts MySQL data types to corresponding PostgreSQL data types.
@@ -98,7 +99,8 @@ module.exports.createTable = function(self, tableName) {
                     generateError(self, '\t--[createTable] Cannot connect to MySQL server...\n' + error);
                     rejectCreateTable();
                 } else {
-                    let sql = 'SHOW FULL COLUMNS FROM `' + tableName + '`;';
+                    const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
+                    let sql                 = 'SHOW FULL COLUMNS FROM `' + originalTableName + '`;';
                     connection.query(sql, (err, rows) => {
                         connection.release();
 
@@ -120,8 +122,8 @@ module.exports.createTable = function(self, tableName) {
                                     sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."' + tableName + '"(';
 
                                     for (let i = 0; i < rows.length; ++i) {
-                                        const strConvertedType  = mapDataTypes(self._dataTypesMap, rows[i].Type);
-                                        sql                    += '"' + rows[i].Field + '" ' + strConvertedType + ',';
+                                        sql += '"' + extraConfigProcessor.getColumnName(self, originalTableName, rows[i].Field, false)
+                                            +  '" ' + mapDataTypes(self._dataTypesMap, rows[i].Type) + ',';
                                     }
 
                                     rows = null;

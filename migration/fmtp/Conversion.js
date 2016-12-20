@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software= you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,6 +58,7 @@ module.exports = function Conversion(config) {
     this._mysql                      = null;
     this._pg                         = null;
     this._mysqlVersion               = '5.6.21'; // Simply a default value.
+    this._extraConfig                = this._config.extraConfig;
     this._tablesToMigrate            = [];
     this._viewsToMigrate             = [];
     this._isProcessConstraintsLocked = false;

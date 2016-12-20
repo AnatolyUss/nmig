@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,26 +20,21 @@
  */
 'use strict';
 
-const fs                 = require('fs');
-const path               = require('path');
-const pgCopyStreams      = require('pg-copy-streams');
-const csvStringify       = require('./CsvStringifyModified');
-const log                = require('./Logger');
-const generateError      = require('./ErrorGenerator');
-const connect            = require('./Connector');
-const Conversion         = require('./Conversion');
-const MessageToMaster    = require('./MessageToMaster');
-const enforceConsistency = require('./ConsistencyEnforcer');
-const copyFrom           = pgCopyStreams.from;
-
-const version = +process.version.split('.')[0].slice(1);
-let getBuffer = null;
-
-if (version < 6) {
-    getBuffer = require('./OldBuffer');
-} else {
-    getBuffer = require('./NewBuffer');
-}
+const fs                   = require('fs');
+const path                 = require('path');
+const pgCopyStreams        = require('pg-copy-streams');
+const csvStringify         = require('./CsvStringifyModified');
+const log                  = require('./Logger');
+const generateError        = require('./ErrorGenerator');
+const connect              = require('./Connector');
+const Conversion           = require('./Conversion');
+const MessageToMaster      = require('./MessageToMaster');
+const enforceConsistency   = require('./ConsistencyEnforcer');
+const extraConfigProcessor = require('./ExtraConfigProcessor');
+const copyFrom             = pgCopyStreams.from;
+const getBuffer            = +process.version.split('.')[0].slice(1) < 6
+    ? require('./OldBuffer')
+    : require('./NewBuffer');
 
 process.on('message', signal => {
     const self     = new Conversion(signal.config);
@@ -64,7 +59,7 @@ process.on('message', signal => {
                 }
 
                 const sql = buildChunkQuery(
-                    signal.chunks[i]._tableName,
+                    extraConfigProcessor.getTableName(self, signal.chunks[i]._tableName, true),
                     signal.chunks[i]._selectFieldList,
                     signal.chunks[i]._offset,
                     signal.chunks[i]._rowsInChunk
@@ -231,7 +226,7 @@ function populateTableWorker(self, tableName, strSelectFieldList, offset, rowsIn
                 resolvePopulateTableWorker();
             } else {
                 const csvAddr = path.join(self._tempDirPath, tableName + offset + '.csv');
-                const sql     = buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk);
+                const sql     = buildChunkQuery(extraConfigProcessor.getTableName(self, tableName, true), strSelectFieldList, offset, rowsInChunk);
 
                 connection.query(sql, (err, rows) => {
                     connection.release();

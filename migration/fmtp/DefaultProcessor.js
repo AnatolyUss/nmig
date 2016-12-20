@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright 2016 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,12 @@
  */
 'use strict';
 
-const connect        = require('./Connector');
-const log            = require('./Logger');
-const generateError  = require('./ErrorGenerator');
-const tableProcessor = require('./TableProcessor');
-const mapDataTypes   = tableProcessor.mapDataTypes;
+const connect              = require('./Connector');
+const log                  = require('./Logger');
+const generateError        = require('./ErrorGenerator');
+const extraConfigProcessor = require('./ExtraConfigProcessor');
+const tableProcessor       = require('./TableProcessor');
+const mapDataTypes         = tableProcessor.mapDataTypes;
 
 /**
  * Define which columns of the given table have default value.
@@ -40,6 +41,7 @@ module.exports = function(self, tableName) {
         return new Promise(resolve => {
             log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
             const processDefaultPromises = [];
+            const originalTableName      = extraConfigProcessor.getTableName(self, tableName, true);
             const pgSqlNumericTypes      = ['money', 'numeric', 'decimal', 'double precision', 'real', 'bigint', 'int', 'smallint'];
             const sqlReservedValues      = {
                 'CURRENT_DATE'        : 'CURRENT_DATE',
@@ -67,8 +69,15 @@ module.exports = function(self, tableName) {
                                     resolveProcessDefault();
                                 } else {
                                     const pgSqlDataType = mapDataTypes(self._dataTypesMap, self._dicTables[tableName].arrTableColumns[i].Type);
-                                    let sql             = 'ALTER TABLE "' + self._schema + '"."' + tableName
-                                        + '" ' + 'ALTER COLUMN "' + self._dicTables[tableName].arrTableColumns[i].Field + '" SET DEFAULT ';
+                                    const columnName    = extraConfigProcessor.getColumnName(
+                                        self,
+                                        originalTableName,
+                                        self._dicTables[tableName].arrTableColumns[i].Field,
+                                        false
+                                    );
+
+                                    let sql = 'ALTER TABLE "' + self._schema + '"."' + tableName
+                                        + '" ' + 'ALTER COLUMN "' + columnName + '" SET DEFAULT ';
 
                                     if (sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default]) {
                                         sql += sqlReservedValues[self._dicTables[tableName].arrTableColumns[i].Default] + ';';
@@ -83,14 +92,13 @@ module.exports = function(self, tableName) {
 
                                         if (err) {
                                             const msg2 = '\t--[processDefault] Error occurred when tried to set default value for "'
-                                                    + self._schema + '"."' + tableName
-                                                    + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...\n' + err;
+                                                + self._schema + '"."' + tableName + '"."' + columnName + '"...\n' + err;
 
                                             generateError(self, msg2, sql);
                                             resolveProcessDefault();
                                         } else {
-                                            const success = '\t--[processDefault] Set default value for "' + self._schema + '"."' + tableName
-                                                        + '"."' + self._dicTables[tableName].arrTableColumns[i].Field + '"...';
+                                            const success = '\t--[processDefault] Set default value for "' + self._schema + '"."'
+                                                + tableName + '"."' + columnName + '"...';
 
                                             log(self, success, self._dicTables[tableName].tableLogPath);
                                             resolveProcessDefault();
