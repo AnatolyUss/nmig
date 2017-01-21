@@ -227,7 +227,7 @@ function populateTableWorker(self, tableName, strSelectFieldList, offset, rowsIn
             } else {
                 const csvAddr = path.join(self._tempDirPath, tableName + offset + '.csv');
                 const sql     = buildChunkQuery(extraConfigProcessor.getTableName(self, tableName, true), strSelectFieldList, offset, rowsInChunk);
-
+                
                 connection.query(sql, (err, rows) => {
                     connection.release();
 
@@ -267,7 +267,7 @@ function populateTableWorker(self, tableName, strSelectFieldList, offset, rowsIn
                                                     } else {
                                                         const sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + ',\'' + ' CSV;';
                                                         const copyStream = client.query(copyFrom(sqlCopy));
-                                                        const readStream = fs.createReadStream(csvAddr);
+                                                        const readStream = fs.createReadStream(csvAddr, { encoding: self._encoding });
 
                                                         copyStream.on('end', () => {
                                                             /*

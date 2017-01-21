@@ -66,7 +66,7 @@ function dataPoolProcessed(self) {
 }
 
 /**
- * Instructs DataLoader which data segments should be loaded.
+ * Instructs DataLoader which data chunks should be loaded.
  * No need to check the state-log.
  * If dataPool's length is zero, then nmig will proceed to the next step.
  *
@@ -85,7 +85,7 @@ function pipeData(self, strDataLoaderPath, options, currentIndex) {
 
     if (reachedLastIndex(self, currentIndex)) {
         /*
-         * Not all of data segments were processed, but current "execution branch" has processed all of its segments.
+         * Not all of data chunks were processed, but current "execution branch" has processed all of its chunks.
          * In this case no "loader" process will be spawned.
          * The processConstraints() function will be invoked from another "execution branch".
          */
