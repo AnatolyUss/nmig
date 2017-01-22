@@ -10,7 +10,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    MySQL data types to corresponding PostgreSQL data types, creates constraints,
    indexes, primary and foreign keys exactly as they were before migration.</li>
 
-<li>Ability to rename table and column names during migration.</li>
+<li>Ability to rename tables and columns during migration.</li>
 <li>Ability to recover migration process if disaster took place (without restarting from the beginning).</li>
 <li>Ability to migrate big databases - in order to eliminate "process out of memory" issues NMIG will split each table's data into several chunks.<br>Each group of chunks will be loaded via separate worker process.</li>
 
