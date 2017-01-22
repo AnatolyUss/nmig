@@ -12,18 +12,23 @@
     "tables" : [
         {
             "name" : {
-                "current" : "admins",
+                "original" : "admins",
                 "new" : "renamed_admins"
             },
 
             "columns" : [
                 {
-                    "current" : "username",
+                    "original" : "id",
+                    "new" : "renamed_id"
+                },
+
+                {
+                    "original" : "username",
                     "new" : "renamed_username"
                 },
 
                 {
-                    "current" : "password",
+                    "original" : "password",
                     "new" : "renamed_password"
                 }
             ]
@@ -31,14 +36,14 @@
 
         {
             "name" : {
-                "current" : "groups",
-                "new" : "renamed_groups"
+                "original" : "logs",
+                "new" : "renamed_logs"
             },
 
             "columns" : [
                 {
-                    "current" : "title",
-                    "new" : "renamed_title"
+                    "original" : "id",
+                    "new" : "renamed_id"
                 }
             ]
         }

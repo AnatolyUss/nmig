@@ -8,11 +8,9 @@
             "host"     : "localhost",
             "port"     : 3306,
             "database" : "test_db",
-            "database" : "rightcom_db",
             "charset"  : "UTF8",
             "user"     : "root",
-            "password" : "0123456789",
-            "password" : ""
+            "password" : "0123456789"
     },
 
     "max_pool_size_source_description" : [
@@ -29,11 +27,9 @@
             "host"     : "localhost",
             "port"     : 5432,
             "database" : "test_db",
-            "database" : "rightcom_db",
             "charset"  : "UTF8",
             "user"     : "postgres",
-            "password" : "0123456789",
-            "password" : "7370142533"
+            "password" : "0123456789"
     },
 
     "max_pool_size_target_description" : [
@@ -49,10 +45,10 @@
 
     "max_loader_processes_description" : [
         "Each 'DataPipe' iteration processed by a separate process (o.s. thread).",
-        "max_loader_processes is a maximal amount of simultaneously running loader processes."
-        "If not supplied, then max_loader_processes is one."
+        "max_loader_processes is a maximal amount of simultaneously running loader processes.",
+        "If not supplied, then max_loader_processes will be equals to one."
     ],
-    "max_loader_processes" : 3,
+    "max_loader_processes" : 1,
 
     "loader_max_old_space_size_description" : [
         "V8 memory limit of the loader process.",
@@ -82,19 +78,25 @@
     "no_vacuum_description" : [
         "PostgreSQL VACUUM reclaims storage occupied by dead tuples. VACUUM is a very time-consuming procedure.",
         "By default, VACUUM will be performed automatically after migration (recommended)",
-        "This behavior can be disabled for tables, included into the list (Array) below."
+        "This behavior can be disabled for tables, included into the list (Array) below.",
+        "Table names, included into the list below should be names, you use in your source database (MySQL)."
     ],
     "no_vacuum" : [],
 
     "exclude_tables_description": [
         "List (Array) of tables, that will not be migrated.",
-        "By default, nmig will migrate all tables"
+        "By default, nmig will migrate all tables."
     ],
     "exclude_tables": [],
 
     "migrate_only_data_description" : [
         "In order to skip schema migration, and just migrate data into a preset schema",
-        " - set this parameter true"
+        " - set this parameter true."
     ],
-    "migrate_only_data" : false
+    "migrate_only_data" : false,
+
+    "enable_extra_config_description" : [
+        "In order to enable the additional configuration options - set this parameter true."
+    ],
+    "enable_extra_config" : false
 }
