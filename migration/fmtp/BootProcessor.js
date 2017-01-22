@@ -29,7 +29,7 @@ const connect = require('./Connector');
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             self._pg.connect((error, client, done) => {

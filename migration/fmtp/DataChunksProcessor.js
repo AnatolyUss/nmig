@@ -35,7 +35,7 @@ const extraConfigProcessor = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-module.exports = function(self, tableName, haveDataChunksProcessed) {
+module.exports = (self, tableName, haveDataChunksProcessed) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             if (haveDataChunksProcessed) {

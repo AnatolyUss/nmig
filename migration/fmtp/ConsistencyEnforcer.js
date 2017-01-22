@@ -28,7 +28,7 @@
  *
  * @returns {Promise}
  */
-function updateConsistencyState(self, dataPoolId) {
+const updateConsistencyState = (self, dataPoolId) => {
     return new Promise(resolve => {
         self._pg.connect((error, client, done) => {
             if (error) {
@@ -60,7 +60,7 @@ function updateConsistencyState(self, dataPoolId) {
  *
  * @returns {Promise}
  */
-function getConsistencyState(self, dataPoolId) {
+const getConsistencyState = (self, dataPoolId) => {
     return new Promise(resolve => {
         self._pg.connect((error, client, done) => {
             if (error) {
@@ -96,7 +96,7 @@ function getConsistencyState(self, dataPoolId) {
  *
  * @returns {Promise}
  */
-module.exports = function(self, chunkId) {
+module.exports = (self, chunkId) => {
     return new Promise(resolve => {
         getConsistencyState(self, chunkId).then(isStarted => {
             if (isStarted) {

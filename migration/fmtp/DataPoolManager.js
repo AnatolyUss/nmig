@@ -31,7 +31,7 @@ const generateError = require('./ErrorGenerator');
  *
  * @returns {Promise}
  */
-module.exports.createDataPoolTable = function(self) {
+module.exports.createDataPoolTable = self => {
     return connect(self).then(() => {
         return new Promise((resolve, reject) => {
             self._pg.connect((error, client, done) => {
@@ -66,7 +66,7 @@ module.exports.createDataPoolTable = function(self) {
  *
  * @returns {Promise}
  */
-module.exports.dropDataPoolTable = function(self) {
+module.exports.dropDataPoolTable = self => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
@@ -100,7 +100,7 @@ module.exports.dropDataPoolTable = function(self) {
  *
  * @returns {Promise}
  */
-module.exports.readDataPool = function(self) {
+module.exports.readDataPool = self => {
     return connect(self).then(() => {
         return new Promise((resolve, reject) => {
             self._pg.connect((error, client, done) => {

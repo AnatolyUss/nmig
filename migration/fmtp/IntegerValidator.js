@@ -27,6 +27,6 @@
  *
  * @returns {Boolean}
  */
-module.exports = function(value) {
+module.exports = value => {
     return !isNaN(parseInt(value)) && isFinite(value);
 };

@@ -31,7 +31,7 @@ const log  = require('./Logger');
  *
  * @returns {Promise}
  */
-module.exports.createTemporaryDirectory = function(self) {
+module.exports.createTemporaryDirectory = self => {
     return new Promise((resolve, reject) => {
         log(self, '\t--[DirectoriesManager.createTemporaryDirectory] Creating temporary directory...');
         fs.stat(self._tempDirPath, (directoryDoesNotExist, stat) => {
@@ -65,7 +65,7 @@ module.exports.createTemporaryDirectory = function(self) {
  *
  * @returns {Promise}
  */
-module.exports.removeTemporaryDirectory = function(self) {
+module.exports.removeTemporaryDirectory = self => {
     return new Promise(resolve => {
         fs.readdir(self._tempDirPath, (err, arrContents) => {
             let msg = '';
@@ -112,7 +112,7 @@ module.exports.removeTemporaryDirectory = function(self) {
  *
  * @returns {Promise}
  */
-module.exports.createLogsDirectory = function(self) {
+module.exports.createLogsDirectory = self => {
     return new Promise((resolve, reject) => {
         console.log('\t--[DirectoriesManager.createLogsDirectory] Creating logs directory...');
         fs.stat(self._logsDirPath, (directoryDoesNotExist, stat) => {

@@ -38,7 +38,7 @@ const getBuffer             = +process.version.split('.')[0].slice(1) < 6
  *
  * @returns {String}
  */
-function generateView(schema, viewName, mysqlViewCode) {
+const generateView = (schema, viewName, mysqlViewCode) => {
     mysqlViewCode          = mysqlViewCode.split('`').join('"');
     const queryStart       = mysqlViewCode.indexOf('AS');
     mysqlViewCode          = mysqlViewCode.slice(queryStart);
@@ -66,7 +66,7 @@ function generateView(schema, viewName, mysqlViewCode) {
  *
  * @returns {undefined}
  */
-function logNotCreatedView(self, viewName, sql) {
+const logNotCreatedView = (self, viewName, sql) => {
     fs.stat(self._notCreatedViewsPath, (directoryDoesNotExist, stat) => {
         if (directoryDoesNotExist) {
             fs.mkdir(self._notCreatedViewsPath, self._0777, e => {
@@ -118,11 +118,11 @@ function logNotCreatedView(self, viewName, sql) {
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return migrationStateManager.get(self, 'views_loaded').then(hasViewsLoaded => {
         return new Promise(resolve => {
             const createViewPromises = [];
-
+            
             if (!hasViewsLoaded) {
                 for (let i = 0; i < self._viewsToMigrate.length; ++i) {
                     createViewPromises.push(

@@ -39,7 +39,7 @@ const createTable           = tableProcessor.createTable;
  *
  * @returns {Promise}
  */
-function processTableBeforeDataLoading(self, tableName, stateLog) {
+const processTableBeforeDataLoading = (self, tableName, stateLog) => {
     return connect(self).then(() => {
         return createTable(self, tableName);
     }).then(() => {
@@ -56,7 +56,7 @@ function processTableBeforeDataLoading(self, tableName, stateLog) {
  *
  * @returns {Promise}
  */
-function getMySqlVersion(self) {
+const getMySqlVersion = self => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             self._mysql.getConnection((error, connection) => {
@@ -93,7 +93,7 @@ function getMySqlVersion(self) {
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return getMySqlVersion(self).then(() => {
         return migrationStateManager.get(self, 'tables_loaded').then(haveTablesLoaded => {
             return new Promise((resolve, reject) => {

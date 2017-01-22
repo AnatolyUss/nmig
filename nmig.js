@@ -29,7 +29,7 @@ const main = require('./migration/fmtp/Main');
  *
  * @returns {Promise}
  */
-function readConfig() {
+const readConfig = () => {
     return new Promise((resolve, reject) => {
         const strPathToConfig = path.join(__dirname, 'config.json');
 
@@ -59,7 +59,7 @@ function readConfig() {
  *
  * @returns {Promise}
  */
-function readExtraConfig(config) {
+const readExtraConfig = config => {
     return new Promise((resolve, reject) => {
         if (config.enable_extra_config !== true) {
             config.extraConfig = null;

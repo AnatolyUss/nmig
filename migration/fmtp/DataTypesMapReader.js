@@ -30,7 +30,7 @@ const fs = require('fs');
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return new Promise((resolve, reject) => {
         fs.readFile(self._dataTypesMapAddr, (error, data) => {
             if (error) {

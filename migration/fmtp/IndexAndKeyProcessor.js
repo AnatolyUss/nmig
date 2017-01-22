@@ -33,7 +33,7 @@ const extraConfigProcessor  = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-module.exports = function(self, tableName) {
+module.exports = (self, tableName) => {
     return connect(self).then(() => {
         return new Promise(resolveProcessIndexAndKey => {
             self._mysql.getConnection((error, connection) => {

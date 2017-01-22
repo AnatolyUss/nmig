@@ -34,7 +34,7 @@ const processConstraints  = require('./ConstraintsProcessor');
  *
  * @returns {undefined}
  */
-function killProcess(pid) {
+const killProcess = pid => {
     try {
         process.kill(pid);
     } catch (killError) {
@@ -50,7 +50,7 @@ function killProcess(pid) {
  *
  * @returns {Boolean}
  */
-function reachedLastIndex(self, currentIndex) {
+const reachedLastIndex = (self, currentIndex) => {
     return self._dataPool.length <= currentIndex;
 }
 
@@ -61,7 +61,7 @@ function reachedLastIndex(self, currentIndex) {
  *
  * @returns {Boolean}
  */
-function dataPoolProcessed(self) {
+const dataPoolProcessed = self => {
     return self._processedChunks >= self._dataPool.length;
 }
 
@@ -77,7 +77,7 @@ function dataPoolProcessed(self) {
  *
  * @returns {undefined}
  */
-function pipeData(self, strDataLoaderPath, options, currentIndex) {
+const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
     if (dataPoolProcessed(self) && !self._isProcessConstraintsLocked) {
         self._isProcessConstraintsLocked = true;
         return processConstraints(self);
@@ -120,7 +120,7 @@ function pipeData(self, strDataLoaderPath, options, currentIndex) {
  *
  * @returns {undefined}
  */
-module.exports = function(self) {
+module.exports = self => {
     if (self._dataPool.length === 0) {
         return processConstraints(self);
     }

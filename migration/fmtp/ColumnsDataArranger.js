@@ -28,7 +28,7 @@
  *
  * @returns {String}
  */
-module.exports = function(arrTableColumns, mysqlVersion) {
+module.exports = (arrTableColumns, mysqlVersion) => {
     let strRetVal = '';
 
     for (let i = 0; i < arrTableColumns.length; ++i) {

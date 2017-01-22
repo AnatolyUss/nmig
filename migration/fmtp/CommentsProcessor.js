@@ -33,7 +33,7 @@ const extraConfigProcessor  = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-function processTableComments(self, tableName) {
+const processTableComments = (self, tableName) => {
     return new Promise(resolve => {
         self._mysql.getConnection((error, connection) => {
             if (error) {
@@ -94,7 +94,7 @@ function processTableComments(self, tableName) {
  *
  * @returns {Promise}
  */
-function processColumnsComments(self, tableName) {
+const processColumnsComments = (self, tableName) => {
     return new Promise(resolve => {
         const arrCommentPromises = [];
         const originalTableName  = extraConfigProcessor.getTableName(self, tableName, true);
@@ -154,7 +154,7 @@ function processColumnsComments(self, tableName) {
  *
  * @returns {Promise}
  */
-module.exports = function(self, tableName) {
+module.exports = (self, tableName) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             const msg = '\t--[CommentsProcessor] Creates comments for table "' + self._schema + '"."' + tableName + '"...';

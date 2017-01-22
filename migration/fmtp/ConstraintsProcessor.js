@@ -41,7 +41,7 @@ const processViews            = require('./ViewGenerator');
  *
  * @returns {undefined}
  */
-function continueProcessAfterDataLoadingShort(self) {
+const continueProcessAfterDataLoadingShort = self => {
     const promises = [];
 
     for (let i = 0; i < self._tablesToMigrate.length; ++i) {
@@ -69,7 +69,7 @@ function continueProcessAfterDataLoadingShort(self) {
  *
  * @returns {undefined}
  */
-function continueProcessAfterDataLoadingLong(self) {
+const continueProcessAfterDataLoadingLong = self => {
     migrationStateManager.get(self, 'per_table_constraints_loaded').then(isTableConstraintsLoaded => {
         const promises = [];
 
@@ -123,7 +123,7 @@ function continueProcessAfterDataLoadingLong(self) {
  *
  * @returns {undefined}
  */
-module.exports = function(self) {
+module.exports = self => {
     if (self._migrateOnlyData) {
         continueProcessAfterDataLoadingShort(self);
     } else {

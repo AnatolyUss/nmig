@@ -35,13 +35,13 @@ const generateReport = require('./ReportGenerator');
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return new Promise(resolve => {
         const mysqlConnectionPromise = new Promise((mysqlResolve, mysqlReject) => {
             if (!self._mysql) {
                 self._sourceConString.connectionLimit = self._maxPoolSizeSource;
                 const pool                            = mysql.createPool(self._sourceConString);
-
+                
                 if (pool) {
                     self._mysql = pool;
                     mysqlResolve();

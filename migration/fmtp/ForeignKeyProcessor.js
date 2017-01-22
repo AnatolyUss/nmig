@@ -34,7 +34,7 @@ const extraConfigProcessor  = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-function processForeignKeyWorker(self, tableName, rows) {
+const processForeignKeyWorker = (self, tableName, rows) => {
     return new Promise(resolve => {
         const constraintsPromises = [];
         const objConstraints      = Object.create(null);
@@ -50,7 +50,7 @@ function processForeignKeyWorker(self, tableName, rows) {
                 rows[i].REFERENCED_COLUMN_NAME,
                 false
             );
-            
+
             if (rows[i].CONSTRAINT_NAME in objConstraints) {
                 objConstraints[rows[i].CONSTRAINT_NAME].column_name.push('"' + currentColumnName + '"');
                 objConstraints[rows[i].CONSTRAINT_NAME].referenced_column_name.push('"' + currentReferencedColumnName + '"');
@@ -108,7 +108,7 @@ function processForeignKeyWorker(self, tableName, rows) {
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return migrationStateManager.get(self, 'foreign_keys_loaded').then(isForeignKeysProcessed => {
         return new Promise(resolve => {
             const fkPromises = [];

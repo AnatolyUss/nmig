@@ -32,7 +32,7 @@ const generateError = require('./ErrorGenerator');
  *
  * @returns {Promise}
  */
-module.exports.get = function(self, param) {
+module.exports.get = (self, param) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
@@ -66,7 +66,7 @@ module.exports.get = function(self, param) {
  *
  * @returns {Promise}
  */
-module.exports.set = function(self, param) {
+module.exports.set = (self, param) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
@@ -99,7 +99,7 @@ module.exports.set = function(self, param) {
  *
  * @returns {Promise}
  */
-module.exports.createStateLogsTable = function(self) {
+module.exports.createStateLogsTable = self => {
     return connect(self).then(() => {
         return new Promise((resolve, reject) => {
             self._pg.connect((error, client, done) => {
@@ -168,7 +168,7 @@ module.exports.createStateLogsTable = function(self) {
  *
  * @returns {Promise}
  */
-module.exports.dropStateLogsTable = function(self) {
+module.exports.dropStateLogsTable = self => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             self._pg.connect((error, client, done) => {

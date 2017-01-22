@@ -35,7 +35,7 @@ const extraConfigProcessor = require('./ExtraConfigProcessor');
  *
  * @returns {String}
  */
-function mapDataTypes(objDataTypesMap, mySqlDataType) {
+const mapDataTypes = (objDataTypesMap, mySqlDataType) => {
     let retVal                 = '';
     let arrDataTypeDetails     = mySqlDataType.split(' ');
     mySqlDataType              = arrDataTypeDetails[0].toLowerCase();
@@ -89,7 +89,7 @@ module.exports.mapDataTypes = mapDataTypes;
  *
  * @returns {Promise}
  */
-module.exports.createTable = function(self, tableName) {
+module.exports.createTable = (self, tableName) => {
     return connect(self).then(() => {
         return new Promise((resolveCreateTable, rejectCreateTable) => {
             log(self, '\t--[createTable] Currently creating table: `' + tableName + '`', self._dicTables[tableName].tableLogPath);

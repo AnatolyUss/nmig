@@ -33,7 +33,7 @@ const extraConfigProcessor = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-module.exports.setSequenceValue = function(self, tableName) {
+module.exports.setSequenceValue = (self, tableName) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             let hasAutoIncrementColumnFound = false;
@@ -99,12 +99,12 @@ module.exports.setSequenceValue = function(self, tableName) {
  *
  * @returns {Promise}
  */
-module.exports.createSequence = function(self, tableName) {
+module.exports.createSequence = (self, tableName) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             const createSequencePromises = [];
             const originalTableName      = extraConfigProcessor.getTableName(self, tableName, true);
-
+            
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
                     createSequencePromises.push(

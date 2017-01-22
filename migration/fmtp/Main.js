@@ -40,9 +40,9 @@ const boot                    = require('./BootProcessor');
  *
  * @returns {undefined}
  */
-module.exports = function(config) {
+module.exports = config => {
     const self = new Conversion(config);
-
+    
     boot(self).then(() => {
         return readDataTypesMap(self);
     }).then(

@@ -29,7 +29,7 @@
  *
  * @returns {String}
  */
-module.exports.getTableName = function(self, currentTableName, shouldGetOriginal) {
+module.exports.getTableName = (self, currentTableName, shouldGetOriginal) => {
     if (self._extraConfig !== null && 'tables' in self._extraConfig) {
         for (let i = 0; i < self._extraConfig.tables.length; ++i) {
             if ((shouldGetOriginal ? self._extraConfig.tables[i].name.new : self._extraConfig.tables[i].name.original) === currentTableName) {
@@ -51,7 +51,7 @@ module.exports.getTableName = function(self, currentTableName, shouldGetOriginal
  *
  * @returns {String}
  */
-module.exports.getColumnName = function(self, originalTableName, currentColumnName, shouldGetOriginal) {
+module.exports.getColumnName = (self, originalTableName, currentColumnName, shouldGetOriginal) => {
     if (self._extraConfig !== null && 'tables' in self._extraConfig) {
         for (let i = 0; i < self._extraConfig.tables.length; ++i) {
             if (self._extraConfig.tables[i].name.original === originalTableName && 'columns' in self._extraConfig.tables[i]) {

@@ -31,7 +31,7 @@ const directoriesManager = require('./DirectoriesManager');
  *
  * @returns {Promise}
  */
-function closeConnections(self) {
+const closeConnections = self => {
     return new Promise(resolve => {
         if (self._mysql) {
             self._mysql.end(error => {
@@ -58,7 +58,7 @@ function closeConnections(self) {
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return new Promise(resolve => {
         log(self, '\t--[cleanup] Cleanup resources...');
         return directoriesManager.removeTemporaryDirectory(self).then(() => {

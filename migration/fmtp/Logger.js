@@ -37,7 +37,7 @@ const getBuffer = +process.version.split('.')[0].slice(1) < 6
  *
  * @returns {undefined}
  */
-module.exports = function(self, log, tableLogPath, isErrorLog) {
+module.exports = (self, log, tableLogPath, isErrorLog) => {
     let buffer = getBuffer(log + '\n\n', self._encoding);
 
     if (!isErrorLog) {

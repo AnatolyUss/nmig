@@ -32,11 +32,11 @@ const extraConfigProcessor = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-module.exports = function(self) {
+module.exports = self => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             const vacuumPromises = [];
-
+            
             for (let i = 0; i < self._tablesToMigrate.length; ++i) {
                 if (self._noVacuum.indexOf(extraConfigProcessor.getTableName(self, self._tablesToMigrate[i], true)) === -1) {
                     const msg = '\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table "'

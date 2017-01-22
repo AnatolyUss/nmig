@@ -30,7 +30,7 @@ const log = require('./Logger');
  *
  * @returns {undefined}
  */
-module.exports = function(self, endMsg) {
+module.exports = (self, endMsg) => {
     let differenceSec = ((new Date()) - self._timeBegin) / 1000;
     let seconds       = Math.floor(differenceSec % 60);
     differenceSec     = differenceSec / 60;

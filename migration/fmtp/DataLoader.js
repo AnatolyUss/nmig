@@ -89,7 +89,7 @@ process.on('message', signal => {
  *
  * @returns {Promise}
  */
-function deleteChunk(self, dataPoolId, client, done) {
+const deleteChunk = (self, dataPoolId, client, done) => {
     return new Promise(resolve => {
         if (client) {
             const sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
@@ -136,7 +136,7 @@ function deleteChunk(self, dataPoolId, client, done) {
  *
  * @returns {Promise}
  */
-function deleteCsv(csvAddr, fd) {
+const deleteCsv = (csvAddr, fd) => {
     return new Promise(resolve => {
         fs.unlink(csvAddr, () => {
             fs.close(fd, () => {
@@ -156,7 +156,7 @@ function deleteCsv(csvAddr, fd) {
  *
  * @returns {String}
  */
-function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
+const buildChunkQuery = (tableName, strSelectFieldList, offset, rowsInChunk) => {
     return 'SELECT ' + strSelectFieldList + ' FROM `' + tableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
 }
 
@@ -174,7 +174,7 @@ function buildChunkQuery(tableName, strSelectFieldList, offset, rowsInChunk) {
  *
  * @returns {undefined}
  */
-function deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, callback) {
+const deleteChunkAndCsv = (self, dataPoolId, client, done, csvAddr, fd, callback) => {
     deleteChunk(self, dataPoolId, client, done).then(() => {
         deleteCsv(csvAddr, fd).then(() => callback());
     });
@@ -197,7 +197,7 @@ function deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, callback
  *
  * @returns {undefined}
  */
-function processDataError(self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, callback) {
+const processDataError = (self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, callback) => {
     generateError(self, '\t--[populateTableWorker] ' + streamError, sqlCopy);
     const rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
     log(self, rejectedData, path.join(self._logsDirPath, tableName + '.log'));
@@ -217,7 +217,7 @@ function processDataError(self, streamError, sql, sqlCopy, tableName, dataPoolId
  *
  * @returns {Promise}
  */
-function populateTableWorker(self, tableName, strSelectFieldList, offset, rowsInChunk, rowsCnt, dataPoolId) {
+const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsInChunk, rowsCnt, dataPoolId) => {
     return new Promise(resolvePopulateTableWorker => {
         self._mysql.getConnection((error, connection) => {
             if (error) {
@@ -227,7 +227,7 @@ function populateTableWorker(self, tableName, strSelectFieldList, offset, rowsIn
             } else {
                 const csvAddr = path.join(self._tempDirPath, tableName + offset + '.csv');
                 const sql     = buildChunkQuery(extraConfigProcessor.getTableName(self, tableName, true), strSelectFieldList, offset, rowsInChunk);
-                
+
                 connection.query(sql, (err, rows) => {
                     connection.release();
 

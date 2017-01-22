@@ -29,7 +29,7 @@ const path = require('path');
  *
  * @returns {Boolean}
  */
-function isIntNumeric(value) {
+const isIntNumeric = value => {
     return !isNaN(parseInt(value)) && isFinite(value);
 }
 

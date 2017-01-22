@@ -36,7 +36,7 @@ const getBuffer = +process.version.split('.')[0].slice(1) < 6
  *
  * @returns {undefined}
  */
-module.exports = function(self, message, sql) {
+module.exports = (self, message, sql) => {
     message    += '\n\n\tSQL: ' + (sql || '') + '\n\n';
     let buffer  = getBuffer(message, self._encoding);
     log(self, message, undefined, true);

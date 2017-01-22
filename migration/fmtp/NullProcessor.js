@@ -34,13 +34,13 @@ const extraConfigProcessor = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-module.exports = function(self, tableName) {
+module.exports = (self, tableName) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             log(self, '\t--[processNull] Defines "NOT NULLs" for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
             const processNullPromises = [];
             const originalTableName   = extraConfigProcessor.getTableName(self, tableName, true);
-
+            
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Null.toLowerCase() === 'no') {
                     processNullPromises.push(

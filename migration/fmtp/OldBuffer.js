@@ -28,6 +28,6 @@
  *
  * @returns {Buffer}
  */
-module.exports = function(string, encoding) {
+module.exports = (string, encoding) => {
     return new Buffer(string, encoding);
 };

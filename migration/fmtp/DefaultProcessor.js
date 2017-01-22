@@ -36,7 +36,7 @@ const mapDataTypes         = tableProcessor.mapDataTypes;
  *
  * @returns {Promise}
  */
-module.exports = function(self, tableName) {
+module.exports = (self, tableName) => {
     return connect(self).then(() => {
         return new Promise(resolve => {
             log(self, '\t--[processDefault] Defines default values for table: "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
