@@ -10,10 +10,11 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    MySQL data types to corresponding PostgreSQL data types, creates constraints,
    indexes, primary and foreign keys exactly as they were before migration.</li>
 
+<li>Ability to rename table and column names during migration.</li>
+<li>Ability to recover migration process if disaster took place (without restarting from the beginning).</li>
 <li>Ability to migrate big databases - in order to eliminate "process out of memory" issues NMIG will split each table's data into several chunks.<br>Each group of chunks will be loaded via separate worker process.</li>
 
 <li> Speed of data transfer - in order to migrate data fast NMIG uses PostgreSQL COPY protocol.</li>
-<li>Ability to recover migration process if disaster took place (without restarting from the beginning).</li>
 <li>Ease of monitoring - NMIG will provide detailed output about every step, it takes during the execution.</li>
 <li>
  Ease of configuration - all the parameters required for migration should be put in one single JSON document.
@@ -60,16 +61,16 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
-<p>Current version is 2.3.0<br />
+<p>Current version is 2.4.0<br />
 (major version . improvements . bug fixes)</p>
 
 
 <h3>TEST</h3>
-<p>Tested using MySQL Community Server (5.6.21) and PostgreSQL (9.3).<br />
-The entire process of migration 59.6 MB database (52 tables, 570754 rows),<br />
+<p>Tested using MySQL Community Server (5.7.17) and PostgreSQL (9.5).<br />
+The entire process of migration 59.9 MB database (53 tables, 581275 rows),<br />
 which includes data types mapping, creation of tables, constraints, indexes, <br />
 PKs, FKs, migration of data, garbage-collection (VACUUM) and analyzing the newly created <br />
-PostgreSQL database took 1 minute 18 seconds.</p>
+PostgreSQL database took 1 minute 2 seconds.</p>
 <p>
 <b>Note:</b>&nbsp; it is highly recommended to VACUUM newly created database! <br />
 Just keep in mind, that VACUUM is a very time-consuming procedure. <br />
