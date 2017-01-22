@@ -76,7 +76,6 @@ PostgreSQL database took 1 minute 2 seconds.</p>
 Just keep in mind, that VACUUM is a very time-consuming procedure. <br />
 So if you are short in time - disable VACUUM via config.json ("no_vacuum" parameter). <br />
 Such step will save you ~25% of migration time. <br />
-The migration process described above without VACUUM took 58 seconds only.
 </p>
 
 <h3>REMARKS</h3>
