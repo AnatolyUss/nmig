@@ -29,7 +29,8 @@ const generateError        = require('./ErrorGenerator');
 const connect              = require('./Connector');
 const Conversion           = require('./Conversion');
 const MessageToMaster      = require('./MessageToMaster');
-const enforceConsistency   = require('./ConsistencyEnforcer');
+const consistencyEnforcer  = require('./ConsistencyEnforcer');
+const enforceConsistency   = consistencyEnforcer.enforceConsistency;
 const extraConfigProcessor = require('./ExtraConfigProcessor');
 const copyFrom             = pgCopyStreams.from;
 const getBuffer            = +process.version.split('.')[0].slice(1) < 6
@@ -44,7 +45,7 @@ process.on('message', signal => {
     for (let i = 0; i < signal.chunks.length; ++i) {
         promises.push(
             connect(self).then(() => {
-                return enforceConsistency(self, signal.chunks[i]._id);
+                return enforceConsistency(self, signal.chunks[i]);
             }).then(isNormalFlow => {
                 if (isNormalFlow) {
                     return populateTableWorker(
@@ -58,19 +59,6 @@ process.on('message', signal => {
                     );
                 }
 
-                const sql = buildChunkQuery(
-                    extraConfigProcessor.getTableName(self, signal.chunks[i]._tableName, true),
-                    signal.chunks[i]._selectFieldList,
-                    signal.chunks[i]._offset,
-                    signal.chunks[i]._rowsInChunk
-                );
-
-                const strTwelveSpaces = '            ';
-                const rejectedData    = '\n\t--[loadData] Possible data duplication alert!\n\t ' + strTwelveSpaces
-                                    + 'Data, retrievable by following MySQL query:\n' + sql + '\n\t ' + strTwelveSpaces
-                                    + 'may already be migrated.\n\t' + strTwelveSpaces + ' Please, check it.';
-
-                log(self, rejectedData, path.join(self._logsDirPath, signal.chunks[i]._tableName + '.log'));
                 return deleteChunk(self, signal.chunks[i]._id);
             })
         );
@@ -225,8 +213,9 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                 generateError(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
                 resolvePopulateTableWorker();
             } else {
-                const csvAddr = path.join(self._tempDirPath, tableName + offset + '.csv');
-                const sql     = buildChunkQuery(extraConfigProcessor.getTableName(self, tableName, true), strSelectFieldList, offset, rowsInChunk);
+                const csvAddr           = path.join(self._tempDirPath, tableName + offset + '.csv');
+                const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
+                const sql               = buildChunkQuery(originalTableName, strSelectFieldList, offset, rowsInChunk);
 
                 connection.query(sql, (err, rows) => {
                     connection.release();
@@ -235,7 +224,8 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                         generateError(self, '\t--[populateTableWorker] ' + err, sql);
                         resolvePopulateTableWorker();
                     } else {
-                        rowsInChunk = rows.length;
+                        rowsInChunk                                                             = rows.length;
+                        rows[0][self._schema + '_' + originalTableName + '_data_chunk_id_temp'] = dataPoolId;
 
                         csvStringify(rows, (csvError, csvString) => {
                             rows = null;

@@ -20,6 +20,9 @@
  */
 'use strict';
 
+const generateError        = require('./ErrorGenerator');
+const extraConfigProcessor = require('./ExtraConfigProcessor');
+
 /**
  * Update consistency state.
  *
@@ -53,14 +56,15 @@ const updateConsistencyState = (self, dataPoolId) => {
 }
 
 /**
- * Get consistency state.
+ * Get the `is_started` value of current chunk.
  *
  * @param {Conversion} self
  * @param {Number}     dataPoolId
  *
  * @returns {Promise}
  */
-const getConsistencyState = (self, dataPoolId) => {
+
+const getIsStarted = (self, dataPoolId) => {
     return new Promise(resolve => {
         self._pg.connect((error, client, done) => {
             if (error) {
@@ -86,26 +90,122 @@ const getConsistencyState = (self, dataPoolId) => {
 }
 
 /**
+ * Current data chunk runs after a disaster recovery.
+ * Must determine if current chunk has already been loaded.
+ * This is in order to prevent possible data duplications.
+ *
+ * @param {Conversion} self
+ * @param {Object}     chunk
+ *
+ * @returns {Promise}
+ */
+const hasCurrentChunkLoaded = (self, chunk) => {
+    return new Promise(resolve => {
+        self._pg.connect((pgError, client, done) => {
+            if (pgError) {
+                generateError(self, '\t--[ConsistencyEnforcer::hasCurrentChunkLoaded] Cannot connect to PostgreSQL server...\n' + pgError);
+                resolve(true);
+            } else {
+                const originalTableName = extraConfigProcessor.getTableName(self, chunk._tableName, true);
+                const sql               = 'SELECT EXISTS(SELECT 1 FROM "' + self._schema + '"."' + chunk._tableName
+                    + '" WHERE "' + self._schema + '_' + originalTableName + '_data_chunk_id_temp" = ' + chunk._id + ');';
+
+                client.query(sql, (err, result) => {
+                    done();
+
+                    if (err) {
+                        generateError(self, '\t--[ConsistencyEnforcer::hasCurrentChunkLoaded] ' + err, sql);
+                        resolve(true);
+                    } else {
+                        resolve(!!result.rows[0].exists);
+                    }
+                });
+            }
+        });
+    });
+}
+
+/**
+ * Get consistency state.
+ *
+ * @param {Conversion} self
+ * @param {Object}     chunk
+ *
+ * @returns {Promise}
+ */
+const getConsistencyState = (self, chunk) => {
+    return new Promise(resolve => {
+        getIsStarted(self, chunk._id).then(isStarted => {
+            if (isStarted) {
+                hasCurrentChunkLoaded(self, chunk).then(result => resolve(result));
+            } else {
+                // Normal migration flow.
+                resolve(false);
+            }
+        });
+    });
+}
+
+/**
  * Enforce consistency before processing a chunk of data.
  * Ensure there are no any data duplications.
  * In case of normal execution - it is a good practice.
  * In case of rerunning nmig after unexpected failure - it is absolutely mandatory.
  *
  * @param {Conversion} self
- * @param {Number}     chunkId
+ * @param {Object}     chunk
  *
  * @returns {Promise}
  */
-module.exports = (self, chunkId) => {
+module.exports.enforceConsistency = (self, chunk) => {
     return new Promise(resolve => {
-        getConsistencyState(self, chunkId).then(isStarted => {
-            if (isStarted) {
-                // Current data chunk runs after a disaster recovery.
+        getConsistencyState(self, chunk).then(hasAlreadyBeenLoaded => {
+            if (hasAlreadyBeenLoaded) {
+                /*
+                 * Current data chunk runs after a disaster recovery.
+                 * It has already been loaded.
+                 */
                 resolve(false);
             } else {
                 // Normal migration flow.
-                updateConsistencyState(self, chunkId).then(() => resolve(true));
+                updateConsistencyState(self, chunk._id).then(() => resolve(true));
             }
         })
+    });
+};
+
+/**
+ * Drop the {self._schema + '_' + originalTableName + '_data_chunk_id_temp'} column from current table.
+ *
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
+ * @returns {Promise}
+ */
+module.exports.dropDataChunkIdColumn = (self, tableName) => {
+    return new Promise(resolve => {
+        self._pg.connect((pgError, client, done) => {
+            if (pgError) {
+                generateError(self, '\t--[ConsistencyEnforcer::dropDataChunkIdColumn] Cannot connect to PostgreSQL server...\n' + pgError);
+                resolve();
+            } else {
+                const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
+                const columnToDrop      = self._schema + '_' + originalTableName + '_data_chunk_id_temp';
+                const sql               = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" DROP COLUMN "' + columnToDrop + '";';
+
+                client.query(sql, (err, result) => {
+                    done();
+
+                    if (err) {
+                        const errMsg = '\t--[ConsistencyEnforcer::dropDataChunkIdColumn] Failed to drop column "' + columnToDrop + '"\n'
+                            + '\t--[ConsistencyEnforcer::dropDataChunkIdColumn] '+ err;
+
+                        generateError(self, errMsg, sql);
+                    }
+
+                    resolve();
+                });
+            }
+        });
     });
 };

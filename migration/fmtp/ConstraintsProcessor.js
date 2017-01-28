@@ -33,6 +33,8 @@ const processIndexAndKey      = require('./IndexAndKeyProcessor');
 const processComments         = require('./CommentsProcessor');
 const processForeignKey       = require('./ForeignKeyProcessor');
 const processViews            = require('./ViewGenerator');
+const consistencyEnforcer     = require('./ConsistencyEnforcer');
+const dropDataChunkIdColumn   = consistencyEnforcer.dropDataChunkIdColumn;
 
 /**
  * Continues migration process after data loading, when migrate_only_data is true.
@@ -46,7 +48,11 @@ const continueProcessAfterDataLoadingShort = self => {
 
     for (let i = 0; i < self._tablesToMigrate.length; ++i) {
         const tableName = self._tablesToMigrate[i];
-        promises.push(sequencesProcessor.setSequenceValue(self, tableName));
+        promises.push(
+            dropDataChunkIdColumn(self, tableName).then(() => {
+                return sequencesProcessor.setSequenceValue(self, tableName);
+            })
+        );
     }
 
     Promise.all(promises).then(() => {
@@ -77,7 +83,9 @@ const continueProcessAfterDataLoadingLong = self => {
             for (let i = 0; i < self._tablesToMigrate.length; ++i) {
                 const tableName = self._tablesToMigrate[i];
                 promises.push(
-                    processEnum(self, tableName).then(() => {
+                    dropDataChunkIdColumn(self, tableName).then(() => {
+                        return processEnum(self, tableName);
+                    }).then(() => {
                         return processNull(self, tableName);
                     }).then(() => {
                         return processDefault(self, tableName);

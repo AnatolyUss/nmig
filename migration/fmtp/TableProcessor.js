@@ -126,8 +126,8 @@ module.exports.createTable = (self, tableName) => {
                                             +  '" ' + mapDataTypes(self._dataTypesMap, rows[i].Type) + ',';
                                     }
 
-                                    rows = null;
-                                    sql  = sql.slice(0, -1) + ');';
+                                    sql += '"' + self._schema + '_' + originalTableName + '_data_chunk_id_temp" BIGINT);';
+                                    
                                     client.query(sql, err => {
                                         done();
 
