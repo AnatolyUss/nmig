@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ module.exports = self => {
             if (!self._mysql) {
                 self._sourceConString.connectionLimit = self._maxPoolSizeSource;
                 const pool                            = mysql.createPool(self._sourceConString);
-                
+
                 if (pool) {
                     self._mysql = pool;
                     mysqlResolve();

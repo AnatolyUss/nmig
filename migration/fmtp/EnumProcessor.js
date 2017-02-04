@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@ module.exports = (self, tableName) => {
             log(self, '\t--[processEnum] Defines "ENUMs" for table "' + self._schema + '"."' + tableName + '"', self._dicTables[tableName].tableLogPath);
             const processEnumPromises = [];
             const originalTableName   = extraConfigProcessor.getTableName(self, tableName, true);
-            
+
             for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
                 if (self._dicTables[tableName].arrTableColumns[i].Type.indexOf('(') !== -1) {
                     const arrType = self._dicTables[tableName].arrTableColumns[i].Type.split('(');

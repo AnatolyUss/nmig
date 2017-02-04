@@ -61,7 +61,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
-<p>Current version is 2.5.0<br />
+<p>Current version is 2.6.0<br />
 (major version . improvements . bug fixes)</p>
 
 

@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software= you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -93,4 +93,8 @@ module.exports = function Conversion(config) {
     this._maxLoaderProcesses         = this._config.max_loader_processes !== undefined && isIntNumeric(this._config.max_loader_processes)
         ? +this._config.max_loader_processes
         : 1;
+
+    this._delimiter                  = this._config.delimiter !== undefined && this._config.delimiter.length === 1
+        ? this._config.delimiter
+        : ',';
 };

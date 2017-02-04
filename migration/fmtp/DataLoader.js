@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -255,7 +255,7 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                                         generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
                                                         deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
                                                     } else {
-                                                        const sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + ',\'' + ' CSV;';
+                                                        const sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + self._delimiter + '\' CSV;';
                                                         const copyStream = client.query(copyFrom(sqlCopy));
                                                         const readStream = fs.createReadStream(csvAddr, { encoding: self._encoding });
 

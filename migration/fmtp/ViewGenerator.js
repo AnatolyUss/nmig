@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -122,7 +122,7 @@ module.exports = self => {
     return migrationStateManager.get(self, 'views_loaded').then(hasViewsLoaded => {
         return new Promise(resolve => {
             const createViewPromises = [];
-            
+
             if (!hasViewsLoaded) {
                 for (let i = 0; i < self._viewsToMigrate.length; ++i) {
                     createViewPromises.push(

@@ -1,7 +1,7 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
- * Copyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>
+ * Copyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -127,7 +127,7 @@ module.exports.createTable = (self, tableName) => {
                                     }
 
                                     sql += '"' + self._schema + '_' + originalTableName + '_data_chunk_id_temp" BIGINT);';
-                                    
+
                                     client.query(sql, err => {
                                         done();
 

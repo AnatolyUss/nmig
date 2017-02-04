@@ -95,6 +95,13 @@
     ],
     "migrate_only_data" : false,
 
+    "delimiter_description" : [
+      "Specifies the character that separates columns within each record.",
+      "This must be a single one-byte character.",
+      "The default is comma."
+    ],
+    "delimiter" : ",",
+
     "enable_extra_config_description" : [
         "In order to enable the additional configuration options - set this parameter true."
     ],
