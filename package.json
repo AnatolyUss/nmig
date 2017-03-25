@@ -1,6 +1,6 @@
 {
   "name": "nmig",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "The database migration app",
   "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
   "dependencies": {
@@ -9,3 +9,4 @@
     "pg-copy-streams": "*"
   }
 }
+
