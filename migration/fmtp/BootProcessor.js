@@ -56,7 +56,7 @@ module.exports = self => {
                                 + '\n\t| | \\| || | | |__/ |'
                                 + '\n\t\\|   \\/ /_|/______/'
                                 + '\n\n\tNMIG - the database migration tool'
-                                + '\n\tCopyright (C) 2016 - 2017 Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
+                                + '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
                                 + '\t--[boot] Configuration has been just loaded.'
                                 + (isExists
                                     ? '\n\t--[boot] NMIG is ready to restart after some failure.'
