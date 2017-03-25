@@ -8,11 +8,23 @@
  util = require('util');
 
  module.exports = function() {
-   var callback, chunks, data, options, stringifier;
+   var callback, chunks, data, options, stringifier, encoding;
    if (arguments.length === 3) {
-     data = arguments[0];
+     // Original version.
+     /*data = arguments[0];
      options = arguments[1];
-     callback = arguments[2];
+     callback = arguments[2];*/
+     if (Array.isArray(arguments[0])) {
+       data = arguments[0];
+     } else {
+       options = arguments[0];
+     }
+     if (typeof arguments[1] === 'function') {
+       callback = arguments[1];
+     } else {
+       options = arguments[1];
+     }
+     encoding = arguments[2];
    } else if (arguments.length === 2) {
      if (Array.isArray(arguments[0])) {
        data = arguments[0];
@@ -36,7 +48,10 @@
    if (options == null) {
      options = {};
    }
+
    stringifier = new Stringifier(options);
+   stringifier._encoding = encoding;
+
    if (data) {
      process.nextTick(function() {
        var d, j, len;
@@ -254,6 +269,7 @@
          field = JSON.stringify(field);
        }
        if (field) {
+         field = this._encoding === 'utf8' ? field.replace(/\u0000/g, ' ') : field;
          containsdelimiter = field.indexOf(delimiter) >= 0;
          containsQuote = field.indexOf(quote) >= 0;
          containsLinebreak = field.indexOf('\r') >= 0 || field.indexOf('\n') >= 0;
@@ -268,7 +284,7 @@
        } else if (this.options.quotedEmpty || ((this.options.quotedEmpty == null) && line[i] === '' && this.options.quotedString)) {
          newLine += quote + quote;
        }
-       
+
        if (i !== line.length - 1) {
          newLine += delimiter;
        }

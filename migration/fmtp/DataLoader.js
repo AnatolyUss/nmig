@@ -285,7 +285,7 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                     }
                                 });
                             }
-                        });
+                        }, self._encoding);
                     }
                 });
             }
