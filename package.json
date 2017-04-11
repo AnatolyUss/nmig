@@ -1,12 +1,16 @@
 {
-  "name": "nmig",
-  "version": "2.6.1",
-  "description": "The database migration app",
-  "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
-  "dependencies": {
-    "mysql": "*",
-    "pg": "*",
-    "pg-copy-streams": "*"
-  }
+    "name": "nmig",
+    "version": "2.6.1",
+    "description": "The database migration app",
+    "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
+    "license": "GPL-3.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/AnatolyUss/nmig.git"
+    },
+    "dependencies": {
+        "mysql": "*",
+        "pg": "*",
+        "pg-copy-streams": "*"
+    }
 }
-
