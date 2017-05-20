@@ -76,7 +76,7 @@ module.exports = self => {
                                     }
 
                                     if (stdin.indexOf('Y') !== -1) {
-                                        resolve();
+                                        resolve(self);
                                     }
                                 });
                         }

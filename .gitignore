@@ -1,0 +1,4 @@
+.idea
+node_modules
+logs_directory
+temporary_directory

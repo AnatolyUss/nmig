@@ -96,12 +96,12 @@ const getMySqlVersion = self => {
 module.exports = self => {
     return getMySqlVersion(self).then(() => {
         return migrationStateManager.get(self, 'tables_loaded').then(haveTablesLoaded => {
-            return new Promise((resolve, reject) => {
+            return new Promise(resolve => {
                 self._mysql.getConnection((error, connection) => {
                     if (error) {
                         // The connection is undefined.
                         generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
-                        reject();
+                        process.exit();
                     } else {
                         const sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
                         connection.query(sql, (strErr, rows) => {
@@ -109,7 +109,7 @@ module.exports = self => {
 
                             if (strErr) {
                                 generateError(self, '\t--[loadStructureToMigrate] ' + strErr, sql);
-                                reject();
+                                process.exit();
                             } else {
                                 let tablesCnt              = 0;
                                 let viewsCnt               = 0;
@@ -141,9 +141,9 @@ module.exports = self => {
 
                                 Promise.all(processTablePromises).then(
                                     () => {
-                                        migrationStateManager.set(self, 'tables_loaded').then(() => resolve());
+                                        migrationStateManager.set(self, 'tables_loaded').then(() => resolve(self));
                                     },
-                                    () => reject()
+                                    () => process.exit()
                                 );
                             }
                         });

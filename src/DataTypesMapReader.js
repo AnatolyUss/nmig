@@ -31,21 +31,16 @@ const fs = require('fs');
  * @returns {Promise}
  */
 module.exports = self => {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         fs.readFile(self._dataTypesMapAddr, (error, data) => {
             if (error) {
                 console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from ' + self._dataTypesMapAddr);
-                reject();
-            } else {
-                try {
-                    self._dataTypesMap = JSON.parse(data.toString());
-                    console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
-                    resolve();
-                } catch (err) {
-                    console.log('\t--[readDataTypesMap] Cannot parse JSON from' + self._dataTypesMapAddr);
-                    reject();
-                }
+                process.exit();
             }
+
+            self._dataTypesMap = JSON.parse(data);
+            console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
+            resolve(self);
         });
     });
 };

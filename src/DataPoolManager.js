@@ -33,11 +33,11 @@ const generateError = require('./ErrorGenerator');
  */
 module.exports.createDataPoolTable = self => {
     return connect(self).then(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
                 if (error) {
                     generateError(self, '\t--[DataPoolManager.createDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
-                    reject();
+                    process.exit();
                 } else {
                     const sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
                         + '"("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN);';
@@ -47,10 +47,10 @@ module.exports.createDataPoolTable = self => {
 
                         if (err) {
                             generateError(self, '\t--[DataPoolManager.createDataPoolTable] ' + err, sql);
-                            reject();
+                            process.exit();
                         } else {
                             log(self, '\t--[DataPoolManager.createDataPoolTable] table "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" is created...');
-                            resolve();
+                            resolve(self);
                         }
                     });
                 }
@@ -102,11 +102,11 @@ module.exports.dropDataPoolTable = self => {
  */
 module.exports.readDataPool = self => {
     return connect(self).then(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
                 if (error) {
                     generateError(self, '\t--[DataPoolManager.readDataPool] Cannot connect to PostgreSQL server...\n' + error);
-                    reject();
+                    process.exit();
                 } else {
                     const sql = 'SELECT id AS id, json AS json FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
                     client.query(sql, (err, arrDataPool) => {
@@ -114,7 +114,7 @@ module.exports.readDataPool = self => {
 
                         if (err) {
                             generateError(self, '\t--[DataPoolManager.readDataPool] ' + err, sql);
-                            return reject();
+                            process.exit();
                         }
 
                         for (let i = 0; i < arrDataPool.rows.length; ++i) {
@@ -124,7 +124,7 @@ module.exports.readDataPool = self => {
                         }
 
                         log(self, '\t--[DataPoolManager.readDataPool] Data-Pool is loaded...');
-                        resolve();
+                        resolve(self);
                     });
                 }
             });

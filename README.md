@@ -44,11 +44,11 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install</pre><br />
-    <pre>$ node nmig.js</pre><br />
+    <pre>$ npm start</pre><br />
 </p>
 
 <p><b>5.</b> If a disaster took place during migration (for what ever reason) - simply restart the process
-<code>$ node nmig.js</code><br>&nbsp;&nbsp;&nbsp;&nbsp;NMIG will restart from the point it was stopped at.
+<code>$ npm start</code><br>&nbsp;&nbsp;&nbsp;&nbsp;NMIG will restart from the point it was stopped at.
 </p>
 
 <p><b>6.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
@@ -61,7 +61,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
-<p>Current version is 2.6.1<br />
+<p>Current version is 3.0.0<br />
 (major version . improvements . bug fixes)</p>
 
 

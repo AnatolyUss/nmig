@@ -33,18 +33,18 @@ const generateError = require('./ErrorGenerator');
  */
 module.exports = self => {
     return connect(self).then(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
                 if (error) {
                     generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...\n' + error);
-                    reject();
+                    process.exit();
                 } else {
                     let sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
                     client.query(sql, (err, result) => {
                         if (err) {
                             done();
                             generateError(self, '\t--[createSchema] ' + err, sql);
-                            reject();
+                            process.exit();
                         } else if (result.rows.length === 0) {
                             sql = 'CREATE SCHEMA "' + self._schema + '";';
                             client.query(sql, err => {
@@ -52,13 +52,13 @@ module.exports = self => {
 
                                 if (err) {
                                     generateError(self, '\t--[createSchema] ' + err, sql);
-                                    reject();
+                                    process.exit();
                                 } else {
-                                    resolve();
+                                    resolve(self);
                                 }
                             });
                         } else {
-                            resolve();
+                            resolve(self);
                         }
                     });
                 }
