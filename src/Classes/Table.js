@@ -20,15 +20,16 @@
  */
 'use strict';
 
-/**
- * Representation of a message of the master process to DataLoader process.
- * Contents migration's configuration and an array of "data-chunks".
- * Constructor.
- *
- * @param {Object} config
- * @param {Array}  chunks
- */
-module.exports = function MessageToDataLoader(config, chunks) {
-    this.config = config;
-    this.chunks = chunks;
+module.exports = class Table {
+    /**
+     * This function represents table related metadata.
+     * Constructor.
+     *
+     * @param {String} tableLogPath
+     */
+    constructor(tableLogPath) {
+        this.tableLogPath      = tableLogPath;
+        this.arrTableColumns   = [];
+        this.totalRowsInserted = 0;
+    }
 };

@@ -20,14 +20,19 @@
  */
 'use strict';
 
-/**
- * This function represents table related metadata.
- * Constructor.
- *
- * @param {String} tableLogPath
- */
-module.exports = function Table(tableLogPath) {
-    this.tableLogPath      = tableLogPath;
-    this.arrTableColumns   = [];
-    this.totalRowsInserted = 0;
+module.exports = class MessageToMaster {
+    /**
+     * Representation of a message of DataLoader process to the master process regarding records,
+     * inserted to specified table.
+     * Constructor.
+     *
+     * @param {String} tableName
+     * @param {Number} rowsInserted
+     * @param {Number} totalRowsToInsert
+     */
+    constructor(tableName, rowsInserted, totalRowsToInsert) {
+        this.tableName         = tableName;
+        this.rowsInserted      = rowsInserted;
+        this.totalRowsToInsert = totalRowsToInsert;
+    }
 };

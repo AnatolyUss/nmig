@@ -24,7 +24,7 @@ const childProcess        = require('child_process');
 const path                = require('path');
 const log                 = require('./Logger');
 const generateError       = require('./ErrorGenerator');
-const MessageToDataLoader = require('./MessageToDataLoader');
+const MessageToDataLoader = require('./Classes/MessageToDataLoader');
 const processConstraints  = require('./ConstraintsProcessor');
 
 /**

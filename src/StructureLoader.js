@@ -20,7 +20,7 @@
  */
 'use strict';
 
-const Table                 = require('./Table');
+const Table                 = require('./Classes/Table');
 const tableProcessor        = require('./TableProcessor');
 const connect               = require('./Connector');
 const log                   = require('./Logger');

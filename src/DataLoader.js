@@ -27,8 +27,8 @@ const csvStringify           = require('./CsvStringifyModified');
 const log                    = require('./Logger');
 const generateError          = require('./ErrorGenerator');
 const connect                = require('./Connector');
-const Conversion             = require('./Conversion');
-const MessageToMaster        = require('./MessageToMaster');
+const Conversion             = require('./Classes/Conversion');
+const MessageToMaster        = require('./Classes/MessageToMaster');
 const { enforceConsistency } = require('./ConsistencyEnforcer');
 const extraConfigProcessor   = require('./ExtraConfigProcessor');
 
