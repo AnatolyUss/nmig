@@ -5,12 +5,12 @@
         "Ensure, that details like 'charset' are included (if necessary)."
     ],
     "source" : {
-            "host"     : "localhost",
-            "port"     : 3306,
-            "database" : "test_db",
-            "charset"  : "UTF8",
-            "user"     : "root",
-            "password" : "0123456789"
+        "host"     : "localhost",
+        "port"     : 3306,
+        "database" : "test_db",
+        "charset"  : "UTF8",
+        "user"     : "root",
+        "password" : "0123456789"
     },
 
     "max_pool_size_source_description" : [
@@ -24,12 +24,12 @@
         "Ensure, that details like 'charset' are included (if necessary)."
     ],
     "target" : {
-            "host"     : "localhost",
-            "port"     : 5432,
-            "database" : "test_db",
-            "charset"  : "UTF8",
-            "user"     : "postgres",
-            "password" : "0123456789"
+        "host"     : "localhost",
+        "port"     : 5432,
+        "database" : "test_db",
+        "charset"  : "UTF8",
+        "user"     : "postgres",
+        "password" : "0123456789"
     },
 
     "max_pool_size_target_description" : [
