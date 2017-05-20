@@ -25,9 +25,6 @@ const path                  = require('path');
 const log                   = require('./Logger');
 const generateError         = require('./ErrorGenerator');
 const migrationStateManager = require('./MigrationStateManager');
-const getBuffer             = +process.version.split('.')[0].slice(1) < 6
-    ? require('./OldBuffer')
-    : require('./NewBuffer');
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
@@ -79,9 +76,8 @@ const logNotCreatedView = (self, viewName, sql) => {
                         if (error) {
                             log(self, error);
                         } else {
-                            let buffer = getBuffer(sql, self._encoding);
+                            const buffer = Buffer.from(sql, self._encoding);
                             fs.write(fd, buffer, 0, buffer.length, null, () => {
-                                buffer = null;
                                 fs.close(fd, () => {
                                     // Each async function MUST have a callback (according to Node.js >= 7).
                                 });
@@ -98,9 +94,8 @@ const logNotCreatedView = (self, viewName, sql) => {
                 if (error) {
                     log(self, error);
                 } else {
-                    let buffer = getBuffer(sql, self._encoding);
+                    const buffer = Buffer.from(sql, self._encoding);
                     fs.write(fd, buffer, 0, buffer.length, null, () => {
-                        buffer = null;
                         fs.close(fd, () => {
                             // Each async function MUST have a callback (according to Node.js >= 7).
                         });

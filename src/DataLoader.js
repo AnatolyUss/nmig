@@ -20,22 +20,17 @@
  */
 'use strict';
 
-const fs                   = require('fs');
-const path                 = require('path');
-const pgCopyStreams        = require('pg-copy-streams');
-const csvStringify         = require('./CsvStringifyModified');
-const log                  = require('./Logger');
-const generateError        = require('./ErrorGenerator');
-const connect              = require('./Connector');
-const Conversion           = require('./Conversion');
-const MessageToMaster      = require('./MessageToMaster');
-const consistencyEnforcer  = require('./ConsistencyEnforcer');
-const enforceConsistency   = consistencyEnforcer.enforceConsistency;
-const extraConfigProcessor = require('./ExtraConfigProcessor');
-const copyFrom             = pgCopyStreams.from;
-const getBuffer            = +process.version.split('.')[0].slice(1) < 6
-    ? require('./OldBuffer')
-    : require('./NewBuffer');
+const fs                     = require('fs');
+const path                   = require('path');
+const { from }               = require('pg-copy-streams');
+const csvStringify           = require('./CsvStringifyModified');
+const log                    = require('./Logger');
+const generateError          = require('./ErrorGenerator');
+const connect                = require('./Connector');
+const Conversion             = require('./Conversion');
+const MessageToMaster        = require('./MessageToMaster');
+const { enforceConsistency } = require('./ConsistencyEnforcer');
+const extraConfigProcessor   = require('./ExtraConfigProcessor');
 
 process.on('message', signal => {
     const self     = new Conversion(signal.config);
@@ -234,18 +229,15 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                 generateError(self, '\t--[populateTableWorker] ' + csvError);
                                 resolvePopulateTableWorker();
                             } else {
-                                let buffer = getBuffer(csvString, self._encoding);
+                                const buffer = Buffer.from(csvString, self._encoding);
                                 csvString  = null;
 
                                 fs.open(csvAddr, 'w', self._0777, (csvErrorFputcsvOpen, fd) => {
                                     if (csvErrorFputcsvOpen) {
-                                        buffer = null;
                                         generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
                                         resolvePopulateTableWorker();
                                     } else {
                                         fs.write(fd, buffer, 0, buffer.length, null, csvErrorFputcsvWrite => {
-                                            buffer = null;
-
                                             if (csvErrorFputcsvWrite) {
                                                 generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
                                                 resolvePopulateTableWorker();
@@ -256,7 +248,7 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                                         deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
                                                     } else {
                                                         const sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + self._delimiter + '\' CSV;';
-                                                        const copyStream = client.query(copyFrom(sqlCopy));
+                                                        const copyStream = client.query(from(sqlCopy));
                                                         const readStream = fs.createReadStream(csvAddr, { encoding: self._encoding });
 
                                                         copyStream.on('end', () => {
