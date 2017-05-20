@@ -50,7 +50,7 @@ const readConfig = () => {
             const config            = JSON.parse(data);
             config.tempDirPath      = path.join(__dirname, '..', 'temporary_directory');
             config.logsDirPath      = path.join(__dirname, '..', 'logs_directory');
-            config.dataTypesMapAddr = path.join(__dirname, '..', 'DataTypesMap.json');
+            config.dataTypesMapAddr = path.join(__dirname, '..', 'data_types_map.json');
             resolve(config);
         });
 
