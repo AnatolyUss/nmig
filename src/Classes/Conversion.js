@@ -43,7 +43,7 @@ module.exports = class Conversion {
         this._timeBegin                  = new Date();
         this._encoding                   = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._dataChunkSize              = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
-        this._dataChunkSize              = this._dataChunkSize < 1 ? 1 : this._dataChunkSize;
+        this._dataChunkSize              = this._dataChunkSize <= 0 ? 1 : this._dataChunkSize;
         this._0777                       = '0777';
         this._mysql                      = null;
         this._pg                         = null;
@@ -51,7 +51,7 @@ module.exports = class Conversion {
         this._extraConfig                = this._config.extraConfig;
         this._tablesToMigrate            = [];
         this._viewsToMigrate             = [];
-        this._isProcessConstraintsLocked = false;
+        this._smallestDataChunkSizeInMb  = 0;
         this._processedChunks            = 0;
         this._tablesCnt                  = 0;
         this._viewsCnt                   = 0;
@@ -72,18 +72,10 @@ module.exports = class Conversion {
 
         this._maxPoolSizeSource          = this._maxPoolSizeSource > 0 ? this._maxPoolSizeSource : 10;
         this._maxPoolSizeTarget          = this._maxPoolSizeTarget > 0 ? this._maxPoolSizeTarget : 10;
-        this._pipeWidth                  = this._config.pipe_width !== undefined && this.isIntNumeric(this._config.pipe_width)
-            ? +this._config.pipe_width
-            : this._maxPoolSizeTarget;
 
-        this._pipeWidth                  = this._pipeWidth > this._maxPoolSizeTarget ? this._maxPoolSizeTarget : this._pipeWidth;
         this._loaderMaxOldSpaceSize      = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize      = this.isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
         this._migrateOnlyData            = this._config.migrate_only_data;
-        this._maxLoaderProcesses         = this._config.max_loader_processes !== undefined && this.isIntNumeric(this._config.max_loader_processes)
-            ? +this._config.max_loader_processes
-            : 1;
-
         this._delimiter                  = this._config.delimiter !== undefined && this._config.delimiter.length === 1
             ? this._config.delimiter
             : ',';

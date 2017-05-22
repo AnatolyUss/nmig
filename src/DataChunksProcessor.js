@@ -61,8 +61,7 @@ module.exports = (self, tableName, haveDataChunksProcessed) => {
                             generateError(self, '\t--[prepareDataChunks] ' + err, sql);
                             resolve();
                         } else {
-                            let tableSizeInMb        = +rows[0].size_in_mb;
-                            tableSizeInMb            = tableSizeInMb < 1 ? 1 : tableSizeInMb;
+                            const tableSizeInMb      = +rows[0].size_in_mb;
                             rows                     = null;
                             sql                      = 'SELECT COUNT(1) AS rows_count FROM `' + originalTableName + '`;';
                             const strSelectFieldList = arrangeColumnsData(
@@ -101,10 +100,13 @@ module.exports = (self, tableName, haveDataChunksProcessed) => {
                                                         + '"_rowsInChunk":' + rowsInChunk + ','
                                                         + '"_rowsCnt":' + rowsCnt + '}';
 
-                                                    sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema
-                                                        + self._mySqlDbName + '"("is_started", "json") VALUES(FALSE, $1);';
+                                                    const chunkSizeInMb = chunksCnt === 1 ? tableSizeInMb : tableSizeInMb % chunksCnt;
 
-                                                    client.query(sql, [strJson], err => {
+                                                    sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema
+                                                        + self._mySqlDbName + '"("is_started", "json", "size_in_mb")'
+                                                        + ' VALUES(FALSE, $1, $2);';
+
+                                                    client.query(sql, [strJson, chunkSizeInMb], err => {
                                                         done();
 
                                                         if (err) {

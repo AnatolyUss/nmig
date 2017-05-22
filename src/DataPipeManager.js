@@ -40,19 +40,7 @@ const killProcess = pid => {
     } catch (killError) {
         generateError(self, '\t--[killProcess] ' + killError);
     }
-}
-
-/**
- * Check if current "execution branch" has reached its last index (in data pool).
- *
- * @param {Conversion} self
- * @param {Number}     currentIndex
- *
- * @returns {Boolean}
- */
-const reachedLastIndex = (self, currentIndex) => {
-    return self._dataPool.length <= currentIndex;
-}
+};
 
 /**
  * Check if all data chunks were processed.
@@ -62,8 +50,33 @@ const reachedLastIndex = (self, currentIndex) => {
  * @returns {Boolean}
  */
 const dataPoolProcessed = self => {
-    return self._processedChunks >= self._dataPool.length;
-}
+    return self._processedChunks === self._dataPool.length;
+};
+
+/**
+ *
+ *
+ * @param {Conversion} self
+ * @param {Number}     currentIndex
+ *
+ * @returns {Number}
+ */
+const getBandwidth = (self, currentIndex) => {
+    if (self._dataPool[currentIndex]._size_in_mb < self._dataChunkSize) {
+        // Size of current chunk can never be larger than "data_chunk_size".
+        // Current chunk is smaller than the "data_chunk_size".
+        // More chunks can be processed.
+        if (self._dataChunkSize - self._dataPool[currentIndex]._size_in_mb < self._smallestDataChunkSizeInMb) {
+            // Smallest data chunk is larger than the gap between "data_chunk_size" and current chunk.
+            // Currently, no more chunks can be processed.
+            return 1;
+        }
+
+        //
+    }
+
+    return 1;
+};
 
 /**
  * Instructs DataLoader which data chunks should be loaded.
@@ -78,22 +91,13 @@ const dataPoolProcessed = self => {
  * @returns {undefined}
  */
 const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
-    if (dataPoolProcessed(self) && !self._isProcessConstraintsLocked) {
-        self._isProcessConstraintsLocked = true;
+    if (dataPoolProcessed(self)) {
         return processConstraints(self);
     }
 
-    if (reachedLastIndex(self, currentIndex)) {
-        /*
-         * Not all of data chunks were processed, but current "execution branch" has processed all of its chunks.
-         * In this case no "loader" process will be spawned.
-         * The processConstraints() function will be invoked from another "execution branch".
-         */
-        return;
-    }
-
-    const endOfSlice    = self._dataPool.length - (self._dataPool.length - self._pipeWidth - currentIndex);
-    const nextPoolIndex = currentIndex + self._pipeWidth * self._maxLoaderProcesses;
+    const bandwidth     = getBandwidth(self, currentIndex);
+    const endOfSlice    = self._dataPool.length - (self._dataPool.length - bandwidth - currentIndex);
+    const nextPoolIndex = currentIndex + bandwidth;
     const loaderProcess = childProcess.fork(strDataLoaderPath, options);
 
     loaderProcess.on('message', signal => {
@@ -105,13 +109,13 @@ const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
             log(self, msg);
         } else {
             killProcess(loaderProcess.pid);
-            self._processedChunks += self._pipeWidth;
+            self._processedChunks += bandwidth;
             return pipeData(self, strDataLoaderPath, options, nextPoolIndex);
         }
     });
 
     loaderProcess.send(new MessageToDataLoader(self._config, self._dataPool.slice(currentIndex, endOfSlice)));
-}
+};
 
 /**
  * Manage the DataPipe.
@@ -121,7 +125,7 @@ const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
  * @returns {undefined}
  */
 module.exports = self => {
-    if (self._dataPool.length === 0) {
+    if (dataPoolProcessed(self)) {
         return processConstraints(self);
     }
 
@@ -130,11 +134,5 @@ module.exports = self => {
         ? Object.create(null)
         : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };
 
-    for (
-        let intProcIter = 0, intCurrentIndex = 0;
-        intProcIter < self._maxLoaderProcesses;
-        ++intProcIter, intCurrentIndex += self._pipeWidth
-    ) {
-        pipeData(self, strDataLoaderPath, options, intCurrentIndex);
-    }
+    return pipeData(self, strDataLoaderPath, options, 0);
 };

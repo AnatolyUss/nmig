@@ -40,7 +40,7 @@ module.exports.createDataPoolTable = self => {
                     process.exit();
                 } else {
                     const sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
-                        + '"("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN);';
+                        + '"("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN, "size_in_mb" DOUBLE PRECISION);';
 
                     client.query(sql, err => {
                         done();
@@ -108,7 +108,10 @@ module.exports.readDataPool = self => {
                     generateError(self, '\t--[DataPoolManager.readDataPool] Cannot connect to PostgreSQL server...\n' + error);
                     process.exit();
                 } else {
-                    const sql = 'SELECT id AS id, json AS json FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
+                    const sql = 'SELECT id AS id, json AS json, size_in_mb AS size_in_mb FROM "'
+                               + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
+                               + '" ORDER BY size_in_mb DESC;';
+
                     client.query(sql, (err, arrDataPool) => {
                         done();
 
@@ -118,9 +121,14 @@ module.exports.readDataPool = self => {
                         }
 
                         for (let i = 0; i < arrDataPool.rows.length; ++i) {
-                            const obj = JSON.parse(arrDataPool.rows[i].json);
-                            obj._id   = arrDataPool.rows[i].id;
+                            const obj       =  JSON.parse(arrDataPool.rows[i].json);
+                            obj._id         =  arrDataPool.rows[i].id;
+                            obj._size_in_mb = +arrDataPool.rows[i].size_in_mb;
                             self._dataPool.push(obj);
+
+                            if (obj._size_in_mb < self._smallestDataChunkSizeInMb) {
+                                self._smallestDataChunkSizeInMb = obj._size_in_mb;
+                            }
                         }
 
                         log(self, '\t--[DataPoolManager.readDataPool] Data-Pool is loaded...');
