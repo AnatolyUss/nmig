@@ -29,54 +29,47 @@ module.exports = class Conversion {
      * @param {Object} config
      */
     constructor(config) {
-        this._config                     = config;
-        this._sourceConString            = this._config.source;
-        this._targetConString            = this._config.target;
-        this._tempDirPath                = this._config.tempDirPath;
-        this._logsDirPath                = this._config.logsDirPath;
-        this._dataTypesMapAddr           = this._config.dataTypesMapAddr;
-        this._allLogsPath                = path.join(this._logsDirPath, 'all.log');
-        this._errorLogsPath              = path.join(this._logsDirPath, 'errors-only.log');
-        this._notCreatedViewsPath        = path.join(this._logsDirPath, 'not_created_views');
-        this._noVacuum                   = this._config.no_vacuum;
-        this._excludeTables              = this._config.exclude_tables;
-        this._timeBegin                  = new Date();
-        this._encoding                   = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
-        this._dataChunkSize              = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
-        this._dataChunkSize              = this._dataChunkSize <= 0 ? 1 : this._dataChunkSize;
-        this._0777                       = '0777';
-        this._mysql                      = null;
-        this._pg                         = null;
-        this._mysqlVersion               = '5.6.21'; // Simply a default value.
-        this._extraConfig                = this._config.extraConfig;
-        this._tablesToMigrate            = [];
-        this._viewsToMigrate             = [];
-        this._smallestDataChunkSizeInMb  = 0;
-        this._processedChunks            = 0;
-        this._tablesCnt                  = 0;
-        this._viewsCnt                   = 0;
-        this._dataPool                   = [];
-        this._dicTables                  = Object.create(null);
-        this._mySqlDbName                = this._sourceConString.database;
-        this._schema                     = this._config.schema === undefined || this._config.schema === ''
+        this._config                  = config;
+        this._sourceConString         = this._config.source;
+        this._targetConString         = this._config.target;
+        this._tempDirPath             = this._config.tempDirPath;
+        this._logsDirPath             = this._config.logsDirPath;
+        this._dataTypesMapAddr        = this._config.dataTypesMapAddr;
+        this._allLogsPath             = path.join(this._logsDirPath, 'all.log');
+        this._errorLogsPath           = path.join(this._logsDirPath, 'errors-only.log');
+        this._notCreatedViewsPath     = path.join(this._logsDirPath, 'not_created_views');
+        this._noVacuum                = this._config.no_vacuum;
+        this._excludeTables           = this._config.exclude_tables;
+        this._timeBegin               = new Date();
+        this._encoding                = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
+        this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
+        this._dataChunkSize           = this._dataChunkSize <= 0 ? 1 : this._dataChunkSize;
+        this._0777                    = '0777';
+        this._mysql                   = null;
+        this._pg                      = null;
+        this._mysqlVersion            = '5.6.21'; // Simply a default value.
+        this._extraConfig             = this._config.extraConfig;
+        this._tablesToMigrate         = [];
+        this._viewsToMigrate          = [];
+        this._processedChunks         = 0;
+        this._tablesCnt               = 0;
+        this._viewsCnt                = 0;
+        this._dataPool                = [];
+        this._dicTables               = Object.create(null);
+        this._mySqlDbName             = this._sourceConString.database;
+        this._schema                  = this._config.schema === undefined || this._config.schema === ''
             ? this._mySqlDbName
             : this._config.schema;
 
-        this._maxPoolSizeSource          = this._config.max_pool_size_source !== undefined && this.isIntNumeric(this._config.max_pool_size_source)
-            ? +this._config.max_pool_size_source
+        this._maxDbConnectionPoolSize = this._config.max_db_connection_pool_size !== undefined && this.isIntNumeric(this._config.max_db_connection_pool_size)
+            ? +this._config.max_db_connection_pool_size
             : 10;
 
-        this._maxPoolSizeTarget          = this._config.max_pool_size_target !== undefined && this.isIntNumeric(this._config.max_pool_size_target)
-            ? +this._config.max_pool_size_target
-            : 10;
-
-        this._maxPoolSizeSource          = this._maxPoolSizeSource > 0 ? this._maxPoolSizeSource : 10;
-        this._maxPoolSizeTarget          = this._maxPoolSizeTarget > 0 ? this._maxPoolSizeTarget : 10;
-
-        this._loaderMaxOldSpaceSize      = this._config.loader_max_old_space_size;
-        this._loaderMaxOldSpaceSize      = this.isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
-        this._migrateOnlyData            = this._config.migrate_only_data;
-        this._delimiter                  = this._config.delimiter !== undefined && this._config.delimiter.length === 1
+        this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
+        this._loaderMaxOldSpaceSize   = this._config.loader_max_old_space_size;
+        this._loaderMaxOldSpaceSize   = this.isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
+        this._migrateOnlyData         = this._config.migrate_only_data;
+        this._delimiter               = this._config.delimiter !== undefined && this._config.delimiter.length === 1
             ? this._config.delimiter
             : ',';
     }

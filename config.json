@@ -13,11 +13,6 @@
         "password" : "0123456789"
     },
 
-    "max_pool_size_source_description" : [
-        "Maximal amount of simultaneous connections to your MySQL database during migration"
-    ],
-    "max_pool_size_source" : 10,
-
     "target_description" : [
         "Connection parameters to your PostgreSQL database",
         "Please ensure, that you have defined all parameters properly.",
@@ -32,23 +27,12 @@
         "password" : "0123456789"
     },
 
-    "max_pool_size_target_description" : [
-        "Maximal amount of simultaneous connections to your PostgreSQL database during migration"
+    "max_db_connection_pool_size_description" : [
+        "Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers.",
+        "For example: 10 means, that nmig will create a pool of 10 connections to MySQL server",
+        "and 10 connections to PostgreSQL server. 20 connections to both servers."
     ],
-    "max_pool_size_target" : 10,
-
-    "pipe_width_description" : [
-        "Maximal amount of data-chunks, processed in a single 'DataPipe' iteration.",
-        "Note: 'pipe_width' should not be greater than 'max_pool_size_target'."
-    ],
-    "pipe_width" : 10,
-
-    "max_loader_processes_description" : [
-        "Each 'DataPipe' iteration processed by a separate process (o.s. thread).",
-        "max_loader_processes is a maximal amount of simultaneously running loader processes.",
-        "If not supplied, then max_loader_processes will be equals to one."
-    ],
-    "max_loader_processes" : 1,
+    "max_db_connection_pool_size" : 10,
 
     "loader_max_old_space_size_description" : [
         "V8 memory limit of the loader process.",
@@ -70,10 +54,10 @@
     "schema" : "public",
 
     "data_chunk_size_description" : [
-        "During migration each table's data will be split into chunks of data_chunk_size (in MB).",
-        "If not supplied, then 1 MB will be used as a default."
+        "During migration each table's data will be split into chunks not larger than data_chunk_size (in MB).",
+        "If not supplied, then 10 MB will be used as a default."
     ],
-    "data_chunk_size" : 1,
+    "data_chunk_size" : 10,
 
     "no_vacuum_description" : [
         "PostgreSQL VACUUM reclaims storage occupied by dead tuples. VACUUM is a very time-consuming procedure.",

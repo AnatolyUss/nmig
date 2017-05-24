@@ -124,11 +124,8 @@ module.exports.readDataPool = self => {
                             const obj       =  JSON.parse(arrDataPool.rows[i].json);
                             obj._id         =  arrDataPool.rows[i].id;
                             obj._size_in_mb = +arrDataPool.rows[i].size_in_mb;
+                            obj._processed  =  false;
                             self._dataPool.push(obj);
-
-                            if (obj._size_in_mb < self._smallestDataChunkSizeInMb) {
-                                self._smallestDataChunkSizeInMb = obj._size_in_mb;
-                            }
                         }
 
                         log(self, '\t--[DataPoolManager.readDataPool] Data-Pool is loaded...');

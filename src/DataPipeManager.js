@@ -54,28 +54,101 @@ const dataPoolProcessed = self => {
 };
 
 /**
+ * Get a size (in MB) of the smallest, non processed data chunk.
+ * If all data chunks are processed then return -1.
  *
+ * @param {Conversion} self
+ *
+ * @returns {Number}
+ */
+const getSmallestDataChunkSizeInMb = self => {
+    for (let i = self._dataPool.length - 1; i >= 0; --i) {
+        if (self._dataPool[i]._processed === false) {
+            return self._dataPool[i]._size_in_mb;
+        }
+    }
+
+    return -1;
+};
+
+/**
+ * Create an array of indexes, that point to data chunks, that will be processed during current COPY operation.
+ *
+ * @param {Conversion} self
+ * @param {Number}     currentIndex
+ *
+ * @returns {Array}
+ */
+const fillBandwidth = (self, currentIndex) => {
+    const dataChunkIndexes = [];
+
+    /*
+     * Loop through the data pool from current index to the end.
+     * Note, the data pool is created with predefined order, the order by data chunk size descending.
+     * Note, the "bandwidth" variable represents an actual amount of data,
+     * that will be loaded during current COPY operation.
+     */
+    for (let i = currentIndex, bandwidth = 0; i < self._dataPool.length; ++i) {
+        /*
+         * Check if current chunk has already been marked as "processed".
+         * If yes, then continue to the next iteration.
+         */
+        if (self._dataPool[i]._processed === false) {
+            // Sum a size of data chunks, that are yet to be processed.
+            bandwidth += self._dataPool[i]._size_in_mb;
+
+            if (self._dataChunkSize - bandwidth >= getSmallestDataChunkSizeInMb(self)) {
+                /*
+                 * Currently, the bandwidth is smaller than "data_chunk_size",
+                 * and the difference between "data_chunk_size" and the bandwidth
+                 * is larger or equal to currently-smallest data chunk.
+                 * This means, that more data chunks can be processed during current COPY operation.
+                 */
+                dataChunkIndexes.push(i);
+                self._dataPool[i]._processed = true;
+                continue;
+            }
+
+            if (self._dataChunkSize === bandwidth) {
+                /*
+                 * Currently, the bandwidth is equal to "data_chunk_size".
+                 * This means, that no more data chunks can be processed during current COPY operation.
+                 * Current COPY operation will be performed with full bandwidth capacity.
+                 */
+                dataChunkIndexes.push(i);
+                self._dataPool[i]._processed = true;
+                break;
+            }
+
+            /*
+             * This data chunk will not be processed during current COPY operation, because when it is added
+             * to the bandwidth, the bandwidth's size may become larger than "data_chunk_size".
+             * The bandwidth's value should be decreased prior the next iteration.
+             */
+            bandwidth -= self._dataPool[i]._size_in_mb;
+        }
+    }
+
+    return dataChunkIndexes;
+};
+
+/**
+ * Calculate an index of the next data chunk to process.
+ * If all data chunks are processed then return -1.
  *
  * @param {Conversion} self
  * @param {Number}     currentIndex
  *
  * @returns {Number}
  */
-const getBandwidth = (self, currentIndex) => {
-    if (self._dataPool[currentIndex]._size_in_mb < self._dataChunkSize) {
-        // Size of current chunk can never be larger than "data_chunk_size".
-        // Current chunk is smaller than the "data_chunk_size".
-        // More chunks can be processed.
-        if (self._dataChunkSize - self._dataPool[currentIndex]._size_in_mb < self._smallestDataChunkSizeInMb) {
-            // Smallest data chunk is larger than the gap between "data_chunk_size" and current chunk.
-            // Currently, no more chunks can be processed.
-            return 1;
+const getNextIndex = (self, currentIndex) => {
+    for (let i = currentIndex + 1; i < self._dataPool.length; ++i) {
+        if (self._dataPool[i]._processed === false) {
+            return i;
         }
-
-        //
     }
 
-    return 1;
+    return -1;
 };
 
 /**
@@ -95,10 +168,11 @@ const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
         return processConstraints(self);
     }
 
-    const bandwidth     = getBandwidth(self, currentIndex);
-    const endOfSlice    = self._dataPool.length - (self._dataPool.length - bandwidth - currentIndex);
-    const nextPoolIndex = currentIndex + bandwidth;
     const loaderProcess = childProcess.fork(strDataLoaderPath, options);
+    const bandwidth     = fillBandwidth(self, currentIndex);
+    const chunksToLoad  = bandwidth.map(index => {
+        return self._dataPool[index];
+    });
 
     loaderProcess.on('message', signal => {
         if (typeof signal === 'object') {
@@ -109,12 +183,12 @@ const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
             log(self, msg);
         } else {
             killProcess(loaderProcess.pid);
-            self._processedChunks += bandwidth;
-            return pipeData(self, strDataLoaderPath, options, nextPoolIndex);
+            self._processedChunks += chunksToLoad.length;
+            return pipeData(self, strDataLoaderPath, options, getNextIndex(self, currentIndex));
         }
     });
 
-    loaderProcess.send(new MessageToDataLoader(self._config, self._dataPool.slice(currentIndex, endOfSlice)));
+    loaderProcess.send(new MessageToDataLoader(self._config, chunksToLoad));
 };
 
 /**

@@ -20,21 +20,20 @@
  */
 'use strict';
 
-const sequencesProcessor      = require('./SequencesProcessor');
-const dataPoolManager         = require('./DataPoolManager');
-const runVacuumFullAndAnalyze = require('./VacuumProcessor');
-const migrationStateManager   = require('./MigrationStateManager');
-const cleanup                 = require('./CleanupProcessor');
-const generateReport          = require('./ReportGenerator');
-const processEnum             = require('./EnumProcessor');
-const processNull             = require('./NullProcessor');
-const processDefault          = require('./DefaultProcessor');
-const processIndexAndKey      = require('./IndexAndKeyProcessor');
-const processComments         = require('./CommentsProcessor');
-const processForeignKey       = require('./ForeignKeyProcessor');
-const processViews            = require('./ViewGenerator');
-const consistencyEnforcer     = require('./ConsistencyEnforcer');
-const dropDataChunkIdColumn   = consistencyEnforcer.dropDataChunkIdColumn;
+const sequencesProcessor        = require('./SequencesProcessor');
+const dataPoolManager           = require('./DataPoolManager');
+const runVacuumFullAndAnalyze   = require('./VacuumProcessor');
+const migrationStateManager     = require('./MigrationStateManager');
+const cleanup                   = require('./CleanupProcessor');
+const generateReport            = require('./ReportGenerator');
+const processEnum               = require('./EnumProcessor');
+const processNull               = require('./NullProcessor');
+const processDefault            = require('./DefaultProcessor');
+const processIndexAndKey        = require('./IndexAndKeyProcessor');
+const processComments           = require('./CommentsProcessor');
+const processForeignKey         = require('./ForeignKeyProcessor');
+const processViews              = require('./ViewGenerator');
+const { dropDataChunkIdColumn } = require('./ConsistencyEnforcer');
 
 /**
  * Continues migration process after data loading, when migrate_only_data is true.

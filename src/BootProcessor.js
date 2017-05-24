@@ -50,6 +50,11 @@ module.exports = self => {
                             process.exit();
                         } else {
                             const isExists = !!result.rows[0].exists;
+                            const message  = (isExists
+                                    ? '\n\t--[boot] NMIG is ready to restart after some failure.'
+                                    + '\n\t--[boot] Consider checking log files at the end of migration.'
+                                    : '\n\t--[boot] NMIG is ready to start.') + '\n\t--[boot] Proceed? [Y/n]';
+
                             const logo     = '\n\t/\\_  |\\  /\\/\\ /\\___'
                                 + '\n\t|  \\ | |\\ | | | __'
                                 + '\n\t| |\\\\| || | | | \\_ \\'
@@ -58,11 +63,7 @@ module.exports = self => {
                                 + '\n\n\tNMIG - the database migration tool'
                                 + '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
                                 + '\t--[boot] Configuration has been just loaded.'
-                                + (isExists
-                                    ? '\n\t--[boot] NMIG is ready to restart after some failure.'
-                                          + '\n\t--[boot] Consider checking log files at the end of migration.'
-                                    : '\n\t--[boot] NMIG is ready to start.')
-                                + '\n\t--[boot] Proceed? [Y/n]';
+                                + message;
 
                             console.log(logo);
                             process
@@ -73,10 +74,14 @@ module.exports = self => {
                                     if (stdin.indexOf('n') !== -1) {
                                         console.log('\t--[boot] Migration aborted.\n');
                                         process.exit();
-                                    }
-
-                                    if (stdin.indexOf('Y') !== -1) {
+                                    } else if (stdin.indexOf('Y') !== -1) {
                                         resolve(self);
+                                    } else {
+                                        const hint = '\t--[boot] Unexpected input ' + stdin + '\n'
+                                                      + '\t--[boot] Expected input is upper case Y\n'
+                                                      + '\t--[boot] or lower case n\n' + message;
+
+                                        console.log(hint);
                                     }
                                 });
                         }
