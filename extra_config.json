@@ -1,12 +1,18 @@
 {
     "README" : [
         "This JSON document represents an additional configuration options.",
-        "These options (currently only renaming) will be applied during migration if, and only if",
+        "Currently, following options are available:",
+        "tables and columns renaming, generating foreign keys 'on the fly'.",
+        "These options will be applied during migration if, and only if",
         "the 'enable_extra_config' attribute from 'config.json' is set true.",
         "By default the 'enable_extra_config' is false, hence the options",
         "described here will not take effect.",
         "Following lines are an example of expected renaming format.",
-        "Feel free to modify them."
+        "Feel free to modify them.",
+        "Note, the 'name' attribute is mandatory",
+        "'columns' and 'foreign_keys' attributes are optional",
+        "If you don't need to rename columns, then remove the 'columns' attribute.",
+        "If you don't need to create foreign keys 'on the fly', then remove the 'foreign_keys' attribute."
     ],
 
     "tables" : [
@@ -28,16 +34,16 @@
                 },
 
                 {
-                    "original" : "password",
-                    "new" : "renamed_password"
+                    "original" : "group_id",
+                    "new" : "renamed_group_id"
                 }
             ]
         },
 
         {
             "name" : {
-                "original" : "logs",
-                "new" : "renamed_logs"
+                "original" : "groups",
+                "new" : "renamed_groups"
             },
 
             "columns" : [
@@ -46,6 +52,56 @@
                     "new" : "renamed_id"
                 }
             ]
+        }
+    ],
+
+    "README_FKs" : [
+        "Following lines are an example of expected foreign keys format.",
+        "Feel free to modify them.",
+        "Note, if one of the following: 'column_name', 'referenced_table_name', 'referenced_column_name'",
+        "has been renamed, then a new name must be used.",
+        "Note, possible values for 'update_rule' and 'delete_rule' are 'restrict' or 'cascade'."
+    ],
+
+    "foreign_keys" : [
+        {
+            "constraint_name" : "renamed_admins_renamed_group_id_foreign",
+            "table_name" : "renamed_admins",
+            "column_name" : "renamed_group_id",
+            "referenced_table_name" : "renamed_groups",
+            "referenced_column_name" : "renamed_id",
+            "update_rule" : "restrict",
+            "delete_rule" : "restrict"
+        },
+
+        {
+            "constraint_name" : "logs_test_3_merchant_id_foreign",
+            "table_name" : "logs_test_3",
+            "column_name" : "merchant_id",
+            "referenced_table_name" : "merchants",
+            "referenced_column_name" : "id",
+            "update_rule" : "restrict",
+            "delete_rule" : "cascade"
+        },
+
+        {
+            "constraint_name" : "composite_foreign_key_example",
+            "table_name" : "loGs_Test-6",
+            "column_name" : "id1",
+            "referenced_table_name" : "logs_test_4",
+            "referenced_column_name" : "id1",
+            "update_rule" : "cascade",
+            "delete_rule" : "cascade"
+        },
+
+        {
+            "constraint_name" : "composite_foreign_key_example",
+            "table_name" : "loGs_Test-6",
+            "column_name" : "id2",
+            "referenced_table_name" : "logs_test_4",
+            "referenced_column_name" : "id2",
+            "update_rule" : "cascade",
+            "delete_rule" : "cascade"
         }
     ]
 }
