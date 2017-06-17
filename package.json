@@ -9,9 +9,9 @@
         "url": "https://github.com/AnatolyUss/nmig.git"
     },
     "dependencies": {
-        "mysql": "*",
-        "pg": "*",
-        "pg-copy-streams": "*"
+        "mysql": "^2.13.0",
+        "pg": "^6.2.4",
+        "pg-copy-streams": "^1.2.0"
     },
     "scripts": {
         "start": "node ./src/Main.js"
