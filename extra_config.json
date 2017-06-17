@@ -2,17 +2,23 @@
     "README" : [
         "This JSON document represents an additional configuration options.",
         "Currently, following options are available:",
-        "tables and columns renaming, generating foreign keys 'on the fly'.",
+        "1. tables and columns renaming 'on the fly'.",
+        "2. generating foreign keys 'on the fly'.",
         "These options will be applied during migration if, and only if",
         "the 'enable_extra_config' attribute from 'config.json' is set true.",
         "By default the 'enable_extra_config' is false, hence the options",
-        "described here will not take effect.",
+        "described here will not take effect."
+    ],
+
+    "README_RENAMING" : [
         "Following lines are an example of expected renaming format.",
         "Feel free to modify them.",
-        "Note, the 'name' attribute is mandatory",
-        "'columns' and 'foreign_keys' attributes are optional",
+        "Note, the 'name' attribute is mandatory.",
+        "'columns' attribute is optional.",
         "If you don't need to rename columns, then remove the 'columns' attribute.",
-        "If you don't need to create foreign keys 'on the fly', then remove the 'foreign_keys' attribute."
+        "If you don't need to rename tables,",
+        "then set both 'name' object's attributes ('original' and 'new') to an actual table's name.",
+        "If you don't need to rename neither tables nor columns, then remove the 'tables' section."
     ],
 
     "tables" : [
@@ -59,8 +65,9 @@
         "Following lines are an example of expected foreign keys format.",
         "Feel free to modify them.",
         "Note, if one of the following: 'column_name', 'referenced_table_name', 'referenced_column_name'",
-        "has been renamed, then a new name must be used.",
-        "Note, possible values for 'update_rule' and 'delete_rule' are 'restrict' or 'cascade'."
+        "has being renamed, then a new name must be used.",
+        "Note, possible values for 'update_rule' and 'delete_rule' are 'restrict' or 'cascade'.",
+        "If you don't need to create foreign keys 'on the fly', then remove the 'foreign_keys' section."
     ],
 
     "foreign_keys" : [
