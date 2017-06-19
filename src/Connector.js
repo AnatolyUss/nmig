@@ -39,7 +39,7 @@ module.exports = self => {
     return new Promise(resolve => {
         const mysqlConnectionPromise = new Promise((mysqlResolve, mysqlReject) => {
             if (!self._mysql) {
-                self._sourceConString.connectionLimit = self._maxPoolSizeSource;
+                self._sourceConString.connectionLimit = self._maxDbConnectionPoolSize;
                 const pool                            = mysql.createPool(self._sourceConString);
 
                 if (pool) {
@@ -56,7 +56,7 @@ module.exports = self => {
 
         const pgConnectionPromise = new Promise((pgResolve, pgReject) => {
             if (!self._pg) {
-                self._targetConString.max = self._maxPoolSizeTarget;
+                self._targetConString.max = self._maxDbConnectionPoolSize;
                 const pool                = new pg.Pool(self._targetConString);
 
                 if (pool) {
@@ -78,9 +78,8 @@ module.exports = self => {
             }
         });
 
-        Promise.all([mysqlConnectionPromise, pgConnectionPromise]).then(
-            () => resolve(),
-            () => generateReport(self, 'NMIG just failed to establish db-connections.')
-        );
+        Promise.all([mysqlConnectionPromise, pgConnectionPromise])
+            .then(() => resolve())
+            .catch(() => process.exit());
     });
 };

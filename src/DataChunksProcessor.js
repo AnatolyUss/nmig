@@ -61,8 +61,7 @@ module.exports = (self, tableName, haveDataChunksProcessed) => {
                             generateError(self, '\t--[prepareDataChunks] ' + err, sql);
                             resolve();
                         } else {
-                            let tableSizeInMb        = +rows[0].size_in_mb;
-                            tableSizeInMb            = tableSizeInMb < 1 ? 1 : tableSizeInMb;
+                            const tableSizeInMb      = +rows[0].size_in_mb;
                             rows                     = null;
                             sql                      = 'SELECT COUNT(1) AS rows_count FROM `' + originalTableName + '`;';
                             const strSelectFieldList = arrangeColumnsData(
@@ -101,10 +100,29 @@ module.exports = (self, tableName, haveDataChunksProcessed) => {
                                                         + '"_rowsInChunk":' + rowsInChunk + ','
                                                         + '"_rowsCnt":' + rowsCnt + '}';
 
-                                                    sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema
-                                                        + self._mySqlDbName + '"("is_started", "json") VALUES(FALSE, $1);';
+                                                    /*
+                                                     * Define current data chunk size in MB.
+                                                     * If there is only one chunk, then its size is equal to the table size.
+                                                     * If there are more than one chunk,
+                                                     * then a size of each chunk besides the last one is equal to "data_chunk_size",
+                                                     * and a size of the last chunk is either "data_chunk_size" or tableSizeInMb % chunksCnt.
+                                                     */
+                                                    let currentChunkSizeInMb = 0;
 
-                                                    client.query(sql, [strJson], err => {
+                                                    if (chunksCnt === 1) {
+                                                        currentChunkSizeInMb = tableSizeInMb;
+                                                    } else if (offset + rowsInChunk >= rowsCnt) {
+                                                        currentChunkSizeInMb = tableSizeInMb % chunksCnt;
+                                                        currentChunkSizeInMb = currentChunkSizeInMb || self._dataChunkSize;
+                                                    } else {
+                                                        currentChunkSizeInMb = self._dataChunkSize;
+                                                    }
+
+                                                    sql = 'INSERT INTO "' + self._schema + '"."data_pool_' + self._schema
+                                                        + self._mySqlDbName + '"("is_started", "json", "size_in_mb")'
+                                                        + ' VALUES(FALSE, $1, $2);';
+
+                                                    client.query(sql, [strJson, currentChunkSizeInMb], err => {
                                                         done();
 
                                                         if (err) {

@@ -101,11 +101,11 @@ module.exports.set = (self, param) => {
  */
 module.exports.createStateLogsTable = self => {
     return connect(self).then(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
                 if (error) {
                     generateError(self, '\t--[createStateLogsTable] Cannot connect to PostgreSQL server...\n' + error);
-                    reject();
+                    process.exit();
                 } else {
                     let sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName
                             + '"('
@@ -119,14 +119,14 @@ module.exports.createStateLogsTable = self => {
                         if (err) {
                             done();
                             generateError(self, '\t--[createStateLogsTable] ' + err, sql);
-                            reject();
+                            process.exit();
                         } else {
                             sql = 'SELECT COUNT(1) AS cnt FROM "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName + '";';
                             client.query(sql, (errorCount, result) => {
                                 if (errorCount) {
                                     done();
                                     generateError(self, '\t--[createStateLogsTable] ' + errorCount, sql);
-                                    reject();
+                                    process.exit();
                                 } else if (+result.rows[0].cnt === 0) {
                                     sql = 'INSERT INTO "' + self._schema + '"."state_logs_' + self._schema + self._mySqlDbName
                                         + '" VALUES(FALSE, FALSE, FALSE, FALSE);';
@@ -136,13 +136,13 @@ module.exports.createStateLogsTable = self => {
 
                                         if (errorInsert) {
                                             generateError(self, '\t--[createStateLogsTable] ' + errorInsert, sql);
-                                            reject();
+                                            process.exit();
                                         } else {
                                             const msg = '\t--[createStateLogsTable] table "' + self._schema + '"."state_logs_'
                                                 + self._schema + self._mySqlDbName + '" is created...';
 
                                             log(self, msg);
-                                            resolve();
+                                            resolve(self);
                                         }
                                     });
                                 } else {
@@ -150,7 +150,7 @@ module.exports.createStateLogsTable = self => {
                                         + self._schema + self._mySqlDbName + '" is created...';
 
                                     log(self, msg2);
-                                    resolve();
+                                    resolve(self);
                                 }
                             });
                         }

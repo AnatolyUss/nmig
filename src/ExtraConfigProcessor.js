@@ -68,3 +68,33 @@ module.exports.getColumnName = (self, originalTableName, currentColumnName, shou
 
     return currentColumnName;
 };
+
+/**
+ * Parse the extra_config foreign_keys attributes and generate
+ * an output array required by ForeignKeyProcessor::processForeignKeyWorker.
+ *
+ * @param {Conversion} self
+ * @param {String}     tableName
+ *
+ * @returns {Array}
+ */
+module.exports.parseForeignKeys = (self, tableName) => {
+    const retVal = [];
+
+    if (self._extraConfig !== null && 'foreign_keys' in self._extraConfig) {
+        for (let i = 0; i < self._extraConfig.foreign_keys.length; ++i) {
+            if (self._extraConfig.foreign_keys[i].table_name === tableName) {
+                // There may be several FKs in a single table.
+                const objFk = Object.create(null);
+
+                for (const attribute in self._extraConfig.foreign_keys[i]) {
+                    objFk[attribute.toUpperCase()] = self._extraConfig.foreign_keys[i][attribute];
+                }
+
+                retVal.push(objFk);
+            }
+        }
+    }
+
+    return retVal;
+};

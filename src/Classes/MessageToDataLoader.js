@@ -20,17 +20,17 @@
  */
 'use strict';
 
-/**
- * Representation of a message of DataLoader process to the master process regarding records,
- * inserted to specified table.
- * Constructor.
- *
- * @param {String} tableName
- * @param {Number} rowsInserted
- * @param {Number} totalRowsToInsert
- */
-module.exports = function MessageToMaster(tableName, rowsInserted, totalRowsToInsert) {
-    this.tableName         = tableName;
-    this.rowsInserted      = rowsInserted;
-    this.totalRowsToInsert = totalRowsToInsert;
+module.exports = class MessageToDataLoader {
+    /**
+     * Representation of a message of the master process to DataLoader process.
+     * Contents migration's configuration and an array of "data-chunks".
+     * Constructor.
+     *
+     * @param {Object} config
+     * @param {Array}  chunks
+     */
+    constructor(config, chunks) {
+        this.config = config;
+        this.chunks = chunks;
+    }
 };

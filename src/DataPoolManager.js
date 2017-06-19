@@ -33,24 +33,24 @@ const generateError = require('./ErrorGenerator');
  */
 module.exports.createDataPoolTable = self => {
     return connect(self).then(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
                 if (error) {
                     generateError(self, '\t--[DataPoolManager.createDataPoolTable] Cannot connect to PostgreSQL server...\n' + error);
-                    reject();
+                    process.exit();
                 } else {
                     const sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
-                        + '"("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN);';
+                        + '"("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN, "size_in_mb" DOUBLE PRECISION);';
 
                     client.query(sql, err => {
                         done();
 
                         if (err) {
                             generateError(self, '\t--[DataPoolManager.createDataPoolTable] ' + err, sql);
-                            reject();
+                            process.exit();
                         } else {
                             log(self, '\t--[DataPoolManager.createDataPoolTable] table "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '" is created...');
-                            resolve();
+                            resolve(self);
                         }
                     });
                 }
@@ -102,29 +102,34 @@ module.exports.dropDataPoolTable = self => {
  */
 module.exports.readDataPool = self => {
     return connect(self).then(() => {
-        return new Promise((resolve, reject) => {
+        return new Promise(resolve => {
             self._pg.connect((error, client, done) => {
                 if (error) {
                     generateError(self, '\t--[DataPoolManager.readDataPool] Cannot connect to PostgreSQL server...\n' + error);
-                    reject();
+                    process.exit();
                 } else {
-                    const sql = 'SELECT id AS id, json AS json FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName + '";';
+                    const sql = 'SELECT id AS id, json AS json, size_in_mb AS size_in_mb FROM "'
+                               + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
+                               + '" ORDER BY size_in_mb DESC;';
+
                     client.query(sql, (err, arrDataPool) => {
                         done();
 
                         if (err) {
                             generateError(self, '\t--[DataPoolManager.readDataPool] ' + err, sql);
-                            return reject();
+                            process.exit();
                         }
 
                         for (let i = 0; i < arrDataPool.rows.length; ++i) {
-                            const obj = JSON.parse(arrDataPool.rows[i].json);
-                            obj._id   = arrDataPool.rows[i].id;
+                            const obj       =  JSON.parse(arrDataPool.rows[i].json);
+                            obj._id         =  arrDataPool.rows[i].id;
+                            obj._size_in_mb = +arrDataPool.rows[i].size_in_mb;
+                            obj._processed  =  false;
                             self._dataPool.push(obj);
                         }
 
                         log(self, '\t--[DataPoolManager.readDataPool] Data-Pool is loaded...');
-                        resolve();
+                        resolve(self);
                     });
                 }
             });

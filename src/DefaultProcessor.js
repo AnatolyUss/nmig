@@ -24,8 +24,7 @@ const connect              = require('./Connector');
 const log                  = require('./Logger');
 const generateError        = require('./ErrorGenerator');
 const extraConfigProcessor = require('./ExtraConfigProcessor');
-const tableProcessor       = require('./TableProcessor');
-const mapDataTypes         = tableProcessor.mapDataTypes;
+const { mapDataTypes }     = require('./TableProcessor');
 
 /**
  * Define which columns of the given table have default value.

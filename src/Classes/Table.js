@@ -20,14 +20,16 @@
  */
 'use strict';
 
-/**
- * This function represents table related metadata.
- * Constructor.
- *
- * @param {String} tableLogPath
- */
-module.exports = function Table(tableLogPath) {
-    this.tableLogPath      = tableLogPath;
-    this.arrTableColumns   = [];
-    this.totalRowsInserted = 0;
+module.exports = class Table {
+    /**
+     * This function represents table related metadata.
+     * Constructor.
+     *
+     * @param {String} tableLogPath
+     */
+    constructor(tableLogPath) {
+        this.tableLogPath      = tableLogPath;
+        this.arrTableColumns   = [];
+        this.totalRowsInserted = 0;
+    }
 };

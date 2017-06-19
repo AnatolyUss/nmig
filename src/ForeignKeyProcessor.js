@@ -152,13 +152,14 @@ module.exports = self => {
 
                                           if (err) {
                                               generateError(self, '\t--[processForeignKey] ' + err, sql);
-                                              fkResolve();
-                                          } else {
-                                              processForeignKeyWorker(self, tableName, rows).then(() => {
-                                                  log(self, '\t--[processForeignKey] Foreign keys for table "' + self._schema + '"."' + tableName + '" are set...');
-                                                  fkResolve();
-                                              });
                                           }
+
+                                          const extraRows = extraConfigProcessor.parseForeignKeys(self, tableName);
+                                          const fullRows  = (rows || []).concat(extraRows); // Prevent failure if "rows" is undefined.
+                                          processForeignKeyWorker(self, tableName, fullRows).then(() => {
+                                              log(self, '\t--[processForeignKey] Foreign keys for table "' + self._schema + '"."' + tableName + '" are set...');
+                                              fkResolve();
+                                          });
                                       });
                                   }
                             });

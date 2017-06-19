@@ -20,14 +20,19 @@
  */
 'use strict';
 
-/**
- * Create a new Buffer instance.
- *
- * @param {String} string
- * @param {String} encoding
- *
- * @returns {Buffer}
- */
-module.exports = (string, encoding) => {
-    return new Buffer(string, encoding);
+module.exports = class MessageToMaster {
+    /**
+     * Representation of a message of DataLoader process to the master process regarding records,
+     * inserted to specified table.
+     * Constructor.
+     *
+     * @param {String} tableName
+     * @param {Number} rowsInserted
+     * @param {Number} totalRowsToInsert
+     */
+    constructor(tableName, rowsInserted, totalRowsToInsert) {
+        this.tableName         = tableName;
+        this.rowsInserted      = rowsInserted;
+        this.totalRowsToInsert = totalRowsToInsert;
+    }
 };

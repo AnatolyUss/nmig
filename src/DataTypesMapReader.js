@@ -20,35 +20,27 @@
  */
 'use strict';
 
-const fs        = require('fs');
-const log       = require('./Logger');
-const getBuffer = +process.version.split('.')[0].slice(1) < 6
-    ? require('./OldBuffer')
-    : require('./NewBuffer');
-
+const fs = require('fs');
 
 /**
- * Writes a ditailed error message to the "/errors-only.log" file
+ * Reads "./data_types_map.json" and converts its json content to js object.
+ * Appends this object to "FromMySQL2PostgreSQL" instance.
  *
  * @param {Conversion} self
- * @param {String}     message
- * @param {String}     sql
  *
- * @returns {undefined}
+ * @returns {Promise}
  */
-module.exports = (self, message, sql) => {
-    message    += '\n\n\tSQL: ' + (sql || '') + '\n\n';
-    let buffer  = getBuffer(message, self._encoding);
-    log(self, message, undefined, true);
+module.exports = self => {
+    return new Promise(resolve => {
+        fs.readFile(self._dataTypesMapAddr, (error, data) => {
+            if (error) {
+                console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from ' + self._dataTypesMapAddr);
+                process.exit();
+            }
 
-    fs.open(self._errorLogsPath, 'a', self._0777, (error, fd) => {
-        if (!error) {
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                buffer = null;
-                fs.close(fd, () => {
-                    // Each async function MUST have a callback (according to Node.js >= 7).
-                });
-            });
-        }
+            self._dataTypesMap = JSON.parse(data);
+            console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
+            resolve(self);
+        });
     });
 };

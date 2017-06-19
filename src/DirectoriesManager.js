@@ -32,7 +32,7 @@ const log  = require('./Logger');
  * @returns {Promise}
  */
 module.exports.createTemporaryDirectory = self => {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         log(self, '\t--[DirectoriesManager.createTemporaryDirectory] Creating temporary directory...');
         fs.stat(self._tempDirPath, (directoryDoesNotExist, stat) => {
             if (directoryDoesNotExist) {
@@ -42,17 +42,17 @@ module.exports.createTemporaryDirectory = self => {
                                 + '"temporary_directory": ' + self._tempDirPath;
 
                         log(self, msg);
-                        reject();
+                        process.exit();
                     } else {
                         log(self, '\t--[DirectoriesManager.createTemporaryDirectory] Temporary directory is created...');
-                        resolve();
+                        resolve(self);
                     }
                 });
             } else if (!stat.isDirectory()) {
                 log(self, '\t--[DirectoriesManager.createTemporaryDirectory] Cannot perform a migration due to unexpected error');
-                reject();
+                process.exit();
             } else {
-                resolve();
+                resolve(self);
             }
         });
     });
@@ -113,7 +113,7 @@ module.exports.removeTemporaryDirectory = self => {
  * @returns {Promise}
  */
 module.exports.createLogsDirectory = self => {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         console.log('\t--[DirectoriesManager.createLogsDirectory] Creating logs directory...');
         fs.stat(self._logsDirPath, (directoryDoesNotExist, stat) => {
             if (directoryDoesNotExist) {
@@ -123,18 +123,18 @@ module.exports.createLogsDirectory = self => {
                             + '"logs_directory": ' + self._logsDirPath;
 
                         console.log(msg);
-                        reject();
+                        process.exit();
                     } else {
                         log(self, '\t--[DirectoriesManager.createLogsDirectory] Logs directory is created...');
-                        resolve();
+                        resolve(self);
                     }
                 });
             } else if (!stat.isDirectory()) {
                 console.log('\t--[DirectoriesManager.createLogsDirectory] Cannot perform a migration due to unexpected error');
-                reject();
+                process.exit();
             } else {
                 log(self, '\t--[DirectoriesManager.createLogsDirectory] Logs directory already exists...');
-                resolve();
+                resolve(self);
             }
         });
     });

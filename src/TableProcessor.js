@@ -27,8 +27,8 @@ const extraConfigProcessor = require('./ExtraConfigProcessor');
 
 /**
  * Converts MySQL data types to corresponding PostgreSQL data types.
- * This conversion performs in accordance to mapping rules in './DataTypesMap.json'.
- * './DataTypesMap.json' can be customized.
+ * This conversion performs in accordance to mapping rules in './data_types_map.json'.
+ * './data_types_map.json' can be customized.
  *
  * @param {Object} objDataTypesMap
  * @param {String} mySqlDataType

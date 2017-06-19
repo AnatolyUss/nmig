@@ -23,7 +23,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 
 <h3>SYSTEM REQUIREMENTS</h3>
 <ul>
-<li> <b>Node.js 5 or higher</b></li>
+<li> <b>Node.js 7 or higher</b></li>
 </ul>
 
 <h3>USAGE</h3>
@@ -44,11 +44,11 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install</pre><br />
-    <pre>$ node nmig.js</pre><br />
+    <pre>$ npm start</pre><br />
 </p>
 
 <p><b>5.</b> If a disaster took place during migration (for what ever reason) - simply restart the process
-<code>$ node nmig.js</code><br>&nbsp;&nbsp;&nbsp;&nbsp;NMIG will restart from the point it was stopped at.
+<code>$ npm start</code><br>&nbsp;&nbsp;&nbsp;&nbsp;NMIG will restart from the point it was stopped at.
 </p>
 
 <p><b>6.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
@@ -61,22 +61,8 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
-<p>Current version is 2.6.1<br />
+<p>Current version is 3.0.0<br />
 (major version . improvements . bug fixes)</p>
-
-
-<h3>TEST</h3>
-<p>Tested using MySQL Community Server (5.7.17) and PostgreSQL (9.5).<br />
-The entire process of migration 59.9 MB database (53 tables, 581275 rows),<br />
-which includes data types mapping, creation of tables, constraints, indexes, <br />
-PKs, FKs, migration of data, garbage-collection (VACUUM) and analyzing the newly created <br />
-PostgreSQL database took 1 minute 2 seconds.</p>
-<p>
-<b>Note:</b>&nbsp; it is highly recommended to VACUUM newly created database! <br />
-Just keep in mind, that VACUUM is a very time-consuming procedure. <br />
-So if you are short in time - disable VACUUM via config.json ("no_vacuum" parameter). <br />
-Such step will save you ~25% of migration time. <br />
-</p>
 
 <h3>REMARKS</h3>
 <p>Errors/Exceptions are not passed silently.<br />
