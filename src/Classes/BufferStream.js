@@ -32,6 +32,8 @@ module.exports = class BufferStream extends Readable {
         super();
         this._source = source;
         this._offset = 0;
+
+        // When source buffer consumed entirely, then the 'end' event is emitted.
         this.on('end', this.destroy.bind(this));
     }
 
@@ -52,7 +54,7 @@ module.exports = class BufferStream extends Readable {
      *
      * @returns {undefined}
      */
-    read(size) {
+    _read(size) {
         // Push the next chunk onto the internal stream buffer.
         if (this._offset < this._source.length) {
             this.push(this._source.slice(this._offset, this._offset + size));
@@ -60,7 +62,7 @@ module.exports = class BufferStream extends Readable {
             return;
         }
 
-        // Source buffer consumed entirely, readable stream must be closed.
+        // When the source ends, then the EOF - signaling `null` chunk should be pushed.
         this.push(null);
     }
 };
