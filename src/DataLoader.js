@@ -20,7 +20,6 @@
  */
 'use strict';
 
-const fs                     = require('fs');
 const path                   = require('path');
 const { from }               = require('pg-copy-streams');
 const csvStringify           = require('./CsvStringifyModified');
@@ -113,24 +112,6 @@ const deleteChunk = (self, dataPoolId, client, done) => {
 };
 
 /**
- * Delete given csv file.
- *
- * @param {String}         csvAddr
- * @param {FileDescriptor} fd
- *
- * @returns {Promise}
- */
-const deleteCsv = (csvAddr, fd) => {
-    return new Promise(resolve => {
-        fs.unlink(csvAddr, () => {
-            fs.close(fd, () => {
-                resolve();
-            });
-        });
-    });
-};
-
-/**
  * Build a MySQL query to retrieve the chunk of data.
  *
  * @param {String} tableName
@@ -145,26 +126,6 @@ const buildChunkQuery = (tableName, strSelectFieldList, offset, rowsInChunk) => 
 };
 
 /**
- * Delete given record from the data-pool.
- * Deleted related csv file.
- *
- * @param {Conversion}               self
- * @param {Number}                   dataPoolId
- * @param {Node-pg client|undefined} client
- * @param {Function|undefined}       done
- * @param {String}                   csvAddr
- * @param {Number}                   fd
- * @param {Function}                 callback
- *
- * @returns {undefined}
- */
-const deleteChunkAndCsv = (self, dataPoolId, client, done, csvAddr, fd, callback) => {
-    deleteChunk(self, dataPoolId, client, done).then(() => {
-        deleteCsv(csvAddr, fd).then(() => callback());
-    });
-};
-
-/**
  * Process data-loading error.
  *
  * @param {Conversion}               self
@@ -175,17 +136,15 @@ const deleteChunkAndCsv = (self, dataPoolId, client, done, csvAddr, fd, callback
  * @param {Number}                   dataPoolId
  * @param {Node-pg client|undefined} client
  * @param {Function|undefined}       done
- * @param {String}                   csvAddr
- * @param {Number}                   fd
  * @param {Function}                 callback
  *
  * @returns {undefined}
  */
-const processDataError = (self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, callback) => {
+const processDataError = (self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, callback) => {
     generateError(self, '\t--[populateTableWorker] ' + streamError, sqlCopy);
     const rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
     log(self, rejectedData, path.join(self._logsDirPath, tableName + '.log'));
-    deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, callback);
+    deleteChunk(self, dataPoolId, client, done).then(() => callback());
 };
 
 /**
@@ -209,7 +168,6 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                 generateError(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
                 resolvePopulateTableWorker();
             } else {
-                const csvAddr           = path.join(self._tempDirPath, tableName + offset + '.csv');
                 const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
                 const sql               = buildChunkQuery(originalTableName, strSelectFieldList, offset, rowsInChunk);
 
@@ -236,7 +194,7 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                 self._pg.connect((error, client, done) => {
                                     if (error) {
                                         generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
-                                        deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
+                                        resolvePopulateTableWorker();
                                     } else {
                                         const sqlCopy      = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + self._delimiter + '\' CSV;';
                                         const copyStream   = client.query(from(sqlCopy));
@@ -249,15 +207,7 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                              * That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
                                              */
                                             process.send(new MessageToMaster(tableName, rowsInChunk, rowsCnt));
-                                            deleteChunkAndCsv(
-                                                self,
-                                                dataPoolId,
-                                                client,
-                                                done,
-                                                csvAddr,
-                                                fd,
-                                                resolvePopulateTableWorker
-                                            );
+                                            deleteChunk(self, dataPoolId, client, done).then(() => resolvePopulateTableWorker());
                                         });
 
                                         copyStream.on('error', copyStreamError => {
@@ -270,8 +220,6 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                                 dataPoolId,
                                                 client,
                                                 done,
-                                                csvAddr,
-                                                fd,
                                                 resolvePopulateTableWorker
                                             );
                                         });
@@ -286,8 +234,6 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                                 dataPoolId,
                                                 client,
                                                 done,
-                                                csvAddr,
-                                                fd,
                                                 resolvePopulateTableWorker
                                             );
                                         });
