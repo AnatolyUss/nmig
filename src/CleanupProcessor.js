@@ -20,36 +20,7 @@
  */
 'use strict';
 
-const log                = require('./Logger');
-const generateError      = require('./ErrorGenerator');
-const directoriesManager = require('./DirectoriesManager');
-
-/**
- * Closes DB connections.
- *
- * @param {Conversion} self
- *
- * @returns {Promise}
- */
-const closeConnections = self => {
-    return new Promise(resolve => {
-        if (self._mysql) {
-            self._mysql.end(error => {
-                if (error) {
-                    log(self, '\t--[closeConnections] ' + error);
-                }
-
-                log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
-                self._pg = null;
-                resolve();
-            });
-        } else {
-            log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
-            self._pg = null;
-            resolve();
-        }
-    });
-}
+const log = require('./Logger');
 
 /**
  * Closes DB connections and removes the "./temporary_directory".
@@ -59,13 +30,23 @@ const closeConnections = self => {
  * @returns {Promise}
  */
 module.exports = self => {
+    log(self, '\t--[cleanup] Cleanup resources...');
+
     return new Promise(resolve => {
-        log(self, '\t--[cleanup] Cleanup resources...');
-        return directoriesManager.removeTemporaryDirectory(self).then(() => {
-            return closeConnections(self);
-        }).then(() => {
-            log(self, '\t--[cleanup] Cleanup finished...');
+        self._pg = null;
+
+        if (self._mysql) {
+            self._mysql.end(error => {
+                if (error) {
+                    log(self, '\t--[closeConnections] ' + error);
+                }
+
+                log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
+                resolve();
+            });
+        } else {
+            log(self, '\t--[closeConnections] All DB connections to both MySQL and PostgreSQL servers have been closed...');
             resolve();
-        });
+        }
     });
 };

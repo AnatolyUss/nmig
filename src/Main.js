@@ -20,17 +20,17 @@
  */
 'use strict';
 
-const fs                                                = require('fs');
-const path                                              = require('path');
-const readDataTypesMap                                  = require('./DataTypesMapReader');
-const Conversion                                        = require('./Classes/Conversion');
-const createSchema                                      = require('./SchemaProcessor');
-const loadStructureToMigrate                            = require('./StructureLoader');
-const pipeData                                          = require('./DataPipeManager');
-const boot                                              = require('./BootProcessor');
-const { createStateLogsTable }                          = require('./MigrationStateManager');
-const { createDataPoolTable, readDataPool }             = require('./DataPoolManager');
-const { createLogsDirectory, createTemporaryDirectory } = require('./DirectoriesManager');
+const fs                                    = require('fs');
+const path                                  = require('path');
+const readDataTypesMap                      = require('./DataTypesMapReader');
+const Conversion                            = require('./Classes/Conversion');
+const createSchema                          = require('./SchemaProcessor');
+const loadStructureToMigrate                = require('./StructureLoader');
+const pipeData                              = require('./DataPipeManager');
+const boot                                  = require('./BootProcessor');
+const { createStateLogsTable }              = require('./MigrationStateManager');
+const { createDataPoolTable, readDataPool } = require('./DataPoolManager');
+const log                                   = require('./Logger');
 
 /**
  * Read the configuration file.
@@ -53,7 +53,6 @@ const readConfig = () => {
             config.dataTypesMapAddr = path.join(__dirname, '..', 'data_types_map.json');
             resolve(config);
         });
-
     });
 };
 
@@ -93,8 +92,41 @@ const readExtraConfig = config => {
  * @returns {Promise}
  */
 const initializeConversion = config => {
+    return Promise.resolve(new Conversion(config));
+};
+
+/**
+ * Creates logs directory.
+ *
+ * @param {Conversion} self
+ *
+ * @returns {Promise}
+ */
+const createLogsDirectory = self => {
     return new Promise(resolve => {
-        resolve(new Conversion(config));
+        console.log('\t--[DirectoriesManager.createLogsDirectory] Creating logs directory...');
+        fs.stat(self._logsDirPath, (directoryDoesNotExist, stat) => {
+            if (directoryDoesNotExist) {
+                fs.mkdir(self._logsDirPath, self._0777, e => {
+                    if (e) {
+                        const msg = '\t--[DirectoriesManager.createLogsDirectory] Cannot perform a migration due to impossibility to create '
+                            + '"logs_directory": ' + self._logsDirPath;
+
+                        console.log(msg);
+                        process.exit();
+                    } else {
+                        log(self, '\t--[DirectoriesManager.createLogsDirectory] Logs directory is created...');
+                        resolve(self);
+                    }
+                });
+            } else if (!stat.isDirectory()) {
+                console.log('\t--[DirectoriesManager.createLogsDirectory] Cannot perform a migration due to unexpected error');
+                process.exit();
+            } else {
+                log(self, '\t--[DirectoriesManager.createLogsDirectory] Logs directory already exists...');
+                resolve(self);
+            }
+        });
     });
 };
 
@@ -104,7 +136,6 @@ readConfig()
     .then(boot)
     .then(readDataTypesMap)
     .then(createLogsDirectory)
-    .then(createTemporaryDirectory)
     .then(createSchema)
     .then(createStateLogsTable)
     .then(createDataPoolTable)
