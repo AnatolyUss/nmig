@@ -85,9 +85,9 @@ module.exports = (arrTableColumns, mysqlVersion) => {
         const type  = arrTableColumns[i].Type;
 
         if (isSpacial(type)) {
-            strRetVal += 'CONCAT(\'\\\\x\', HEX(' + wkbFunc + '(`' + field + '`))) AS `' + field + '`,';
+            strRetVal += 'HEX(' + wkbFunc + '(`' + field + '`)) AS `' + field + '`,';
         } else if (isBinary(type)) {
-            strRetVal += 'CONCAT(\'\\\\x\', HEX(`' + field + '`)) AS `' + field + '`,';
+            strRetVal += 'HEX(`' + field + '`) AS `' + field + '`,';
         } else if (isBit(type)) {
             strRetVal += 'BIN(`' + field + '`) AS `' + field + '`,';
         } else if (isDateTime(type)) {
