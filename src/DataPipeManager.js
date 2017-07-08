@@ -109,11 +109,11 @@ const fillBandwidth = (self, currentIndex) => {
                 continue;
             }
 
-            if (self._dataChunkSize === bandwidth) {
+            if (self._dataChunkSize >= bandwidth) {
                 /*
-                 * Currently, the bandwidth is equal to "data_chunk_size".
+                 * Currently, the "data_chunk_size" is greater or equal to the bandwidth.
                  * This means, that no more data chunks can be processed during current COPY operation.
-                 * Current COPY operation will be performed with full bandwidth capacity.
+                 * Current COPY operation will be performed with maximal possible bandwidth capacity.
                  */
                 dataChunkIndexes.push(i);
                 self._dataPool[i]._processed = true;
@@ -203,10 +203,11 @@ module.exports = self => {
         return processConstraints(self);
     }
 
+    const currentIndex      = 0;
     const strDataLoaderPath = path.join(__dirname, 'DataLoader.js');
     const options           = self._loaderMaxOldSpaceSize === 'DEFAULT'
         ? Object.create(null)
         : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };
 
-    return pipeData(self, strDataLoaderPath, options, 0);
+    return pipeData(self, strDataLoaderPath, options, currentIndex);
 };
