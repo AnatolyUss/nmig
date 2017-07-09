@@ -63,7 +63,6 @@ const updateConsistencyState = (self, dataPoolId) => {
  *
  * @returns {Promise}
  */
-
 const getIsStarted = (self, dataPoolId) => {
     return new Promise(resolve => {
         self._pg.connect((error, client, done) => {
