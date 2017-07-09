@@ -21,6 +21,53 @@
 'use strict';
 
 /**
+ * Define if given type is one of MySQL spacial types.
+ *
+ * @param {String} type
+ *
+ * @returns {Boolean}
+ */
+const isSpacial = type => {
+    return type.indexOf('geometry') !== -1
+        || type.indexOf('point') !== -1
+        || type.indexOf('linestring') !== -1
+        || type.indexOf('polygon') !== -1;
+};
+
+/**
+ * Define if given type is one of MySQL binary types.
+ *
+ * @param {String} type
+ *
+ * @returns {Boolean}
+ */
+const isBinary = type => {
+    return type.indexOf('blob') !== -1 || type.indexOf('binary') !== -1;
+};
+
+/**
+ * Define if given type is one of MySQL bit types.
+ *
+ * @param {String} type
+ *
+ * @returns {Boolean}
+ */
+const isBit = type => {
+    return type.indexOf('bit') !== -1;
+};
+
+/**
+ * Define if given type is one of MySQL date-time types.
+ *
+ * @param {String} type
+ *
+ * @returns {Boolean}
+ */
+const isDateTime = type => {
+    return type.indexOf('timestamp') !== -1 || type.indexOf('date') !== -1;
+};
+
+/**
  * Arranges columns data before loading.
  *
  * @param {Array}      arrTableColumns
@@ -29,36 +76,25 @@
  * @returns {String}
  */
 module.exports = (arrTableColumns, mysqlVersion) => {
-    let strRetVal = '';
+    let strRetVal               = '';
+    const arrTableColumnsLength = arrTableColumns.length;
+    const wkbFunc               = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
-    for (let i = 0; i < arrTableColumns.length; ++i) {
-        if (
-            arrTableColumns[i].Type.indexOf('geometry') !== -1
-            || arrTableColumns[i].Type.indexOf('point') !== -1
-            || arrTableColumns[i].Type.indexOf('linestring') !== -1
-            || arrTableColumns[i].Type.indexOf('polygon') !== -1
-        ) {
-            strRetVal += mysqlVersion >= 5.76
-                ? 'HEX(ST_AsWKB(`' + arrTableColumns[i].Field + '`)),'
-                : 'HEX(AsWKB(`' + arrTableColumns[i].Field + '`)),';
-        } else if (
-            arrTableColumns[i].Type.indexOf('blob') !== -1
-            || arrTableColumns[i].Type.indexOf('binary') !== -1
-        ) {
-            strRetVal += 'HEX(`' + arrTableColumns[i].Field + '`),';
-        } else if (
-            arrTableColumns[i].Type.indexOf('bit') !== -1
-        ) {
-            strRetVal += 'BIN(`' + arrTableColumns[i].Field + '`),';
-        } else if (
-            arrTableColumns[i].Type.indexOf('timestamp') !== -1
-            || arrTableColumns[i].Type.indexOf('date') !== -1
-        ) {
-            strRetVal += 'IF(`' + arrTableColumns[i].Field
-                      +  '` IN(\'0000-00-00\', \'0000-00-00 00:00:00\'), \'-INFINITY\', CAST(`'
-                      +  arrTableColumns[i].Field + '` AS CHAR)),';
+    for (let i = 0; i < arrTableColumnsLength; ++i) {
+        const field = arrTableColumns[i].Field;
+        const type  = arrTableColumns[i].Type;
+
+        if (isSpacial(type)) {
+            strRetVal += 'HEX(' + wkbFunc + '(`' + field + '`)) AS `' + field + '`,';
+        } else if (isBinary(type)) {
+            strRetVal += 'HEX(`' + field + '`) AS `' + field + '`,';
+        } else if (isBit(type)) {
+            strRetVal += 'BIN(`' + field + '`) AS `' + field + '`,';
+        } else if (isDateTime(type)) {
+            strRetVal += 'IF(`' + field +  '` IN(\'0000-00-00\', \'0000-00-00 00:00:00\'), \'-INFINITY\', CAST(`'
+                +  field + '` AS CHAR)) AS `' + field + '`,';
         } else {
-            strRetVal += '`' + arrTableColumns[i].Field + '`,';
+            strRetVal += '`' + field + '` AS `' + field + '`,';
         }
     }
 

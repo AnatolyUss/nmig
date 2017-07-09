@@ -28,7 +28,9 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 
 <h3>USAGE</h3>
 <p><b>1.</b> Create a new database.<br />
-   <b>Sample:</b>&nbsp;<code> CREATE DATABASE my_postgresql_database;</code></p>
+   <b>Sample:</b>&nbsp;<code> CREATE DATABASE my_postgresql_database;</code><br />
+   If you are planning to migrate spatial data (geometry type columns), then <b>PostGIS</b> should be installed and enabled.
+</p>
 
 <p><b>2.</b> Download NMIG package and put it on the machine running your PostgreSQL (not mandatory, but preferably).<br />
    <b>Sample:</b>&nbsp;<code>/path/to/nmig</code></p>
@@ -61,7 +63,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
 <h3>VERSION</h3>
-<p>Current version is 3.0.0<br />
+<p>Current version is 3.1.0<br />
 (major version . improvements . bug fixes)</p>
 
 <h3>REMARKS</h3>

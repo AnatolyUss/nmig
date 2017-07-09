@@ -20,7 +20,6 @@
  */
 'use strict';
 
-const fs                     = require('fs');
 const path                   = require('path');
 const { from }               = require('pg-copy-streams');
 const csvStringify           = require('./CsvStringifyModified');
@@ -31,6 +30,7 @@ const Conversion             = require('./Classes/Conversion');
 const MessageToMaster        = require('./Classes/MessageToMaster');
 const { enforceConsistency } = require('./ConsistencyEnforcer');
 const extraConfigProcessor   = require('./ExtraConfigProcessor');
+const BufferStream           = require('./Classes/BufferStream');
 
 process.on('message', signal => {
     const self     = new Conversion(signal.config);
@@ -109,25 +109,7 @@ const deleteChunk = (self, dataPoolId, client, done) => {
             });
         }
     });
-}
-
-/**
- * Delete given csv file.
- *
- * @param {String}         csvAddr
- * @param {FileDescriptor} fd
- *
- * @returns {Promise}
- */
-const deleteCsv = (csvAddr, fd) => {
-    return new Promise(resolve => {
-        fs.unlink(csvAddr, () => {
-            fs.close(fd, () => {
-                resolve();
-            });
-        });
-    });
-}
+};
 
 /**
  * Build a MySQL query to retrieve the chunk of data.
@@ -141,27 +123,7 @@ const deleteCsv = (csvAddr, fd) => {
  */
 const buildChunkQuery = (tableName, strSelectFieldList, offset, rowsInChunk) => {
     return 'SELECT ' + strSelectFieldList + ' FROM `' + tableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
-}
-
-/**
- * Delete given record from the data-pool.
- * Deleted related csv file.
- *
- * @param {Conversion}               self
- * @param {Number}                   dataPoolId
- * @param {Node-pg client|undefined} client
- * @param {Function|undefined}       done
- * @param {String}                   csvAddr
- * @param {Number}                   fd
- * @param {Function}                 callback
- *
- * @returns {undefined}
- */
-const deleteChunkAndCsv = (self, dataPoolId, client, done, csvAddr, fd, callback) => {
-    deleteChunk(self, dataPoolId, client, done).then(() => {
-        deleteCsv(csvAddr, fd).then(() => callback());
-    });
-}
+};
 
 /**
  * Process data-loading error.
@@ -174,18 +136,16 @@ const deleteChunkAndCsv = (self, dataPoolId, client, done, csvAddr, fd, callback
  * @param {Number}                   dataPoolId
  * @param {Node-pg client|undefined} client
  * @param {Function|undefined}       done
- * @param {String}                   csvAddr
- * @param {Number}                   fd
  * @param {Function}                 callback
  *
  * @returns {undefined}
  */
-const processDataError = (self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, callback) => {
+const processDataError = (self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, callback) => {
     generateError(self, '\t--[populateTableWorker] ' + streamError, sqlCopy);
     const rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
     log(self, rejectedData, path.join(self._logsDirPath, tableName + '.log'));
-    deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, callback);
-}
+    deleteChunk(self, dataPoolId, client, done).then(() => callback());
+};
 
 /**
  * Load a chunk of data using "PostgreSQL COPY".
@@ -208,7 +168,6 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                 generateError(self, '\t--[populateTableWorker] Cannot connect to MySQL server...\n\t' + error);
                 resolvePopulateTableWorker();
             } else {
-                const csvAddr           = path.join(self._tempDirPath, tableName + offset + '.csv');
                 const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
                 const sql               = buildChunkQuery(originalTableName, strSelectFieldList, offset, rowsInChunk);
 
@@ -232,48 +191,56 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
                                 const buffer = Buffer.from(csvString, self._encoding);
                                 csvString  = null;
 
-                                fs.open(csvAddr, 'w', self._0777, (csvErrorFputcsvOpen, fd) => {
-                                    if (csvErrorFputcsvOpen) {
-                                        generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvOpen);
+                                self._pg.connect((error, client, done) => {
+                                    if (error) {
+                                        generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
                                         resolvePopulateTableWorker();
                                     } else {
-                                        fs.write(fd, buffer, 0, buffer.length, null, csvErrorFputcsvWrite => {
-                                            if (csvErrorFputcsvWrite) {
-                                                generateError(self, '\t--[populateTableWorker] ' + csvErrorFputcsvWrite);
-                                                resolvePopulateTableWorker();
-                                            } else {
-                                                self._pg.connect((error, client, done) => {
-                                                    if (error) {
-                                                        generateError(self, '\t--[populateTableWorker] Cannot connect to PostgreSQL server...\n' + error, sql);
-                                                        deleteCsv(csvAddr, fd).then(() => resolvePopulateTableWorker());
-                                                    } else {
-                                                        const sqlCopy    = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + self._delimiter + '\' CSV;';
-                                                        const copyStream = client.query(from(sqlCopy));
-                                                        const readStream = fs.createReadStream(csvAddr, { encoding: self._encoding });
+                                        const sqlCopy      = 'COPY "' + self._schema + '"."' + tableName + '" FROM STDIN DELIMITER \'' + self._delimiter + '\' CSV;';
+                                        const copyStream   = client.query(from(sqlCopy));
+                                        const bufferStream = new BufferStream(buffer);
 
-                                                        copyStream.on('end', () => {
-                                                            /*
-                                                             * COPY FROM STDIN does not return the number of rows inserted.
-                                                             * But the transactional behavior still applies (no records inserted if at least one failed).
-                                                             * That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
-                                                             */
-                                                            process.send(new MessageToMaster(tableName, rowsInChunk, rowsCnt));
-                                                            deleteChunkAndCsv(self, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
-                                                        });
-
-                                                        copyStream.on('error', copyStreamError => {
-                                                            processDataError(self, copyStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
-                                                        });
-
-                                                        readStream.on('error', readStreamError => {
-                                                            processDataError(self, readStreamError, sql, sqlCopy, tableName, dataPoolId, client, done, csvAddr, fd, resolvePopulateTableWorker);
-                                                        });
-
-                                                        readStream.pipe(copyStream);
-                                                    }
-                                               });
-                                            }
+                                        copyStream.on('end', () => {
+                                            /*
+                                             * COPY FROM STDIN does not return the number of rows inserted.
+                                             * But the transactional behavior still applies (no records inserted if at least one failed).
+                                             * That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
+                                             */
+                                            process.send(new MessageToMaster(tableName, rowsInChunk, rowsCnt));
+                                            deleteChunk(self, dataPoolId, client, done).then(() => resolvePopulateTableWorker());
                                         });
+
+                                        copyStream.on('error', copyStreamError => {
+                                            processDataError(
+                                                self,
+                                                copyStreamError,
+                                                sql,
+                                                sqlCopy,
+                                                tableName,
+                                                dataPoolId,
+                                                client,
+                                                done,
+                                                resolvePopulateTableWorker
+                                            );
+                                        });
+
+                                        bufferStream.on('error', bufferStreamError => {
+                                            processDataError(
+                                                self,
+                                                bufferStreamError,
+                                                sql,
+                                                sqlCopy,
+                                                tableName,
+                                                dataPoolId,
+                                                client,
+                                                done,
+                                                resolvePopulateTableWorker
+                                            );
+                                        });
+
+                                        bufferStream
+                                            .setEncoding(self._encoding)
+                                            .pipe(copyStream);
                                     }
                                 });
                             }
@@ -283,4 +250,4 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
             }
         });
     });
-}
+};
