@@ -129,12 +129,10 @@ module.exports = self => {
                                     }
                                 }
 
-                                rows            = null;
-                                self._tablesCnt = tablesCnt;
-                                self._viewsCnt  = viewsCnt;
-                                let message     = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
-                                                + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n'
-                                                + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
+                                rows        = null;
+                                let message = '\t--[loadStructureToMigrate] Source DB structure is loaded...\n'
+                                    + '\t--[loadStructureToMigrate] Tables to migrate: ' + tablesCnt + '\n'
+                                    + '\t--[loadStructureToMigrate] Views to migrate: ' + viewsCnt;
 
                                 log(self, message);
 
