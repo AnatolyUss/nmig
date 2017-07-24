@@ -1,6 +1,6 @@
 {
     "name": "nmig",
-    "version": "3.1.0",
+    "version": "3.2.0",
     "description": "The database migration app",
     "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
     "license": "GPL-3.0",
@@ -10,7 +10,7 @@
     },
     "dependencies": {
         "mysql": "^2.13.0",
-        "pg": "^6.2.4",
+        "pg": "^7.0.2",
         "pg-copy-streams": "^1.2.0"
     },
     "scripts": {
