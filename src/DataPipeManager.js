@@ -55,7 +55,7 @@ const dataPoolProcessed = self => {
 
 /**
  * Get a size (in MB) of the smallest, non processed data chunk.
- * If all data chunks are processed then return -1.
+ * If all data chunks are processed then return 0.
  *
  * @param {Conversion} self
  *
@@ -68,27 +68,25 @@ const getSmallestDataChunkSizeInMb = self => {
         }
     }
 
-    return -1;
+    return 0;
 };
 
 /**
  * Create an array of indexes, that point to data chunks, that will be processed during current COPY operation.
  *
  * @param {Conversion} self
- * @param {Number}     currentIndex
  *
  * @returns {Array}
  */
-const fillBandwidth = (self, currentIndex) => {
+const fillBandwidth = self => {
     const dataChunkIndexes = [];
 
     /*
-     * Loop through the data pool from current index to the end.
+     * Loop through the data pool from the beginning to the end.
      * Note, the data pool is created with predefined order, the order by data chunk size descending.
-     * Note, the "bandwidth" variable represents an actual amount of data,
-     * that will be loaded during current COPY operation.
+     * Note, the "bandwidth" variable represents an actual amount of data, that will be loaded during current COPY operation.
      */
-    for (let i = currentIndex, bandwidth = 0; i < self._dataPool.length; ++i) {
+    for (let i = 0, bandwidth = 0; i < self._dataPool.length; ++i) {
         /*
          * Check if current chunk has already been marked as "processed".
          * If yes, then continue to the next iteration.
@@ -133,25 +131,6 @@ const fillBandwidth = (self, currentIndex) => {
 };
 
 /**
- * Calculate an index of the next data chunk to process.
- * If all data chunks are processed then return -1.
- *
- * @param {Conversion} self
- * @param {Number}     currentIndex
- *
- * @returns {Number}
- */
-const getNextIndex = (self, currentIndex) => {
-    for (let i = currentIndex + 1; i < self._dataPool.length; ++i) {
-        if (self._dataPool[i]._processed === false) {
-            return i;
-        }
-    }
-
-    return -1;
-};
-
-/**
  * Instructs DataLoader which data chunks should be loaded.
  * No need to check the state-log.
  * If dataPool's length is zero, then nmig will proceed to the next step.
@@ -159,17 +138,16 @@ const getNextIndex = (self, currentIndex) => {
  * @param {Conversion} self
  * @param {String}     strDataLoaderPath
  * @param {Object}     options
- * @param {Number}     currentIndex
  *
  * @returns {undefined}
  */
-const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
+const pipeData = (self, strDataLoaderPath, options) => {
     if (dataPoolProcessed(self)) {
         return processConstraints(self);
     }
 
     const loaderProcess = childProcess.fork(strDataLoaderPath, options);
-    const bandwidth     = fillBandwidth(self, currentIndex);
+    const bandwidth     = fillBandwidth(self);
     const chunksToLoad  = bandwidth.map(index => {
         return self._dataPool[index];
     });
@@ -184,7 +162,7 @@ const pipeData = (self, strDataLoaderPath, options, currentIndex) => {
         } else {
             killProcess(loaderProcess.pid);
             self._processedChunks += chunksToLoad.length;
-            return pipeData(self, strDataLoaderPath, options, getNextIndex(self, currentIndex));
+            return pipeData(self, strDataLoaderPath, options);
         }
     });
 
@@ -203,11 +181,10 @@ module.exports = self => {
         return processConstraints(self);
     }
 
-    const currentIndex      = 0;
     const strDataLoaderPath = path.join(__dirname, 'DataLoader.js');
     const options           = self._loaderMaxOldSpaceSize === 'DEFAULT'
         ? Object.create(null)
         : { execArgv: ['--max-old-space-size=' + self._loaderMaxOldSpaceSize] };
 
-    return pipeData(self, strDataLoaderPath, options, currentIndex);
+    return pipeData(self, strDataLoaderPath, options);
 };
