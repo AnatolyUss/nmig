@@ -65,7 +65,7 @@
         "Following lines are an example of expected foreign keys format.",
         "Feel free to modify them.",
         "Note, if one of the following: 'column_name', 'referenced_table_name', 'referenced_column_name'",
-        "has being renamed, then a new name must be used.",
+        "has been renamed, then a new name must be used.",
         "Note, possible values for 'update_rule' and 'delete_rule' are 'restrict' or 'cascade'.",
         "If you don't need to create foreign keys 'on the fly', then remove the 'foreign_keys' section."
     ],

@@ -62,7 +62,7 @@ module.exports = self => {
                                 + '\n\t\\|   \\/ /_|/______/'
                                 + '\n\n\tNMIG - the database migration tool'
                                 + '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
-                                + '\t--[boot] Configuration has being just loaded.'
+                                + '\t--[boot] Configuration has been just loaded.'
                                 + message;
 
                             console.log(logo);
