@@ -102,7 +102,13 @@ module.exports = self => {
                         generateError(self, '\t--[loadStructureToMigrate] Cannot connect to MySQL server...\n' + error);
                         process.exit();
                     } else {
-                        const sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`;';
+                        let sql = 'SHOW FULL TABLES IN `' + self._mySqlDbName + '`';
+
+                        if (self._includeTables.length) {
+                            sql = sql + ' WHERE Tables_in_' + self._mySqlDbName + ' IN (' + self._includeTables.map(function (item) {return '"' + item + '"'}).join(',') + ')';
+                        }
+                        sql = sql + ';';
+
                         connection.query(sql, (strErr, rows) => {
                             connection.release();
 

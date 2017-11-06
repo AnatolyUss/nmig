@@ -81,6 +81,12 @@
     ],
     "exclude_tables": [],
 
+    "include_tables_description": [
+        "List (Array) of tables, only those that will be migrated.",
+        "By default, nmig will migrate all tables."
+    ],
+    "include_tables": [],
+
     "migrate_only_data_description" : [
         "In order to skip schema migration, and just migrate data into a preset schema",
         " - set this parameter true."

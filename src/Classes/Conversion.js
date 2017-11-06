@@ -39,6 +39,7 @@ module.exports = class Conversion {
         this._notCreatedViewsPath     = path.join(this._logsDirPath, 'not_created_views');
         this._noVacuum                = this._config.no_vacuum;
         this._excludeTables           = this._config.exclude_tables;
+        this._includeTables           = this._config.include_tables;
         this._timeBegin               = new Date();
         this._encoding                = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
