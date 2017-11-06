@@ -61,7 +61,7 @@ module.exports = (self, tableName, haveDataChunksProcessed) => {
                             generateError(self, '\t--[prepareDataChunks] ' + err, sql);
                             resolve();
                         } else {
-                            const tableSizeInMb      = +rows[0].size_in_mb;
+                            const tableSizeInMb      = Math.ceil(+rows[0].size_in_mb);
                             rows                     = null;
                             sql                      = 'SELECT COUNT(1) AS rows_count FROM `' + originalTableName + '`;';
                             const strSelectFieldList = arrangeColumnsData(
@@ -78,7 +78,7 @@ module.exports = (self, tableName, haveDataChunksProcessed) => {
                                 } else {
                                     const rowsCnt             = rows2[0].rows_count;
                                     rows2                     = null;
-                                    let chunksCnt             = tableSizeInMb / self._dataChunkSize;
+                                    let chunksCnt             = Math.ceil(tableSizeInMb / self._dataChunkSize);
                                     chunksCnt                 = chunksCnt < 1 ? 1 : chunksCnt;
                                     const rowsInChunk         = Math.ceil(rowsCnt / chunksCnt);
                                     const arrDataPoolPromises = [];
@@ -112,7 +112,7 @@ module.exports = (self, tableName, haveDataChunksProcessed) => {
                                                     if (chunksCnt === 1) {
                                                         currentChunkSizeInMb = tableSizeInMb;
                                                     } else if (offset + rowsInChunk >= rowsCnt) {
-                                                        currentChunkSizeInMb = tableSizeInMb % chunksCnt;
+                                                        currentChunkSizeInMb = tableSizeInMb - self._dataChunkSize * (chunksCnt - 1);
                                                         currentChunkSizeInMb = currentChunkSizeInMb || self._dataChunkSize;
                                                     } else {
                                                         currentChunkSizeInMb = self._dataChunkSize;
