@@ -115,8 +115,9 @@ const processColumnsComments = (self, tableName) => {
                                     false
                                 );
 
-                                const sql = 'COMMENT ON COLUMN "' + self._schema + '"."' + tableName + '"."'
-                                    + columnName + '" IS \'' + self._dicTables[tableName].arrTableColumns[i].Comment + '\';';
+                                const regexp  = new RegExp('\'', 'g');
+                                const comment = self._dicTables[tableName].arrTableColumns[i].Comment.replace(regexp, '\'\'');
+                                const sql     = 'COMMENT ON COLUMN "' + self._schema + '"."' + tableName + '"."' + columnName + '" IS \'' + comment + '\';';
 
                                 client.query(sql, err => {
                                     done();
