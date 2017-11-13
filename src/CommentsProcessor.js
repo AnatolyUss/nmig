@@ -26,6 +26,18 @@ const connect               = require('./Connector');
 const extraConfigProcessor  = require('./ExtraConfigProcessor');
 
 /**
+ * Escape quotes inside given string.
+ *
+ * @param {String} str
+ *
+ * @returns {String}
+ */
+const escapeQuotes = str => {
+    const regexp = new RegExp('\'', 'g');
+    return str.replace(regexp, '\'\'');
+};
+
+/**
  * Create table comments.
  *
  * @param {Conversion} self
@@ -58,7 +70,8 @@ const processTableComments = (self, tableName) => {
                                 generateError(self, '\t--[processTableComments] Cannot connect to PostgreSQL server...\n' + e);
                                 resolve();
                             } else {
-                                sql = 'COMMENT ON TABLE "' + self._schema + '"."' + tableName + '" IS ' + '\'' + rows[0].table_comment + '\';';
+                                const comment = escapeQuotes(rows[0].table_comment);
+                                sql = 'COMMENT ON TABLE "' + self._schema + '"."' + tableName + '" IS ' + '\'' + comment + '\';';
 
                                 client.query(sql, queryError => {
                                     done();
@@ -115,8 +128,7 @@ const processColumnsComments = (self, tableName) => {
                                     false
                                 );
 
-                                const regexp  = new RegExp('\'', 'g');
-                                const comment = self._dicTables[tableName].arrTableColumns[i].Comment.replace(regexp, '\'\'');
+                                const comment = escapeQuotes(self._dicTables[tableName].arrTableColumns[i].Comment);
                                 const sql     = 'COMMENT ON COLUMN "' + self._schema + '"."' + tableName + '"."' + columnName + '" IS \'' + comment + '\';';
 
                                 client.query(sql, err => {
