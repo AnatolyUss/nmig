@@ -14,6 +14,11 @@
         "pg-copy-streams": "^1.2.0"
     },
     "scripts": {
-        "start": "node ./src/Main.js"
+        "start": "node ./src/Main.js",
+        "test": "mocha test/*.test.js"
+    },
+    "devDependencies": {
+        "chai": "^4.1.2",
+        "mocha": "^4.0.1"
     }
 }
