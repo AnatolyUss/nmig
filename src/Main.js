@@ -24,7 +24,7 @@ const fs                                    = require('fs');
 const path                                  = require('path');
 const readDataTypesMap                      = require('./DataTypesMapReader');
 const Conversion                            = require('./Classes/Conversion');
-const createSchema                          = require('./SchemaProcessor');
+const SchemaProcessor                       = require('./SchemaProcessor');
 const loadStructureToMigrate                = require('./StructureLoader');
 const pipeData                              = require('./DataPipeManager');
 const boot                                  = require('./BootProcessor');
@@ -142,7 +142,9 @@ app.readConfig()
     .then(boot)
     .then(readDataTypesMap)
     .then(app.createLogsDirectory)
-    .then(createSchema)
+    .then(conversion => {
+        return (new SchemaProcessor(conversion)).createSchema();
+    })
     .then(createStateLogsTable)
     .then(createDataPoolTable)
     .then(loadStructureToMigrate)

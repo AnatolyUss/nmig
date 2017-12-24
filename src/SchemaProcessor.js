@@ -20,49 +20,44 @@
  */
 'use strict';
 
-const connect       = require('./Connector');
-const generateError = require('./ErrorGenerator');
+const ConnectionEmitter = require('./ConnectionEmitter');
+const generateError     = require('./ErrorGenerator');
 
-/**
- * Create a new database schema.
- * Insure a uniqueness of a new schema name.
- *
- * @param {Conversion} self
- *
- * @returns {Promise}
- */
-module.exports = self => {
-    return connect(self).then(() => {
-        return new Promise(resolve => {
-            self._pg.connect((error, client, done) => {
-                if (error) {
-                    generateError(self, '\t--[createSchema] Cannot connect to PostgreSQL server...\n' + error);
-                    process.exit();
-                } else {
-                    let sql = "SELECT schema_name FROM information_schema.schemata WHERE schema_name = '" + self._schema + "';";
-                    client.query(sql, (err, result) => {
-                        if (err) {
-                            done();
-                            generateError(self, '\t--[createSchema] ' + err, sql);
-                            process.exit();
-                        } else if (result.rows.length === 0) {
-                            sql = 'CREATE SCHEMA "' + self._schema + '";';
-                            client.query(sql, err => {
-                                done();
+module.exports = class SchemaProcessor {
 
-                                if (err) {
-                                    generateError(self, '\t--[createSchema] ' + err, sql);
-                                    process.exit();
-                                } else {
-                                    resolve(self);
-                                }
-                            });
-                        } else {
-                            resolve(self);
-                        }
-                    });
-                }
-            });
-        });
-    });
+    /**
+     * SchemaProcessor constructor.
+     *
+     * @param {Conversion} conversion
+     */
+    constructor(conversion) {
+        this._conversion        = conversion;
+        this._connectionEmitter = new ConnectionEmitter(this._conversion);
+    }
+
+    /**
+     * Create a new database schema if it does not exist yet.
+     *
+     * @returns {Promise<Conversion>}
+     */
+    async createSchema() {
+        const client = await this._connectionEmitter.getPgClient();
+        let sql      = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = "${ this._conversion._schema }";`;
+
+        try {
+            const result = await client.query(sql);
+
+            if (result.rows.length === 0) {
+                sql = `CREATE SCHEMA "${ this._conversion._schema }";`;
+                await client.query(sql);
+                this._connectionEmitter.releasePgClient(client);
+            }
+
+            return Promise.resolve(this._conversion);
+
+        } catch (err) {
+            generateError(this._conversion, `\t--[createSchema] ${ err }`, sql);
+            process.exit();
+        }
+    }
 };
