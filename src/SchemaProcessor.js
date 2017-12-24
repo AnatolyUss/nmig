@@ -42,7 +42,7 @@ module.exports = class SchemaProcessor {
      */
     async createSchema() {
         const client = await this._connectionEmitter.getPgClient();
-        let sql      = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = "${ this._conversion._schema }";`;
+        let sql      = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }';`;
 
         try {
             const result = await client.query(sql);
