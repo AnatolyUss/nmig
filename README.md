@@ -23,7 +23,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 
 <h3>SYSTEM REQUIREMENTS</h3>
 <ul>
-<li> <b>Node.js 7 or higher</b></li>
+<li> <b>Node.js 8 or higher</b></li>
 </ul>
 
 <h3>USAGE</h3>
