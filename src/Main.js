@@ -37,11 +37,13 @@ const Main = class {
     /**
      * Read the configuration file.
      *
+     * @param {String} baseDir
+     *
      * @returns {Promise}
      */
-    readConfig() {
+    readConfig(baseDir) {
         return new Promise(resolve => {
-            const strPathToConfig = path.join(__dirname, '..', 'config.json');
+            const strPathToConfig = path.join(baseDir, 'config.json');
 
             fs.readFile(strPathToConfig, (error, data) => {
                 if (error) {
@@ -50,8 +52,8 @@ const Main = class {
                 }
 
                 const config            = JSON.parse(data);
-                config.logsDirPath      = path.join(__dirname, '..', 'logs_directory');
-                config.dataTypesMapAddr = path.join(__dirname, '..', 'data_types_map.json');
+                config.logsDirPath      = path.join(baseDir, 'logs_directory');
+                config.dataTypesMapAddr = path.join(baseDir, 'data_types_map.json');
                 resolve(config);
             });
         });
@@ -61,17 +63,18 @@ const Main = class {
      * Read the extra configuration file, if necessary.
      *
      * @param {Object} config
+     * @param {String} baseDir
      *
      * @returns {Promise}
      */
-    readExtraConfig(config) {
+    readExtraConfig(config, baseDir) {
         return new Promise(resolve => {
             if (config.enable_extra_config !== true) {
                 config.extraConfig = null;
                 return resolve(config);
             }
 
-            const strPathToExtraConfig = path.join(__dirname, '..', 'extra_config.json');
+            const strPathToExtraConfig = path.join(baseDir, 'extra_config.json');
 
             fs.readFile(strPathToExtraConfig, (error, data) => {
                 if (error) {
@@ -133,11 +136,13 @@ const Main = class {
 };
 
 module.exports = Main;
+const app      = new Main();
+const baseDir  = path.join(__dirname, '..');
 
-const app = new Main();
-
-app.readConfig()
-    .then(app.readExtraConfig)
+app.readConfig(baseDir)
+    .then(config => {
+        return app.readExtraConfig(config, baseDir);
+    })
     .then(app.initializeConversion)
     .then(boot)
     .then(readDataTypesMap)
