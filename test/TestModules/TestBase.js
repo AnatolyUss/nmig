@@ -20,8 +20,10 @@
  */
 'use strict';
 
-const Main         = require('../../src/Main');
-const createSchema = require('../../src/SchemaProcessor');
+const path              = require('path');
+const Main              = require('../../src/Main');
+const SchemaProcessor   = require('../../src/SchemaProcessor');
+const ConnectionEmitter = require('../../src/ConnectionEmitter');
 
 module.exports = class TestBase {
 
@@ -38,22 +40,17 @@ module.exports = class TestBase {
      *
      * @param {Boolean} withExistingSchema
      *
-     * @returns {undefined}
+     * @returns {Promise<Conversion>}
      */
-    setUp(withExistingSchema = true) {
-        const flowPromise = this._app.readConfig()
-            .then(this._app.readExtraConfig)
-            .then(this._app.initializeConversion)
-            .then(conversion => {
-                // Make a Conversion instance available for derivative classes.
-                this._conversion = conversion;
+    async setUp(withExistingSchema = true) {
+        const baseDir    = path.join(__dirname, '..', '..');
+        const baseConfig = await this._app.readConfig(baseDir);
+        const fullConfig = await this._app.readExtraConfig(baseConfig, baseDir);
+        this._conversion = await this._app.initializeConversion(fullConfig);
 
-                return Promise.resolve(conversion);
-            });
-
-        if (withExistingSchema) {
-            flowPromise.then(createSchema);
-        }
+        return withExistingSchema
+            ? await (new SchemaProcessor(this._conversion)).createSchema()
+            : this._conversion;
     }
 
     /**
@@ -61,7 +58,14 @@ module.exports = class TestBase {
      *
      * @returns {undefined}
      */
-    tearDown() {
-        //
+    async tearDown() {
+        try {
+            const connectionEmitter = new ConnectionEmitter(this._conversion);
+            const sql               = `DROP SCHEMA "${ this._conversion._schema }" CASCADE;`;
+            await connectionEmitter.runPgPoolQuery(sql);
+        } catch (error) {
+            console.log(error);
+            process.exit();
+        }
     }
 };
