@@ -110,6 +110,24 @@ module.exports = class ConnectionEmitter {
     }
 
     /**
+     * Runs a query on the first available idle client and returns its result.
+     * Note, the pool does the acquiring and releasing of the client internally.
+     *
+     * @param {String} sql
+     *
+     * @returns {Promise<pg.Result>}
+     */
+    async runPgPoolQuery(sql) {
+        try {
+            this._getPgConnection();
+            return await this._conversion._pg.query(sql);
+        } catch (error) {
+            generateError(this._conversion, `\t--[pgPoolQuery] Cannot connect to PostgreSQL server...\n${ error }`);
+            process.exit();
+        }
+    }
+
+    /**
      * Releases MySQL Client back to the pool.
      *
      * @param {Connection} mysqlClient
