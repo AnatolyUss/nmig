@@ -28,10 +28,10 @@ describe('Test schema processing cases', function() {
 
     it('Should create a new schema', async function() {
         await test.createSchema();
-        const isCreated = await test.hasSchemaCreated();
+        const hasCreated = await test.hasSchemaCreated();
 
-        assert.typeOf(isCreated, 'boolean');
-        assert.equal(isCreated, true);
+        assert.typeOf(hasCreated, 'boolean');
+        assert.equal(hasCreated, true);
     });
 
     after(async function() {
