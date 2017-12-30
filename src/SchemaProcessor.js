@@ -50,9 +50,9 @@ module.exports = class SchemaProcessor {
             if (result.rows.length === 0) {
                 sql = `CREATE SCHEMA "${ this._conversion._schema }";`;
                 await client.query(sql);
-                this._connectionEmitter.releasePgClient(client);
             }
 
+            this._connectionEmitter.releasePgClient(client);
             return Promise.resolve(this._conversion);
 
         } catch (err) {
