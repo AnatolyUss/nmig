@@ -49,7 +49,7 @@ module.exports = class SchemaProcessorTest extends TestBase {
      *
      * @returns {Promise<Boolean>}
      */
-    async isSchemaCreated() {
+    async hasSchemaCreated() {
         const connectionEmitter = new ConnectionEmitter(this._conversion);
         const sql               = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }');`;
         const result            = await connectionEmitter.runPgPoolQuery(sql);
