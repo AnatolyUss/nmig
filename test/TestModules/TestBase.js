@@ -59,13 +59,8 @@ module.exports = class TestBase {
      * @returns {undefined}
      */
     async tearDown() {
-        try {
-            const connectionEmitter = new ConnectionEmitter(this._conversion);
-            const sql               = `DROP SCHEMA "${ this._conversion._schema }" CASCADE;`;
-            await connectionEmitter.runPgPoolQuery(sql);
-        } catch (error) {
-            console.log(error);
-            process.exit();
-        }
+        const connectionEmitter = new ConnectionEmitter(this._conversion);
+        const sql               = `DROP SCHEMA "${ this._conversion._schema }" CASCADE;`;
+        await connectionEmitter.runPgPoolQuery(sql);
     }
 };
