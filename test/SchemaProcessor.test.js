@@ -20,32 +20,21 @@
  */
 'use strict';
 
-const { assert }   = require('chai');
-const createSchema = require('../src/SchemaProcessor');
-const Conversion   = require('../src/Classes/Conversion');
-const TestBase     = require('./Utilities/TestBase');
+const { assert }          = require('chai');
+const SchemaProcessorTest = require('./TestModules/SchemaProcessorTest');
 
-class SchemaProcessorTest extends TestBase {
+describe('Test schema processing cases', function() {
+    const test = new SchemaProcessorTest();
 
-    /**
-     * SchemaProcessorTest constructor.
-     */
-    constructor() {
-        super();
-        const withExistingSchema = false;
-        this.setUp(withExistingSchema);
-    }
-}
+    it('Should create a new schema', async function() {
+        await test.createSchema();
+        const isCreated = await test.hasSchemaCreated();
 
-const test = new SchemaProcessorTest();
+        assert.typeOf(isCreated, 'boolean');
+        assert.equal(isCreated, true);
+    });
 
-describe('Test schema processing cases', function () {
-    it('Should create a new schema', function(done) {
-        createSchema(test._conversion)
-            .then(() => {
-                //
-            });
-
-        //
+    after(async function() {
+        await test.tearDown();
     });
 });
