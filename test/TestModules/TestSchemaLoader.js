@@ -52,7 +52,7 @@ module.exports = class TestSchemaLoader {
      *
      * @returns {Promise<Conversion>}
      */
-    createSourceTestDb(conversion) {
+    createTestSourceDb(conversion) {
         return new Promise(resolve => {
             const sourceDbName = 'test_source_db';
             const sql          = `CREATE DATABASE IF NOT EXISTS ${ sourceDbName };`;
@@ -67,6 +67,7 @@ module.exports = class TestSchemaLoader {
                 }
 
                 connection.end();
+                conversion._sourceConString.database = sourceDbName;
                 resolve(conversion);
             });
         });
@@ -78,14 +79,14 @@ module.exports = class TestSchemaLoader {
      * @returns {undefined}
      */
     loadTestSchema() {
-        const baseDir  = path.join(__dirname, '..', '..');
+        const baseDir = path.join(__dirname, '..', '..');
 
         this._app.readConfig(baseDir, 'test_config.json')
             .then(config => {
                 return this._app.readExtraConfig(config, baseDir);
             })
             .then(this._app.initializeConversion)
-            .then(this.createSourceTestDb)
+            .then(this.createTestSourceDb)
             .then(readDataTypesMap)
             .then(this._app.createLogsDirectory)
             .then(conversion => {
