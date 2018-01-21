@@ -1,0 +1,37 @@
+{
+    "README" : [
+        "This JSON document represents the test configuration options."
+    ],
+
+    "source_description" : [
+        "Connection parameters to your MySQL database",
+        "Please ensure, that you have defined all parameters properly.",
+        "Ensure, that details like 'charset' are included (if necessary)."
+    ],
+    "source" : {
+        "host"     : "localhost",
+        "port"     : 3306,
+        "charset"  : "UTF8",
+        "user"     : "root",
+        "password" : "7370142533"
+    },
+
+    "target_description" : [
+        "Connection parameters to your PostgreSQL database",
+        "Please ensure, that you have defined all parameters properly.",
+        "Ensure, that details like 'charset' are included (if necessary). nmig_test_db"
+    ],
+    "target" : {
+        "host"     : "localhost",
+        "port"     : 5432,
+        "charset"  : "UTF8",
+        "user"     : "postgres",
+        "password" : "7370142533"
+    },
+
+    "schema_description" : [
+        "A name of the schema, that will contain all migrated tables.",
+        "If not supplied, then a new schema will be created automatically."
+    ],
+    "schema" : "public"
+}
