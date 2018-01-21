@@ -37,8 +37,8 @@ module.exports = class Conversion {
         this._allLogsPath             = path.join(this._logsDirPath, 'all.log');
         this._errorLogsPath           = path.join(this._logsDirPath, 'errors-only.log');
         this._notCreatedViewsPath     = path.join(this._logsDirPath, 'not_created_views');
-        this._noVacuum                = this._config.no_vacuum;
-        this._excludeTables           = this._config.exclude_tables;
+        this._noVacuum                = this._config.no_vacuum === undefined ? [] : this._config.no_vacuum;
+        this._excludeTables           = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
         this._timeBegin               = new Date();
         this._encoding                = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
@@ -47,7 +47,7 @@ module.exports = class Conversion {
         this._mysql                   = null;
         this._pg                      = null;
         this._mysqlVersion            = '5.6.21'; // Simply a default value.
-        this._extraConfig             = this._config.extraConfig;
+        this._extraConfig             = this._config.extraConfig === undefined ? false : this._config.extraConfig;
         this._tablesToMigrate         = [];
         this._viewsToMigrate          = [];
         this._processedChunks         = 0;
@@ -65,7 +65,7 @@ module.exports = class Conversion {
         this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
         this._loaderMaxOldSpaceSize   = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize   = this.isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
-        this._migrateOnlyData         = this._config.migrate_only_data;
+        this._migrateOnlyData         = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
         this._delimiter               = this._config.delimiter !== undefined && this._config.delimiter.length === 1
             ? this._config.delimiter
             : ',';
