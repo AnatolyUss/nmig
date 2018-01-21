@@ -13,6 +13,7 @@
         "port"     : 3306,
         "charset"  : "UTF8",
         "user"     : "root",
+        "password" : "0123456789",
         "password" : "7370142533"
     },
 
@@ -26,6 +27,7 @@
         "port"     : 5432,
         "charset"  : "UTF8",
         "user"     : "postgres",
+        "password" : "0123456789",
         "password" : "7370142533"
     },
 
