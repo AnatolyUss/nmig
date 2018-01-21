@@ -38,12 +38,13 @@ const Main = class {
      * Read the configuration file.
      *
      * @param {String} baseDir
+     * @param {String} configFileName
      *
      * @returns {Promise}
      */
-    readConfig(baseDir) {
+    readConfig(baseDir, configFileName = 'config.json') {
         return new Promise(resolve => {
-            const strPathToConfig = path.join(baseDir, 'config.json');
+            const strPathToConfig = path.join(baseDir, configFileName);
 
             fs.readFile(strPathToConfig, (error, data) => {
                 if (error) {
