@@ -57,10 +57,7 @@ module.exports = class TestSchemaLoader {
                         process.exit();
                     }
 
-                    const sourceDbName = 'test_source_db';
-                    const sql          = `CREATE DATABASE IF NOT EXISTS ${ sourceDbName };`;
-
-                    connection.query(sql, err => {
+                    connection.query(`CREATE DATABASE IF NOT EXISTS nmig_test_db;`, err => {
                         connection.release();
 
                         if (err) {
@@ -69,7 +66,61 @@ module.exports = class TestSchemaLoader {
                             process.exit();
                         }
 
+                        conversion._mysql                    = null;
+                        conversion._sourceConString.database = 'nmig_test_db';
                         resolve(conversion);
+                    });
+                });
+            });
+        });
+    }
+
+    /**
+     * Creates test target database.
+     *
+     * @param {Conversion} conversion
+     *
+     * @returns {Promise<Conversion>}
+     */
+    createTestTargetDb(conversion) {
+        conversion._pg                       = null;
+        conversion._targetConString.database = 'postgres';
+
+        return connect(conversion).then(() => {
+            return new Promise(resolve => {
+                conversion._pg.connect((error, client, done) => {
+                    if (error) {
+                        generateError(conversion, `\t--[createTestTargetDb] Cannot create test PostgreSQL database...\n ${ error }`);
+                        process.exit();
+                    }
+
+                    client.query(`SELECT 1 FROM pg_database WHERE datname = 'nmig_test_db';`, (err, result) => {
+                        if (err) {
+                            generateError(conversion, `\t--[createTestTargetDb] ${ err }`);
+                            process.exit();
+                        }
+
+                        if (result.rows.length === 0) {
+                            // Database 'nmig_test_db' does not exist.
+                            client.query(`CREATE DATABASE nmig_test_db;`, createDbError => {
+                                done();
+
+                                if (createDbError) {
+                                    generateError(conversion, `\t--[createTestTargetDb] Cannot create test PostgreSQL database...\n ${ createDbError }`);
+                                    process.exit();
+                                }
+
+                                conversion._pg                       = null;
+                                conversion._targetConString.database = 'nmig_test_db';
+                                resolve(conversion);
+                            });
+
+                        } else {
+                            done();
+                            conversion._pg                       = null;
+                            conversion._targetConString.database = 'nmig_test_db';
+                            resolve(conversion);
+                        }
                     });
                 });
             });
@@ -88,6 +139,7 @@ module.exports = class TestSchemaLoader {
             .then(config => this._app.readExtraConfig(config, baseDir))
             .then(this._app.initializeConversion)
             .then(this.createTestSourceDb)
+            .then(this.createTestTargetDb)
             .then(readDataTypesMap)
             .then(this._app.createLogsDirectory)
             .then(conversion => (new SchemaProcessor(conversion)).createSchema())
