@@ -20,20 +20,16 @@
  */
 'use strict';
 
-const mysql                                 = require('mysql');
-const fs                                    = require('fs');
 const path                                  = require('path');
+const connect                               = require('../../src/Connector');
 const Main                                  = require('../../src/Main');
 const SchemaProcessor                       = require('../../src/SchemaProcessor');
-const ConnectionEmitter                     = require('../../src/ConnectionEmitter');
 const readDataTypesMap                      = require('../../src/DataTypesMapReader');
-const Conversion                            = require('../../src/Classes/Conversion');
 const loadStructureToMigrate                = require('../../src/StructureLoader');
 const pipeData                              = require('../../src/DataPipeManager');
-const boot                                  = require('../../src/BootProcessor');
 const { createStateLogsTable }              = require('../../src/MigrationStateManager');
 const { createDataPoolTable, readDataPool } = require('../../src/DataPoolManager');
-const log                                   = require('../../src/Logger');
+const generateError                         = require('../../src/ErrorGenerator');
 
 module.exports = class TestSchemaLoader {
 
@@ -41,8 +37,7 @@ module.exports = class TestSchemaLoader {
      * TestSchemaLoader constructor.
      */
     constructor() {
-        this._app        = new Main();
-        this._conversion = null;
+        this._app = new Main();
     }
 
     /**
@@ -53,22 +48,30 @@ module.exports = class TestSchemaLoader {
      * @returns {Promise<Conversion>}
      */
     createTestSourceDb(conversion) {
-        return new Promise(resolve => {
-            const sourceDbName = 'test_source_db';
-            const sql          = `CREATE DATABASE IF NOT EXISTS ${ sourceDbName };`;
-            const connection   = mysql.createConnection(conversion._sourceConString);
-            connection.connect();
+        return connect(conversion).then(() => {
+            return new Promise(resolve => {
+                conversion._mysql.getConnection((error, connection) => {
+                    if (error) {
+                        // The connection is undefined.
+                        generateError(conversion, `\t--[createTestSourceDb] Cannot connect to MySQL server...\n ${ error }`);
+                        process.exit();
+                    }
 
-            connection.query(sql, error => {
-                if (error) {
-                    // Failed to create test source database.
-                    console.log(error);
-                    process.exit();
-                }
+                    const sourceDbName = 'test_source_db';
+                    const sql          = `CREATE DATABASE IF NOT EXISTS ${ sourceDbName };`;
 
-                connection.end();
-                conversion._sourceConString.database = sourceDbName;
-                resolve(conversion);
+                    connection.query(sql, err => {
+                        connection.release();
+
+                        if (err) {
+                            // Failed to create test source database.
+                            generateError(conversion, `\t--[createTestSourceDb] Cannot create test MySQL database...\n ${ err }`);
+                            process.exit();
+                        }
+
+                        resolve(conversion);
+                    });
+                });
             });
         });
     }
@@ -82,16 +85,12 @@ module.exports = class TestSchemaLoader {
         const baseDir = path.join(__dirname, '..', '..');
 
         this._app.readConfig(baseDir, 'test_config.json')
-            .then(config => {
-                return this._app.readExtraConfig(config, baseDir);
-            })
+            .then(config => this._app.readExtraConfig(config, baseDir))
             .then(this._app.initializeConversion)
             .then(this.createTestSourceDb)
             .then(readDataTypesMap)
             .then(this._app.createLogsDirectory)
-            .then(conversion => {
-                return (new SchemaProcessor(conversion)).createSchema();
-            })
+            .then(conversion => (new SchemaProcessor(conversion)).createSchema())
             .then(createStateLogsTable)
             .then(createDataPoolTable)
             .then(loadStructureToMigrate)
