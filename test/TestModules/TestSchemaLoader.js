@@ -38,7 +38,8 @@ module.exports = class TestSchemaLoader {
      * TestSchemaLoader constructor.
      */
     constructor() {
-        this._app = new Main();
+        this._app        = new Main();
+        this._testDbName = 'nmig_test_db';
     }
 
     /**
@@ -58,7 +59,7 @@ module.exports = class TestSchemaLoader {
                         process.exit();
                     }
 
-                    connection.query(`CREATE DATABASE IF NOT EXISTS nmig_test_db;`, err => {
+                    connection.query(`CREATE DATABASE IF NOT EXISTS ${ this._testDbName };`, err => {
                         connection.release();
 
                         if (err) {
@@ -93,7 +94,7 @@ module.exports = class TestSchemaLoader {
                         process.exit();
                     }
 
-                    client.query(`SELECT 1 FROM pg_database WHERE datname = 'nmig_test_db';`, (err, result) => {
+                    client.query(`SELECT 1 FROM pg_database WHERE datname = '${ this._testDbName }';`, (err, result) => {
                         if (err) {
                             generateError(conversion, `\t--[createTestTargetDb] ${ err }`);
                             process.exit();
@@ -101,7 +102,7 @@ module.exports = class TestSchemaLoader {
 
                         if (result.rows.length === 0) {
                             // Database 'nmig_test_db' does not exist.
-                            client.query(`CREATE DATABASE nmig_test_db;`, createDbError => {
+                            client.query(`CREATE DATABASE ${ this._testDbName };`, createDbError => {
                                 release();
 
                                 if (createDbError) {
@@ -132,9 +133,9 @@ module.exports = class TestSchemaLoader {
     updateDbConnections(conversion) {
         return new Promise(resolve => {
             conversion._mysql                    = null;
-            conversion._sourceConString.database = 'nmig_test_db';
+            conversion._sourceConString.database = this._testDbName;
             conversion._pg                       = null;
-            conversion._targetConString.database = 'nmig_test_db';
+            conversion._targetConString.database = this._testDbName;
             resolve(conversion);
         });
     }
@@ -142,11 +143,11 @@ module.exports = class TestSchemaLoader {
     /**
      * Reads test schema sql file.
      *
-     * @returns {Promise<String>}
+     * @returns {Promise<Buffer>}
      */
     readTestSchema() {
         return new Promise(resolve => {
-            const testSchemaFilePath = path.join('..', 'test_schema.sql');
+            const testSchemaFilePath = path.join(__dirname, '..', 'test_schema.sql');
 
             fs.readFile(testSchemaFilePath, (error, sql) => {
                 if (error) {
@@ -159,12 +160,56 @@ module.exports = class TestSchemaLoader {
         });
     }
 
-    loadTestSchema() {
-        //
+    /**
+     * Loads test schema into MySQL test database.
+     *
+     * @param {Conversion} conversion
+     *
+     * @returns {Promise<Conversion>}
+     */
+    loadTestSchema(conversion) {
+        return connect(conversion)
+            .then(this.readTestSchema)
+            .then(sqlBuffer => {
+
+                console.log(sqlBuffer.toString());///////////////////////
+                console.log('------------------------------------');////////////
+
+                const sqlStatements = sqlBuffer.toString().split(';');
+                const promises      = [];
+
+                for (let i = 0; i < sqlStatements.length; ++i) {
+                    promises.push(new Promise(resolve => {
+                        conversion._mysql.getConnection((error, connection) => {
+                            if (error) {
+                                // The connection is undefined.
+                                generateError(conversion, `\t--[loadTestSchema] Cannot connect to MySQL server...\n ${ error }`);
+                                process.exit();
+                            }
+
+                            console.log(`${ sqlStatements[i] };`);///////////////////
+                            console.log('------------------------------------');//////
+
+                            connection.query(`${ sqlStatements[i] };`, err => {
+                                connection.release();
+
+                                if (err) {
+                                    generateError(conversion, `\t--[loadTestSchema] ${ err }`);
+                                    process.exit();
+                                }
+
+                                resolve();
+                            });
+                        });
+                    }));
+                }
+
+                return Promise.all(promises).then(() => console.log('AAAAAAAAAAAA!!!'));
+            });
     }
 
     /**
-     * Loads test schema.
+     * Arranges test migration.
      *
      * @returns {undefined}
      */
@@ -174,9 +219,10 @@ module.exports = class TestSchemaLoader {
         this._app.readConfig(baseDir, 'test_config.json')
             .then(config => this._app.readExtraConfig(config, baseDir))
             .then(this._app.initializeConversion)
-            .then(this.createTestSourceDb)
-            .then(this.createTestTargetDb)
-            .then(this.updateDbConnections)
+            .then(this.createTestSourceDb.bind(this))
+            .then(this.createTestTargetDb.bind(this))
+            .then(this.updateDbConnections.bind(this))
+            .then(this.loadTestSchema.bind(this))
             .then(readDataTypesMap)
             .then(this._app.createLogsDirectory)
             .then(conversion => (new SchemaProcessor(conversion)).createSchema())
