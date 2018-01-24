@@ -66,8 +66,6 @@ module.exports = class TestSchemaLoader {
                             process.exit();
                         }
 
-                        conversion._mysql                    = null;
-                        conversion._sourceConString.database = 'nmig_test_db';
                         resolve(conversion);
                     });
                 });
@@ -88,7 +86,7 @@ module.exports = class TestSchemaLoader {
 
         return connect(conversion).then(() => {
             return new Promise(resolve => {
-                conversion._pg.connect((error, client, done) => {
+                conversion._pg.connect((error, client, release) => {
                     if (error) {
                         generateError(conversion, `\t--[createTestTargetDb] Cannot create test PostgreSQL database...\n ${ error }`);
                         process.exit();
@@ -103,27 +101,40 @@ module.exports = class TestSchemaLoader {
                         if (result.rows.length === 0) {
                             // Database 'nmig_test_db' does not exist.
                             client.query(`CREATE DATABASE nmig_test_db;`, createDbError => {
-                                done();
+                                release();
 
                                 if (createDbError) {
                                     generateError(conversion, `\t--[createTestTargetDb] Cannot create test PostgreSQL database...\n ${ createDbError }`);
                                     process.exit();
                                 }
 
-                                conversion._pg                       = null;
-                                conversion._targetConString.database = 'nmig_test_db';
                                 resolve(conversion);
                             });
 
                         } else {
-                            done();
-                            conversion._pg                       = null;
-                            conversion._targetConString.database = 'nmig_test_db';
+                            release();
                             resolve(conversion);
                         }
                     });
                 });
             });
+        });
+    }
+
+    /**
+     * Update the "database" part of both connections.
+     *
+     * @param {Conversion} conversion
+     *
+     * @returns {Promise<Conversion>}
+     */
+    updateDbConnections(conversion) {
+        return new Promise(resolve => {
+            conversion._mysql                    = null;
+            conversion._sourceConString.database = 'nmig_test_db';
+            conversion._pg                       = null;
+            conversion._targetConString.database = 'nmig_test_db';
+            resolve(conversion);
         });
     }
 
@@ -140,6 +151,7 @@ module.exports = class TestSchemaLoader {
             .then(this._app.initializeConversion)
             .then(this.createTestSourceDb)
             .then(this.createTestTargetDb)
+            .then(this.updateDbConnections)
             .then(readDataTypesMap)
             .then(this._app.createLogsDirectory)
             .then(conversion => (new SchemaProcessor(conversion)).createSchema())
