@@ -140,6 +140,30 @@ module.exports = class TestSchemaLoader {
     }
 
     /**
+     * Reads test schema sql file.
+     *
+     * @returns {Promise<String>}
+     */
+    readTestSchema() {
+        return new Promise(resolve => {
+            const testSchemaFilePath = path.join('..', 'test_schema.sql');
+
+            fs.readFile(testSchemaFilePath, (error, sql) => {
+                if (error) {
+                    console.log(`\t--[readTestSchema] Cannot read test schema from ${ testSchemaFilePath }`);
+                    process.exit();
+                }
+
+                resolve(sql);
+            });
+        });
+    }
+
+    loadTestSchema() {
+        //
+    }
+
+    /**
      * Loads test schema.
      *
      * @returns {undefined}
