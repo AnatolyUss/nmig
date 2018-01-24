@@ -1,4 +1,4 @@
--- test_source_db
+-- nmig_test_db
 CREATE TABLE `table_a`(
 	`id_test_sequence` BIGINT NOT NULL AUTO_INCREMENT,
     `id_test_unique_index` INT NOT NULL,
