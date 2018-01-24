@@ -20,6 +20,7 @@
  */
 'use strict';
 
+const fs                                    = require('fs');
 const path                                  = require('path');
 const connect                               = require('../../src/Connector');
 const Main                                  = require('../../src/Main');
@@ -143,7 +144,7 @@ module.exports = class TestSchemaLoader {
      *
      * @returns {undefined}
      */
-    loadTestSchema() {
+    arrangeTestMigration() {
         const baseDir = path.join(__dirname, '..', '..');
 
         this._app.readConfig(baseDir, 'test_config.json')

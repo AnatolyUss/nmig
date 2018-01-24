@@ -24,4 +24,4 @@ const TestSchemaLoader = require('./TestModules/TestSchemaLoader');
 
 const appTest = new TestSchemaLoader();
 
-appTest.loadTestSchema();
+appTest.arrangeTestMigration();
