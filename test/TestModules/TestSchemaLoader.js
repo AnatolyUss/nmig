@@ -43,6 +43,19 @@ module.exports = class TestSchemaLoader {
     }
 
     /**
+     * Stops the process in case of fatal error.
+     *
+     * @param {Conversion} conversion
+     * @param {String} error
+     *
+     * @returns {undefined}
+     */
+    processFatalError(conversion, error) {
+        generateError(conversion, error);
+        process.exit();
+    }
+
+    /**
      * Creates test source database.
      *
      * @param {Conversion} conversion
@@ -55,8 +68,7 @@ module.exports = class TestSchemaLoader {
                 conversion._mysql.getConnection((error, connection) => {
                     if (error) {
                         // The connection is undefined.
-                        generateError(conversion, `\t--[createTestSourceDb] Cannot connect to MySQL server...\n ${ error }`);
-                        process.exit();
+                        this.processFatalError(conversion, error);
                     }
 
                     connection.query(`CREATE DATABASE IF NOT EXISTS ${ this._testDbName };`, err => {
@@ -64,8 +76,7 @@ module.exports = class TestSchemaLoader {
 
                         if (err) {
                             // Failed to create test source database.
-                            generateError(conversion, `\t--[createTestSourceDb] Cannot create test MySQL database...\n ${ err }`);
-                            process.exit();
+                            this.processFatalError(conversion, err);
                         }
 
                         resolve(conversion);
@@ -90,14 +101,12 @@ module.exports = class TestSchemaLoader {
             return new Promise(resolve => {
                 conversion._pg.connect((error, client, release) => {
                     if (error) {
-                        generateError(conversion, `\t--[createTestTargetDb] Cannot create test PostgreSQL database...\n ${ error }`);
-                        process.exit();
+                        this.processFatalError(conversion, error);
                     }
 
                     client.query(`SELECT 1 FROM pg_database WHERE datname = '${ this._testDbName }';`, (err, result) => {
                         if (err) {
-                            generateError(conversion, `\t--[createTestTargetDb] ${ err }`);
-                            process.exit();
+                            this.processFatalError(conversion, err);
                         }
 
                         if (result.rows.length === 0) {
@@ -106,8 +115,7 @@ module.exports = class TestSchemaLoader {
                                 release();
 
                                 if (createDbError) {
-                                    generateError(conversion, `\t--[createTestTargetDb] Cannot create test PostgreSQL database...\n ${ createDbError }`);
-                                    process.exit();
+                                    this.processFatalError(conversion, createDbError);
                                 }
 
                                 resolve(conversion);
@@ -171,10 +179,6 @@ module.exports = class TestSchemaLoader {
         return connect(conversion)
             .then(this.readTestSchema)
             .then(sqlBuffer => {
-
-                console.log(sqlBuffer.toString());///////////////////////
-                console.log('------------------------------------');////////////
-
                 const sqlStatements = sqlBuffer.toString().split(';');
                 const promises      = [];
 
@@ -182,20 +186,14 @@ module.exports = class TestSchemaLoader {
                     promises.push(new Promise(resolve => {
                         conversion._mysql.getConnection((error, connection) => {
                             if (error) {
-                                // The connection is undefined.
-                                generateError(conversion, `\t--[loadTestSchema] Cannot connect to MySQL server...\n ${ error }`);
-                                process.exit();
+                                this.processFatalError(conversion, error);
                             }
-
-                            console.log(`${ sqlStatements[i] };`);///////////////////
-                            console.log('------------------------------------');//////
 
                             connection.query(`${ sqlStatements[i] };`, err => {
                                 connection.release();
 
                                 if (err) {
-                                    generateError(conversion, `\t--[loadTestSchema] ${ err }`);
-                                    process.exit();
+                                    this.processFatalError(conversion, err);
                                 }
 
                                 resolve();
@@ -204,7 +202,7 @@ module.exports = class TestSchemaLoader {
                     }));
                 }
 
-                return Promise.all(promises).then(() => console.log('AAAAAAAAAAAA!!!'));
+                return Promise.all(promises).then(() => console.log('Completed!!!'));
             });
     }
 
