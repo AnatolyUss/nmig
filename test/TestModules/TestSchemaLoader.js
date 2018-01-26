@@ -179,30 +179,23 @@ module.exports = class TestSchemaLoader {
         return connect(conversion)
             .then(this.readTestSchema)
             .then(sqlBuffer => {
-                const sqlStatements = sqlBuffer.toString().split(';');
-                const promises      = [];
+                return new Promise(resolve => {
+                    conversion._mysql.getConnection((error, connection) => {
+                        if (error) {
+                            this.processFatalError(conversion, error);
+                        }
 
-                for (let i = 0; i < sqlStatements.length; ++i) {
-                    promises.push(new Promise(resolve => {
-                        conversion._mysql.getConnection((error, connection) => {
-                            if (error) {
-                                this.processFatalError(conversion, error);
+                        connection.query(`${ sqlBuffer.toString() };`, err => {
+                            connection.release();
+
+                            if (err) {
+                                this.processFatalError(conversion, err);
                             }
 
-                            connection.query(`${ sqlStatements[i] };`, err => {
-                                connection.release();
-
-                                if (err) {
-                                    this.processFatalError(conversion, err);
-                                }
-
-                                resolve();
-                            });
+                            resolve(conversion);
                         });
-                    }));
-                }
-
-                return Promise.all(promises).then(() => console.log('Completed!!!'));
+                    });
+                });
             });
     }
 
