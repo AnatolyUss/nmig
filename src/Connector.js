@@ -39,8 +39,9 @@ module.exports = self => {
     return new Promise(resolve => {
         const mysqlConnectionPromise = new Promise((mysqlResolve, mysqlReject) => {
             if (!self._mysql) {
-                self._sourceConString.connectionLimit = self._maxDbConnectionPoolSize;
-                const pool                            = mysql.createPool(self._sourceConString);
+                self._sourceConString.connectionLimit    = self._maxDbConnectionPoolSize;
+                self._sourceConString.multipleStatements = true;
+                const pool                               = mysql.createPool(self._sourceConString);
 
                 if (pool) {
                     self._mysql = pool;
