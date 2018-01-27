@@ -187,7 +187,7 @@ module.exports = class TestSchemaLoader {
                             this.processFatalError(conversion, error);
                         }
 
-                        connection.query(`${ sqlBuffer.toString() };`, err => {
+                        connection.query(sqlBuffer.toString(), err => {
                             connection.release();
 
                             if (err) {
