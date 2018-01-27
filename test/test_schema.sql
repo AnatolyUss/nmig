@@ -1,5 +1,5 @@
 -- nmig_test_db
-CREATE TABLE `table_a`(
+CREATE TABLE IF NOT EXISTS `table_a`(
 	`id_test_sequence` BIGINT NOT NULL AUTO_INCREMENT,
     `id_test_unique_index` INT NOT NULL,
     `id_test_composite_unique_index_1` INT NOT NULL,
@@ -46,14 +46,14 @@ CREATE TABLE `table_a`(
     INDEX(`id_test_composite_index_1`, `id_test_composite_index_2`)
 ) ENGINE = innodb COMMENT = 'test table comment';
 
-CREATE TABLE `table_b`(
+CREATE TABLE IF NOT EXISTS `table_b`(
 	`id1` BIGINT NOT NULL,
 	`id2` BIGINT NOT NULL,
     `word` VARCHAR(20),
     PRIMARY KEY(`id1`, `id2`)
 ) ENGINE = innodb;
 
-CREATE TABLE `table_c`(
+CREATE TABLE IF NOT EXISTS `table_c`(
 	`id` INT NOT NULL AUTO_INCREMENT,
     `word` VARCHAR(10),
     `table_a_id` BIGINT,
