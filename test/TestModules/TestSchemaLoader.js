@@ -145,6 +145,7 @@ module.exports = class TestSchemaLoader {
             conversion._sourceConString.database = this._testDbName;
             conversion._pg                       = null;
             conversion._targetConString.database = this._testDbName;
+            conversion._mySqlDbName              = this._testDbName;
             resolve(conversion);
         });
     }
