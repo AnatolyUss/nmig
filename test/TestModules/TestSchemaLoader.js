@@ -51,6 +51,7 @@ module.exports = class TestSchemaLoader {
      * @returns {undefined}
      */
     processFatalError(conversion, error) {
+        console.log(error);
         generateError(conversion, error);
         process.exit();
     }
