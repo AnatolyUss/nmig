@@ -46,7 +46,7 @@ module.exports = class TestSchemaLoader {
      * Stops the process in case of fatal error.
      *
      * @param {Conversion} conversion
-     * @param {String} error
+     * @param {String}     error
      *
      * @returns {undefined}
      */
@@ -202,6 +202,62 @@ module.exports = class TestSchemaLoader {
     }
 
     /**
+     * Loads test data into MySQL `nmig_test_db`.
+     *
+     * @param {Conversion} conversion
+     *
+     * @returns {Promise<Conversion>}
+     */
+    loadTestData(conversion) {
+        return connect(conversion).then(() => {
+            return new Promise(resolve => {
+                conversion._mysql.getConnection((error, connection) => {
+                    if (error) {
+                        this.processFatalError(conversion, error);
+                    }
+
+                    const insertParams = {
+                        id_test_unique_index             : 7384,
+                        id_test_composite_unique_index_1 : 125,
+                        id_test_composite_unique_index_2 : 234,
+                        id_test_index                    : 123,
+                        int_test_not_null                : 123,
+                        id_test_composite_index_1        : 11,
+                        id_test_composite_index_2        : 22,
+                        json_test_comment                : '{"prop1":"First","prop2":2}',
+                        bit                              : 1,
+                        year                             : 1984,
+                        bigint                           : 1234567890123456789,
+                        float                            : 12345.56,
+                        double                           : 123456789.23,
+                        numeric                          : 1234567890,
+                        decimal                          : 1234567890,
+                        char_5                           : 'fghij',
+                        varchar_5                        : 'abcde',
+                        date                             : '1984-07-30',
+                        time                             : '21:12:33',
+                        timestamp                        : '2018-01-01 22:21:20',
+                        enum                             : 'e1',
+                        set                              : 's2',
+                        text                             : 'Test text',
+                        blob                             : '',
+                    };
+
+                    connection.query('INSERT INTO `table_a` SET ?;', insertParams, err => {
+                        connection.release();
+
+                        if (err) {
+                            this.processFatalError(conversion, err);
+                        }
+
+                        resolve(conversion);
+                    });
+                });
+            });
+        });
+    }
+
+    /**
      * Arranges test migration.
      *
      * @returns {undefined}
@@ -216,6 +272,7 @@ module.exports = class TestSchemaLoader {
             .then(this.createTestTargetDb.bind(this))
             .then(this.updateDbConnections.bind(this))
             .then(this.loadTestSchema.bind(this))
+            .then(this.loadTestData.bind(this))
             .then(readDataTypesMap)
             .then(this._app.createLogsDirectory)
             .then(conversion => (new SchemaProcessor(conversion)).createSchema())
