@@ -32,7 +32,7 @@ const { createStateLogsTable }              = require('../../src/MigrationStateM
 const { createDataPoolTable, readDataPool } = require('../../src/DataPoolManager');
 const generateError                         = require('../../src/ErrorGenerator');
 
-module.exports = class TestSchemaLoader {
+module.exports = class TestSchemaProcessor {
 
     /**
      * TestSchemaLoader constructor.

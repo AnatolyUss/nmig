@@ -20,8 +20,11 @@
  */
 'use strict';
 
-const TestSchemaLoader = require('./TestModules/TestSchemaLoader');
+const TestSchemaProcessor = require('./TestModules/TestSchemaProcessor');
+const processSchemaTest   = require('./TestModules/SchemaProcessorTest');
 
-const appTest = new TestSchemaLoader();
+const testSchemaProcessor = new TestSchemaProcessor();
 
-appTest.arrangeTestMigration();
+testSchemaProcessor.arrangeTestMigration();
+
+processSchemaTest(testSchemaProcessor);
