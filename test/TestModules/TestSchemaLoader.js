@@ -40,6 +40,7 @@ module.exports = class TestSchemaLoader {
     constructor() {
         this._app        = new Main();
         this._testDbName = 'nmig_test_db';
+        this._conversion = null;
     }
 
     /**
@@ -290,6 +291,10 @@ module.exports = class TestSchemaLoader {
         this._app.readConfig(baseDir, 'test_config.json')
             .then(config => this._app.readExtraConfig(config, baseDir))
             .then(this._app.initializeConversion)
+            .then(conversion => {
+                this._conversion = conversion;
+                return Promise.resolve(conversion);
+            })
             .then(this.createTestSourceDb.bind(this))
             .then(this.createTestTargetDb.bind(this))
             .then(this.updateDbConnections.bind(this))
