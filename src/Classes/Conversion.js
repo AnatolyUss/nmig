@@ -62,6 +62,7 @@ module.exports = class Conversion {
             ? +this._config.max_db_connection_pool_size
             : 10;
 
+        this._runsInTestMode          = false;
         this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
         this._loaderMaxOldSpaceSize   = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize   = this.isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';

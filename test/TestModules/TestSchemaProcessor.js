@@ -292,7 +292,8 @@ module.exports = class TestSchemaProcessor {
             .then(config => this._app.readExtraConfig(config, baseDir))
             .then(this._app.initializeConversion)
             .then(conversion => {
-                this._conversion = conversion;
+                this._conversion                 = conversion;
+                this._conversion._runsInTestMode = true;
                 return Promise.resolve(conversion);
             })
             .then(this.createTestSourceDb.bind(this))
