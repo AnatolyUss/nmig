@@ -20,39 +20,49 @@
  */
 'use strict';
 
-const ConnectionEmitter = require('../../src/ConnectionEmitter');
-const SchemaProcessor   = require('../../src/SchemaProcessor');
-const TestBase          = require('./TestBase');
+const { assert } = require('chai');
+const connect    = require('../../src/Connector');
 
-module.exports = class SchemaProcessorTest extends TestBase {
+/**
+ * Checks if the schema exists.
+ *
+ * @param {TestSchemaProcessor} testSchemaProcessor
+ *
+ * @returns {Promise<Boolean>}
+ */
+const hasSchemaCreated = testSchemaProcessor => {
+    return connect(testSchemaProcessor._conversion).then(() => {
+        return new Promise(resolve => {
+            testSchemaProcessor._conversion._pg.connect((error, client, release) => {
+                if (error) {
+                    testSchemaProcessor.processFatalError(testSchemaProcessor._conversion, error);
+                }
 
-    /**
-     * SchemaProcessorTest constructor.
-     */
-    constructor() {
-        super();
-    }
+                const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata 
+                         WHERE schema_name = '${ testSchemaProcessor._conversion._schema }');`;
 
-    /**
-     * Creates a new schema for testing purposes.
-     *
-     * @returns {Promise<Conversion>}
-     */
-    async createSchema() {
-        const withExistingSchema = false;
-        const conversion         = await this.setUp(withExistingSchema);
-        return await (new SchemaProcessor(conversion)).createSchema();
-    }
+                client.query(sql, (err, result) => {
+                    release();
 
-    /**
-     * Checks if the schema exists.
-     *
-     * @returns {Promise<Boolean>}
-     */
-    async hasSchemaCreated() {
-        const connectionEmitter = new ConnectionEmitter(this._conversion);
-        const sql               = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }');`;
-        const result            = await connectionEmitter.runPgPoolQuery(sql);
-        return result.rows[0].exists;
-    }
+                    if (err) {
+                        testSchemaProcessor.processFatalError(testSchemaProcessor._conversion, err);
+                    }
+
+                    resolve(!!result.rows[0].exists);
+                });
+            });
+        });
+    });
+};
+
+module.exports = testSchemaProcessor => {
+    hasSchemaCreated(testSchemaProcessor).then(hasSchemaCreated => {
+        console.log(`hasSchemaCreated = ` + (hasSchemaCreated ? 'TRUE' : 'FALSE'));//////////////
+        describe('Schema creation tests', function() {
+            it('Should create a new schema', function() {
+                assert.typeOf(hasSchemaCreated, 'boolean');
+                assert.equal(hasSchemaCreated, true);
+            });
+        });
+    });
 };
