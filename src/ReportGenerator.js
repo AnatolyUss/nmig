@@ -44,5 +44,11 @@ module.exports = (self, endMsg) => {
         + '\n\t--[generateReport] (hours:minutes:seconds)';
 
     log(self, output);
+
+    if (self._runsInTestMode) {
+        self._eventEmitter.emit('migrationCompleted');
+        return;
+    }
+
     process.exit();
 };
