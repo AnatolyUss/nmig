@@ -22,6 +22,7 @@
 
 const fs                                    = require('fs');
 const path                                  = require('path');
+const { EventEmitter }                      = require('events');
 const connect                               = require('../../src/Connector');
 const Main                                  = require('../../src/Main');
 const SchemaProcessor                       = require('../../src/SchemaProcessor');
@@ -281,21 +282,34 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
-     * Arranges test migration.
+     * Initializes Conversion instance.
      *
-     * @returns {undefined}
+     * @returns {Promise<Conversion>}
      */
-    arrangeTestMigration() {
+    initializeConversion() {
         const baseDir = path.join(__dirname, '..', '..');
 
-        this._app.readConfig(baseDir, 'test_config.json')
+        return this._app.readConfig(baseDir, 'test_config.json')
             .then(config => this._app.readExtraConfig(config, baseDir))
             .then(this._app.initializeConversion)
             .then(conversion => {
                 this._conversion                 = conversion;
                 this._conversion._runsInTestMode = true;
+                this._conversion._eventEmitter   = new EventEmitter();
                 return Promise.resolve(conversion);
-            })
+            });
+    }
+
+    /**
+     * Arranges test migration.
+     * "migrationCompleted" event will fire on completion.
+     *
+     * @param {Conversion} conversion
+     *
+     * @returns {undefined}
+     */
+    arrangeTestMigration(conversion) {
+        Promise.resolve(conversion)
             .then(this.createTestSourceDb.bind(this))
             .then(this.createTestTargetDb.bind(this))
             .then(this.updateDbConnections.bind(this))
