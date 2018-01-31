@@ -25,6 +25,13 @@ const processSchemaTest   = require('./TestModules/SchemaProcessorTest');
 
 const testSchemaProcessor = new TestSchemaProcessor();
 
-testSchemaProcessor.arrangeTestMigration();
+testSchemaProcessor
+    .initializeConversion()
+    .then(conversion => {
+        conversion._eventEmitter.on('migrationCompleted', function() {
+            processSchemaTest(testSchemaProcessor);
+        });
 
-processSchemaTest(testSchemaProcessor);
+        return Promise.resolve(conversion);
+    })
+    .then(testSchemaProcessor.arrangeTestMigration.bind(testSchemaProcessor));
