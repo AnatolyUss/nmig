@@ -20,8 +20,7 @@
  */
 'use strict';
 
-const { assert } = require('chai');
-const connect    = require('../../src/Connector');
+const connect = require('../../src/Connector');
 
 /**
  * Checks if the schema exists.
@@ -56,13 +55,5 @@ const hasSchemaCreated = testSchemaProcessor => {
 };
 
 module.exports = testSchemaProcessor => {
-    hasSchemaCreated(testSchemaProcessor).then(hasSchemaCreated => {
-        console.log(`hasSchemaCreated = ` + (hasSchemaCreated ? 'TRUE' : 'FALSE'));//////////////
-        describe('Schema creation tests', function() {
-            it('Should create a new schema', function() {
-                assert.typeOf(hasSchemaCreated, 'boolean');
-                assert.equal(hasSchemaCreated, true);
-            });
-        });
-    });
+    return hasSchemaCreated(testSchemaProcessor);
 };
