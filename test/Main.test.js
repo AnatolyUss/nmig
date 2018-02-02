@@ -23,15 +23,28 @@
 const TestSchemaProcessor = require('./TestModules/TestSchemaProcessor');
 const processSchemaTest   = require('./TestModules/SchemaProcessorTest');
 
+/**
+ * Runs test suites.
+ *
+ * @param {TestSchemaProcessor} testSchemaProcessor
+ *
+ * @returns {Function}
+ */
+const runTestSuites = testSchemaProcessor => {
+    return () => {
+        processSchemaTest(testSchemaProcessor);
+    };
+};
+
 const testSchemaProcessor = new TestSchemaProcessor();
 
 testSchemaProcessor
     .initializeConversion()
     .then(conversion => {
-        conversion._eventEmitter.on('migrationCompleted', function() {
-            processSchemaTest(testSchemaProcessor);
-        });
+        // Registers callback, that will be invoked when the test database arrangement will be completed.
+        conversion._eventEmitter.on('migrationCompleted', runTestSuites(testSchemaProcessor));
 
+        // Continues the test database arrangement.
         return Promise.resolve(conversion);
     })
     .then(testSchemaProcessor.arrangeTestMigration.bind(testSchemaProcessor));
