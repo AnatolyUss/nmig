@@ -20,7 +20,8 @@
  */
 'use strict';
 
-const connect = require('../../src/Connector');
+const { test } = require('tape');
+const connect  = require('../../src/Connector');
 
 /**
  * Checks if the schema exists.
@@ -54,6 +55,25 @@ const hasSchemaCreated = testSchemaProcessor => {
     });
 };
 
+/**
+ * Schema creation testing.
+ *
+ * @param {TestSchemaProcessor} testSchemaProcessor
+ *
+ * @returns {undefined}
+ */
 module.exports = testSchemaProcessor => {
-    return hasSchemaCreated(testSchemaProcessor);
+    test('Test schema should be created', tape => {
+        const numberOfPlannedAssertions = 2;
+        const autoTimeoutMs             = 3 * 1000; // 3 seconds.
+
+        tape.plan(numberOfPlannedAssertions);
+        tape.timeoutAfter(autoTimeoutMs);
+
+        hasSchemaCreated(testSchemaProcessor).then(schemaExists => {
+            tape.equal(typeof schemaExists, 'boolean');
+            tape.equal(schemaExists, true);
+            tape.end();
+        });
+    });
 };
