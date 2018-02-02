@@ -15,10 +15,9 @@
     },
     "scripts": {
         "start": "node ./src/Main.js",
-        "test": "mocha test/Main.test.js"
+        "test": "tape test/Main.test.js"
     },
     "devDependencies": {
-        "chai": "^4.1.2",
-        "mocha": "^4.0.1"
+        "tape": "^4.8.0"
     }
 }
