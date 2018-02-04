@@ -13,8 +13,7 @@
         "port"     : 3306,
         "charset"  : "UTF8",
         "user"     : "root",
-        "password" : "0123456789",
-        "password" : "7370142533"
+        "password" : "0123456789"
     },
 
     "target_description" : [
@@ -27,13 +26,18 @@
         "port"     : 5432,
         "charset"  : "UTF8",
         "user"     : "postgres",
-        "password" : "0123456789",
-        "password" : "7370142533"
+        "password" : "0123456789"
     },
 
     "schema_description" : [
         "A name of the schema, that will contain all migrated tables.",
         "If not supplied, then a new schema will be created automatically."
     ],
-    "schema" : "public"
+    "schema" : "public",
+
+    "remove_test_resources_description" : [
+        "If true, then all resources created by test scripts will be removed.",
+        "Default - true."
+    ],
+    "remove_test_resources" : true
 }

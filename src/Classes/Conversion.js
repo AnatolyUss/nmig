@@ -65,6 +65,7 @@ module.exports = class Conversion {
         this._runsInTestMode          = false;
         this._eventEmitter            = null;
         this._migrationCompletedEvent = 'migrationCompleted';
+        this._removeTestResources     = this._config.remove_test_resources === undefined ? true : this._config.remove_test_resources;
         this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
         this._loaderMaxOldSpaceSize   = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize   = this.isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
