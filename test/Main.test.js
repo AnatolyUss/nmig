@@ -32,7 +32,9 @@ const processSchemaTest   = require('./TestModules/SchemaProcessorTest');
  */
 const runTestSuites = testSchemaProcessor => {
     return () => {
-        processSchemaTest(testSchemaProcessor);
+        Promise.all([
+            processSchemaTest(testSchemaProcessor),
+        ]).then(() => process.exit());
     };
 };
 

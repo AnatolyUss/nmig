@@ -60,20 +60,23 @@ const hasSchemaCreated = testSchemaProcessor => {
  *
  * @param {TestSchemaProcessor} testSchemaProcessor
  *
- * @returns {undefined}
+ * @returns {Promise<any>}
  */
 module.exports = testSchemaProcessor => {
-    test('Test schema should be created', tape => {
-        const numberOfPlannedAssertions = 2;
-        const autoTimeoutMs             = 3 * 1000; // 3 seconds.
+    return new Promise(resolve => {
+        test('Test schema should be created', tape => {
+            const numberOfPlannedAssertions = 2;
+            const autoTimeoutMs             = 3 * 1000; // 3 seconds.
 
-        tape.plan(numberOfPlannedAssertions);
-        tape.timeoutAfter(autoTimeoutMs);
+            tape.plan(numberOfPlannedAssertions);
+            tape.timeoutAfter(autoTimeoutMs);
 
-        hasSchemaCreated(testSchemaProcessor).then(schemaExists => {
-            tape.equal(typeof schemaExists, 'boolean');
-            tape.equal(schemaExists, true);
-            tape.end();
+            hasSchemaCreated(testSchemaProcessor).then(schemaExists => {
+                tape.equal(typeof schemaExists, 'boolean');
+                tape.equal(schemaExists, true);
+                tape.end();
+                resolve();
+            });
         });
     });
 };
