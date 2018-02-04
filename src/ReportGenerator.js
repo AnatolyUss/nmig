@@ -46,7 +46,7 @@ module.exports = (self, endMsg) => {
     log(self, output);
 
     if (self._runsInTestMode) {
-        self._eventEmitter.emit('migrationCompleted');
+        self._eventEmitter.emit(self._migrationCompletedEvent);
         return;
     }
 

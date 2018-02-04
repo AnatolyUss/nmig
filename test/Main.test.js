@@ -42,7 +42,7 @@ testSchemaProcessor
     .initializeConversion()
     .then(conversion => {
         // Registers callback, that will be invoked when the test database arrangement will be completed.
-        conversion._eventEmitter.on('migrationCompleted', runTestSuites(testSchemaProcessor));
+        conversion._eventEmitter.on(conversion._migrationCompletedEvent, runTestSuites(testSchemaProcessor));
 
         // Continues the test database arrangement.
         return Promise.resolve(conversion);
