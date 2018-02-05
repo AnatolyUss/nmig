@@ -36,7 +36,7 @@ const generateError                         = require('../../src/ErrorGenerator'
 module.exports = class TestSchemaProcessor {
 
     /**
-     * TestSchemaLoader constructor.
+     * TestSchemaProcessor constructor.
      */
     constructor() {
         this._app        = new Main();
@@ -93,7 +93,7 @@ module.exports = class TestSchemaProcessor {
                                 release();
 
                                 if (pgDropErr) {
-                                    // Failed to drop test target database.
+                                    // Failed to drop test target schema.
                                     this.processFatalError(this._conversion, pgDropErr);
                                 }
 
@@ -138,7 +138,7 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
-     * Update the "database" part of both connections.
+     * Update the "database" part of MySQL connection.
      *
      * @param {Conversion} conversion
      *
@@ -224,7 +224,7 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
-     * Loads test data into test MySQL database.
+     * Loads test data into MySQL test database.
      *
      * @param {Conversion} conversion
      *
