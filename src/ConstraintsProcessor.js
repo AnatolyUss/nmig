@@ -24,7 +24,6 @@ const sequencesProcessor        = require('./SequencesProcessor');
 const dataPoolManager           = require('./DataPoolManager');
 const runVacuumFullAndAnalyze   = require('./VacuumProcessor');
 const migrationStateManager     = require('./MigrationStateManager');
-const cleanup                   = require('./CleanupProcessor');
 const generateReport            = require('./ReportGenerator');
 const processEnum               = require('./EnumProcessor');
 const processNull               = require('./NullProcessor');
@@ -60,8 +59,6 @@ const continueProcessAfterDataLoadingShort = self => {
         return runVacuumFullAndAnalyze(self);
     }).then(() => {
         return migrationStateManager.dropStateLogsTable(self);
-    }).then(() => {
-        return cleanup(self);
     }).then(
         () => generateReport(self, 'NMIG migration is accomplished.')
     );
@@ -114,8 +111,6 @@ const continueProcessAfterDataLoadingLong = self => {
                 return runVacuumFullAndAnalyze(self);
             }).then(() => {
                 return migrationStateManager.dropStateLogsTable(self);
-            }).then(() => {
-                return cleanup(self);
             }).then(
                 () => generateReport(self, 'NMIG migration is accomplished.')
             );
