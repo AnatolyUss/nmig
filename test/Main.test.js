@@ -34,7 +34,9 @@ const runTestSuites = testSchemaProcessor => {
     return () => {
         Promise.all([
             processSchemaTest(testSchemaProcessor),
-        ]).then(() => process.exit());
+        ])
+        .then(() => testSchemaProcessor.removeTestResources())
+        .then(() => process.exit());
     };
 };
 
