@@ -12,6 +12,7 @@
         "host"     : "localhost",
         "port"     : 3306,
         "charset"  : "UTF8",
+        "database" : "nmig_test_db",
         "user"     : "root",
         "password" : "0123456789"
     },
@@ -25,6 +26,7 @@
         "host"     : "localhost",
         "port"     : 5432,
         "charset"  : "UTF8",
+        "database" : "nmig_test_db",
         "user"     : "postgres",
         "password" : "0123456789"
     },
