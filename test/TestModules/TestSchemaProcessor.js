@@ -40,7 +40,6 @@ module.exports = class TestSchemaProcessor {
      */
     constructor() {
         this._app        = new Main();
-        this._testDbName = 'nmig_test_db';
         this._conversion = null;
     }
 
@@ -59,6 +58,55 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
+     * Removes resources created by test scripts.
+     *
+     * @returns {Promise<any>}
+     */
+    removeTestResources() {
+        return new Promise(resolve => {
+            if (!this._conversion._removeTestResources) {
+                return resolve();
+            }
+
+            return connect(this._conversion).then(() => {
+                this._conversion._mysql.getConnection((mysqlConErr, connection) => {
+                    if (mysqlConErr) {
+                        // The connection is undefined.
+                        this.processFatalError(this._conversion, mysqlConErr);
+                    }
+
+                    connection.query(`DROP DATABASE ${ this._conversion._mySqlDbName };`, mysqlDropErr => {
+                        connection.release();
+
+                        if (mysqlDropErr) {
+                            // Failed to drop test source database.
+                            this.processFatalError(this._conversion, mysqlDropErr);
+                        }
+
+                        this._conversion._pg.connect((pgConErr, client, release) => {
+                            if (pgConErr) {
+                                //The connection is undefined.
+                                this.processFatalError(this._conversion, pgConErr);
+                            }
+
+                            client.query(`DROP SCHEMA ${ this._conversion._schema } CASCADE;`, pgDropErr => {
+                                release();
+
+                                if (pgDropErr) {
+                                    // Failed to drop test target database.
+                                    this.processFatalError(this._conversion, pgDropErr);
+                                }
+
+                                resolve();
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }
+
+    /**
      * Creates test source database.
      *
      * @param {Conversion} conversion
@@ -74,7 +122,7 @@ module.exports = class TestSchemaProcessor {
                         this.processFatalError(conversion, error);
                     }
 
-                    connection.query(`CREATE DATABASE IF NOT EXISTS ${ this._testDbName };`, err => {
+                    connection.query(`CREATE DATABASE IF NOT EXISTS ${ this._conversion._mySqlDbName };`, err => {
                         connection.release();
 
                         if (err) {
@@ -90,64 +138,16 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
-     * Creates test target database.
-     *
-     * @param {Conversion} conversion
-     *
-     * @returns {Promise<Conversion>}
-     */
-    createTestTargetDb(conversion) {
-        conversion._pg                       = null;
-        conversion._targetConString.database = 'postgres';
-
-        return connect(conversion).then(() => {
-            return new Promise(resolve => {
-                conversion._pg.connect((error, client, release) => {
-                    if (error) {
-                        this.processFatalError(conversion, error);
-                    }
-
-                    client.query(`SELECT 1 FROM pg_database WHERE datname = '${ this._testDbName }';`, (err, result) => {
-                        if (err) {
-                            this.processFatalError(conversion, err);
-                        }
-
-                        if (result.rows.length === 0) {
-                            // Database 'nmig_test_db' does not exist.
-                            client.query(`CREATE DATABASE ${ this._testDbName };`, createDbError => {
-                                release();
-
-                                if (createDbError) {
-                                    this.processFatalError(conversion, createDbError);
-                                }
-
-                                resolve(conversion);
-                            });
-
-                        } else {
-                            release();
-                            resolve(conversion);
-                        }
-                    });
-                });
-            });
-        });
-    }
-
-    /**
      * Update the "database" part of both connections.
      *
      * @param {Conversion} conversion
      *
      * @returns {Promise<Conversion>}
      */
-    updateDbConnections(conversion) {
+    updateMySqlConnection(conversion) {
         return new Promise(resolve => {
             conversion._mysql                    = null;
-            conversion._sourceConString.database = this._testDbName;
-            conversion._pg                       = null;
-            conversion._targetConString.database = this._testDbName;
-            conversion._mySqlDbName              = this._testDbName;
+            conversion._sourceConString.database = conversion._mySqlDbName;
             resolve(conversion);
         });
     }
@@ -224,7 +224,7 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
-     * Loads test data into MySQL `nmig_test_db`.
+     * Loads test data into test MySQL database.
      *
      * @param {Conversion} conversion
      *
@@ -296,7 +296,8 @@ module.exports = class TestSchemaProcessor {
                 this._conversion                 = conversion;
                 this._conversion._runsInTestMode = true;
                 this._conversion._eventEmitter   = new EventEmitter();
-                return Promise.resolve(conversion);
+                delete this._conversion._sourceConString.database;
+                return Promise.resolve(this._conversion);
             });
     }
 
@@ -311,8 +312,7 @@ module.exports = class TestSchemaProcessor {
     arrangeTestMigration(conversion) {
         Promise.resolve(conversion)
             .then(this.createTestSourceDb.bind(this))
-            .then(this.createTestTargetDb.bind(this))
-            .then(this.updateDbConnections.bind(this))
+            .then(this.updateMySqlConnection.bind(this))
             .then(this.loadTestSchema.bind(this))
             .then(this.loadTestData.bind(this))
             .then(readDataTypesMap)
