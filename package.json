@@ -14,7 +14,7 @@
         "pg-copy-streams": "^1.2.0"
     },
     "scripts": {
-        "start": "node ./src/Main.js",
+        "start": "node src/Main.js",
         "test": "tape test/Main.test.js"
     },
     "devDependencies": {
