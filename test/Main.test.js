@@ -21,7 +21,8 @@
 'use strict';
 
 const TestSchemaProcessor = require('./TestModules/TestSchemaProcessor');
-const processSchemaTest   = require('./TestModules/SchemaProcessorTest');
+const testSchema          = require('./TestModules/SchemaProcessorTest');
+const testDataContent     = require('./TestModules/DataContentTest');
 
 /**
  * Runs test suites.
@@ -33,7 +34,8 @@ const processSchemaTest   = require('./TestModules/SchemaProcessorTest');
 const runTestSuites = testSchemaProcessor => {
     return () => {
         Promise.all([
-            processSchemaTest(testSchemaProcessor),
+            testSchema(testSchemaProcessor),
+            testDataContent(testSchemaProcessor),
         ])
         .then(() => testSchemaProcessor.removeTestResources())
         .then(() => process.exit());
