@@ -31,28 +31,12 @@ const connect  = require('../../src/Connector');
  * @returns {Promise<Boolean>}
  */
 const hasSchemaCreated = testSchemaProcessor => {
-    return connect(testSchemaProcessor._conversion).then(() => {
-        return new Promise(resolve => {
-            testSchemaProcessor._conversion._pg.connect((error, client, release) => {
-                if (error) {
-                    testSchemaProcessor.processFatalError(testSchemaProcessor._conversion, error);
-                }
+    const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
+                 WHERE schema_name = '${ testSchemaProcessor._conversion._schema }');`;
 
-                const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata 
-                         WHERE schema_name = '${ testSchemaProcessor._conversion._schema }');`;
-
-                client.query(sql, (err, result) => {
-                    release();
-
-                    if (err) {
-                        testSchemaProcessor.processFatalError(testSchemaProcessor._conversion, err);
-                    }
-
-                    resolve(!!result.rows[0].exists);
-                });
-            });
-        });
-    });
+    return testSchemaProcessor
+        .queryPg(sql)
+        .then(data => !!data.rows[0].exists);
 };
 
 /**

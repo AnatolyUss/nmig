@@ -325,4 +325,33 @@ module.exports = class TestSchemaProcessor {
             .then(pipeData)
             .catch(error => console.log(error));
     }
+
+    /**
+     * Query PostgreSQL server.
+     *
+     * @param {String} sql
+     *
+     * @returns {Promise<any>}
+     */
+    queryPg(sql) {
+        return connect(this._conversion).then(() => {
+            return new Promise(resolve => {
+                this._conversion._pg.connect((error, client, release) => {
+                    if (error) {
+                        this.processFatalError(this._conversion, error);
+                    }
+
+                    client.query(sql, (err, data) => {
+                        release();
+
+                        if (err) {
+                            this.processFatalError(this._conversion, err);
+                        }
+
+                        resolve(data);
+                    });
+                });
+            });
+        });
+    }
 };
