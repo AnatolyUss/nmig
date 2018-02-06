@@ -331,7 +331,7 @@ module.exports = class TestSchemaProcessor {
      *
      * @param {String} sql
      *
-     * @returns {Promise<any>}
+     * @returns {Promise<pg.Result>}
      */
     queryPg(sql) {
         return connect(this._conversion).then(() => {
