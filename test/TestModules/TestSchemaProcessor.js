@@ -188,7 +188,7 @@ module.exports = class TestSchemaProcessor {
      * @returns {Promise<Buffer>}
      */
     readTestBlob() {
-        const blobPath = path.join(__dirname, '..', 'TestAssets', 'test.png');
+        const blobPath = path.join(__dirname, '..', 'TestAssets', 'test.txt');
         return this.readFile(blobPath);
     }
 
