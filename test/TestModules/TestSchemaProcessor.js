@@ -183,16 +183,6 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
-     * Reads an image for a sake of the blob testing.
-     *
-     * @returns {Promise<Buffer>}
-     */
-    readTestBlob() {
-        const blobPath = path.join(__dirname, '..', 'TestAssets', 'test.txt');
-        return this.readFile(blobPath);
-    }
-
-    /**
      * Loads test schema into MySQL test database.
      *
      * @param {Conversion} conversion
@@ -224,6 +214,17 @@ module.exports = class TestSchemaProcessor {
     }
 
     /**
+     * Provides a blob for a sake of testing.
+     *
+     * @param {Conversion} conversion
+     *
+     * @returns {Buffer}
+     */
+    getTestBlob(conversion) {
+        return Buffer.from('Automated tests development is in progress.', conversion._encoding);
+    }
+
+    /**
      * Loads test data into MySQL test database.
      *
      * @param {Conversion} conversion
@@ -231,54 +232,52 @@ module.exports = class TestSchemaProcessor {
      * @returns {Promise<Conversion>}
      */
     loadTestData(conversion) {
-        return connect(conversion)
-            .then(this.readTestBlob.bind(this))
-            .then(blobBuffer => {
-                return new Promise(resolve => {
-                    conversion._mysql.getConnection((error, connection) => {
-                        if (error) {
-                            this.processFatalError(conversion, error);
+        return connect(conversion).then(() => {
+            return new Promise(resolve => {
+                conversion._mysql.getConnection((error, connection) => {
+                    if (error) {
+                        this.processFatalError(conversion, error);
+                    }
+
+                    const insertParams = {
+                        id_test_unique_index             : 7384,
+                        id_test_composite_unique_index_1 : 125,
+                        id_test_composite_unique_index_2 : 234,
+                        id_test_index                    : 123,
+                        int_test_not_null                : 123,
+                        id_test_composite_index_1        : 11,
+                        id_test_composite_index_2        : 22,
+                        json_test_comment                : '{"prop1":"First","prop2":2}',
+                        bit                              : 1,
+                        year                             : 1984,
+                        bigint                           : 1234567890123456789,
+                        float                            : 12345.56,
+                        double                           : 123456789.23,
+                        numeric                          : 1234567890,
+                        decimal                          : 1234567890,
+                        char_5                           : 'fghij',
+                        varchar_5                        : 'abcde',
+                        date                             : '1984-07-30',
+                        time                             : '21:12:33',
+                        timestamp                        : '2018-01-01 22:21:20',
+                        enum                             : 'e1',
+                        set                              : 's2',
+                        text                             : 'Test text',
+                        blob                             : this.getTestBlob(conversion),
+                    };
+
+                    connection.query('INSERT INTO `table_a` SET ?;', insertParams, err => {
+                        connection.release();
+
+                        if (err) {
+                            this.processFatalError(conversion, err);
                         }
 
-                        const insertParams = {
-                            id_test_unique_index             : 7384,
-                            id_test_composite_unique_index_1 : 125,
-                            id_test_composite_unique_index_2 : 234,
-                            id_test_index                    : 123,
-                            int_test_not_null                : 123,
-                            id_test_composite_index_1        : 11,
-                            id_test_composite_index_2        : 22,
-                            json_test_comment                : '{"prop1":"First","prop2":2}',
-                            bit                              : 1,
-                            year                             : 1984,
-                            bigint                           : 1234567890123456789,
-                            float                            : 12345.56,
-                            double                           : 123456789.23,
-                            numeric                          : 1234567890,
-                            decimal                          : 1234567890,
-                            char_5                           : 'fghij',
-                            varchar_5                        : 'abcde',
-                            date                             : '1984-07-30',
-                            time                             : '21:12:33',
-                            timestamp                        : '2018-01-01 22:21:20',
-                            enum                             : 'e1',
-                            set                              : 's2',
-                            text                             : 'Test text',
-                            blob                             : blobBuffer,
-                        };
-
-                        connection.query('INSERT INTO `table_a` SET ?;', insertParams, err => {
-                            connection.release();
-
-                            if (err) {
-                                this.processFatalError(conversion, err);
-                            }
-
-                            resolve(conversion);
-                        });
+                        resolve(conversion);
                     });
                 });
             });
+        });
     }
 
     /**
