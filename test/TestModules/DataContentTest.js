@@ -43,12 +43,12 @@ const retrieveData = testSchemaProcessor => {
  *
  * @param {TestSchemaProcessor} testSchemaProcessor
  *
- * @returns {Promise<any>}
+ * @returns {Promise<Any>}
  */
 module.exports = testSchemaProcessor => {
     return new Promise(resolve => {
         retrieveData(testSchemaProcessor).then(data => {
-            test('Test blob should be reproduced', tape => {
+            test('Test the data content', tape => {
                 const originalTestBlobText      = testSchemaProcessor.getTestBlob(testSchemaProcessor._conversion).toString();
                 const autoTimeoutMs             = 3 * 1000; // 3 seconds.
                 const numberOfPlannedAssertions = 4;
