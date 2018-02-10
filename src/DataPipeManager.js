@@ -26,6 +26,7 @@ const log                 = require('./Logger');
 const generateError       = require('./ErrorGenerator');
 const MessageToDataLoader = require('./Classes/MessageToDataLoader');
 const processConstraints  = require('./ConstraintsProcessor');
+const decodeBinaryData    = require('./BinaryDataDecoder');
 
 /**
  * Kill a process specified by the pid.
@@ -143,7 +144,7 @@ const fillBandwidth = self => {
  */
 const pipeData = (self, strDataLoaderPath, options) => {
     if (dataPoolProcessed(self)) {
-        return processConstraints(self);
+        return decodeBinaryData(self).then(processConstraints);
     }
 
     const loaderProcess = childProcess.fork(strDataLoaderPath, options);
@@ -178,7 +179,7 @@ const pipeData = (self, strDataLoaderPath, options) => {
  */
 module.exports = self => {
     if (dataPoolProcessed(self)) {
-        return processConstraints(self);
+        return decodeBinaryData(self).then(processConstraints);
     }
 
     const strDataLoaderPath = path.join(__dirname, 'DataLoader.js');
