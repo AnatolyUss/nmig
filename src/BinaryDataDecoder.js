@@ -42,23 +42,6 @@ const decodeGeometry = conversion => {
 };
 
 /**
- * Decodes binary data in BIT columns from from textual representation in string.
- *
- * @param {Conversion} conversion
- *
- * @returns {Promise<Any>}
- */
-const decodeBit = conversion => {
-    return connect(conversion).then(() => {
-        return new Promise(resolve => {
-            //
-
-            resolve();
-        });
-    });
-};
-
-/**
  * Decodes binary data in BYTEA columns from from textual representation in string.
  *
  * @param {Conversion} conversion
@@ -135,7 +118,6 @@ module.exports = conversion => {
     return new Promise(resolve => {
         Promise.all([
             decodeBytea(conversion),
-            decodeBit(conversion),
             decodeGeometry(conversion),
         ])
         .then(() => resolve(conversion));
