@@ -30,7 +30,7 @@ const { test } = require('tape');
  * @returns {Promise<pg.Result>}
  */
 const retrieveData = testSchemaProcessor => {
-    const sql = `SELECT ENCODE(blob, 'escape') AS test_blob, table_a.* 
+    const sql = `SELECT ENCODE(blob, 'escape') AS blob_text, table_a.* 
                  FROM ${ testSchemaProcessor._conversion._schema }.table_a AS table_a;`;
 
     return testSchemaProcessor
@@ -49,15 +49,19 @@ module.exports = testSchemaProcessor => {
     return new Promise(resolve => {
         retrieveData(testSchemaProcessor).then(data => {
             test('Test blob should be reproduced', tape => {
-                const originalTestBlob          = testSchemaProcessor.getTestBlob(testSchemaProcessor._conversion);
-                const numberOfPlannedAssertions = 2;
+                const originalTestBlobText      = testSchemaProcessor.getTestBlob(testSchemaProcessor._conversion).toString();
+                const autoTimeoutMs             = 3 * 1000; // 3 seconds.
+                const numberOfPlannedAssertions = 4;
 
                 tape.plan(numberOfPlannedAssertions);
+                tape.timeoutAfter(autoTimeoutMs);
 
-                tape.equal(typeof data.test_blob, 'string');
-                tape.equal(data.test_blob, originalTestBlob.toString());
+                tape.equal(typeof data.blob_text, 'string');
+                tape.equal(data.blob_text, originalTestBlobText);
+                tape.equal(typeof data.bit, 'string');
+                tape.equal(data.bit, '1'); // BIT is actually a "bit string", for example: '1110' -> 14
+
                 tape.end();
-
                 resolve();
             });
         });
