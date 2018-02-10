@@ -1,2 +1,0 @@
---
-This is a dummy text for a sake of the test.
