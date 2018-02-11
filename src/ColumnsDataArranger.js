@@ -85,6 +85,7 @@ module.exports = (arrTableColumns, mysqlVersion) => {
         const type  = arrTableColumns[i].Type;
 
         if (isSpacial(type)) {
+            // Apply HEX(ST_AsWKB(...)) due to the issue, described at https://bugs.mysql.com/bug.php?id=69798
             strRetVal += 'HEX(' + wkbFunc + '(`' + field + '`)) AS `' + field + '`,';
         } else if (isBinary(type)) {
             strRetVal += 'HEX(`' + field + '`) AS `' + field + '`,';
