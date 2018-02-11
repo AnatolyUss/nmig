@@ -51,15 +51,40 @@ module.exports = testSchemaProcessor => {
             test('Test the data content', tape => {
                 const originalTestBlobText      = testSchemaProcessor.getTestBlob(testSchemaProcessor._conversion).toString();
                 const autoTimeoutMs             = 3 * 1000; // 3 seconds.
-                const numberOfPlannedAssertions = 4;
+                const numberOfPlannedAssertions = 20;
 
                 tape.plan(numberOfPlannedAssertions);
                 tape.timeoutAfter(autoTimeoutMs);
 
                 tape.equal(typeof data.blob_text, 'string');
                 tape.equal(data.blob_text, originalTestBlobText);
+
                 tape.equal(typeof data.bit, 'string');
                 tape.equal(data.bit, '1'); // BIT is actually a "bit string", for example: '1110' -> 14
+
+                tape.equal(typeof data.id_test_unique_index, 'number');
+                tape.equal(data.id_test_unique_index, 7384);
+
+                tape.equal(typeof data.id_test_composite_unique_index_1, 'number');
+                tape.equal(data.id_test_composite_unique_index_1, 125);
+
+                tape.equal(typeof data.id_test_composite_unique_index_2, 'number');
+                tape.equal(data.id_test_composite_unique_index_2, 234);
+
+                tape.equal(typeof data.id_test_index, 'number');
+                tape.equal(data.id_test_index, 123);
+
+                tape.equal(typeof data.int_test_not_null, 'number');
+                tape.equal(data.int_test_not_null, 123);
+
+                tape.equal(typeof data.id_test_composite_index_1, 'number');
+                tape.equal(data.id_test_composite_index_1, 11);
+
+                tape.equal(typeof data.id_test_composite_index_2, 'number');
+                tape.equal(data.id_test_composite_index_2, 22);
+
+                tape.equal(typeof data.json_test_comment, 'object');
+                tape.equal(JSON.stringify(data.json_test_comment), '{"prop1":"First","prop2":2}');
 
                 tape.end();
                 resolve();
