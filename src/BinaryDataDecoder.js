@@ -68,8 +68,8 @@ module.exports = conversion => {
 
                                 const tableName  = data.rows[i].table_name;
                                 const columnName = data.rows[i].column_name;
-                                const sqlDecode  = `UPDATE ${ conversion._schema }.${ tableName }
-                                                    SET ${ columnName } = DECODE(ENCODE(${ columnName }, 'escape'), 'hex');`;
+                                const sqlDecode  = `UPDATE ${ conversion._schema }."${ tableName }"
+                                                    SET "${ columnName }" = DECODE(ENCODE("${ columnName }", 'escape'), 'hex');`;
 
                                 pgClient.query(sqlDecode, decodeError => {
                                     clientRelease();
