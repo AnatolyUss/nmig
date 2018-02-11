@@ -49,9 +49,11 @@ module.exports = testSchemaProcessor => {
     return new Promise(resolve => {
         retrieveData(testSchemaProcessor).then(data => {
             test('Test the data content', tape => {
-                const originalTestBlobText      = testSchemaProcessor.getTestBlob(testSchemaProcessor._conversion).toString();
                 const autoTimeoutMs             = 3 * 1000; // 3 seconds.
-                const numberOfPlannedAssertions = 20;
+                const numberOfPlannedAssertions = 22;
+                const originalTestBlobText      = testSchemaProcessor
+                    .getTestBlob(testSchemaProcessor._conversion)
+                    .toString();
 
                 tape.plan(numberOfPlannedAssertions);
                 tape.timeoutAfter(autoTimeoutMs);
@@ -85,6 +87,9 @@ module.exports = testSchemaProcessor => {
 
                 tape.equal(typeof data.json_test_comment, 'object');
                 tape.equal(JSON.stringify(data.json_test_comment), '{"prop1":"First","prop2":2}');
+
+                tape.equal(typeof data.year, 'number');
+                tape.equal(data.year, 1984);
 
                 tape.end();
                 resolve();
