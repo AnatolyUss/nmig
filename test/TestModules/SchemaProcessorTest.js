@@ -21,7 +21,6 @@
 'use strict';
 
 const { test } = require('tape');
-const connect  = require('../../src/Connector');
 
 /**
  * Checks if the schema exists.
