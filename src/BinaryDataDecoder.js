@@ -25,37 +25,20 @@ const log           = require('./Logger');
 const connect       = require('./Connector');
 
 /**
- * Decodes binary data in GEOMETRY columns from from textual representation in string.
+ * Decodes binary data from from textual representation in string.
  *
  * @param {Conversion} conversion
  *
  * @returns {Promise<Any>}
  */
-const decodeGeometry = conversion => {
-    return connect(conversion).then(() => {
-        return new Promise(resolve => {
-            //
-
-            resolve();
-        });
-    });
-};
-
-/**
- * Decodes binary data in BYTEA columns from from textual representation in string.
- *
- * @param {Conversion} conversion
- *
- * @returns {Promise<Any>}
- */
-const decodeBytea = conversion => {
-    log(conversion, '\t--[decodeBytea] Decodes binary data in BYTEA columns from from textual representation in string.');
+module.exports = conversion => {
+    log(conversion, '\t--[decodeBinaryData] Decodes binary data in BYTEA columns from from textual representation in string.');
 
     return connect(conversion).then(() => {
         return new Promise(resolve => {
             conversion._pg.connect((error, client, release) => {
                 if (error) {
-                    generateError(conversion, '\t--[decodeBytea] Cannot connect to PostgreSQL server...');
+                    generateError(conversion, '\t--[decodeBinaryData] Cannot connect to PostgreSQL server...');
                     return resolve();
                 }
 
@@ -63,13 +46,13 @@ const decodeBytea = conversion => {
                     FROM information_schema.columns
                     WHERE table_catalog = '${ conversion._targetConString.database }' 
                       AND table_schema = '${ conversion._schema }' 
-                      AND data_type = 'bytea';`;
+                      AND data_type IN ('bytea', 'geometry');`;
 
                 client.query(sql, (err, data) => {
                     release();
 
                     if (err) {
-                        generateError(conversion, `\t--[decodeBytea] ${ err }`, sql);
+                        generateError(conversion, `\t--[decodeBinaryData] ${ err }`, sql);
                         return resolve();
                     }
 
@@ -79,19 +62,18 @@ const decodeBytea = conversion => {
                         decodePromises.push(new Promise(resolveDecode => {
                             conversion._pg.connect((connectionError, pgClient, clientRelease) => {
                                 if (connectionError) {
-                                    generateError(conversion, '\t--[decodeBytea] Cannot connect to PostgreSQL server...');
+                                    generateError(conversion, '\t--[decodeBinaryData] Cannot connect to PostgreSQL server...');
                                     return resolveDecode();
                                 }
 
                                 sql = `UPDATE ${ conversion._schema }.${ data.rows[i].table_name }
-                                SET ${ data.rows[i].column_name } = DECODE(ENCODE(${ data.rows[i].column_name }, 'escape'), 'hex');`;
+                                       SET ${ data.rows[i].column_name } = DECODE(ENCODE(${ data.rows[i].column_name }, 'escape'), 'hex');`;
 
                                 pgClient.query(sql, decodeError => {
                                     clientRelease();
 
                                     if (decodeError) {
-                                        generateError(conversion, `\t--[decodeBytea] ${ decodeError }`);
-                                        return resolveDecode();
+                                        generateError(conversion, `\t--[decodeBinaryData] ${ decodeError }`);
                                     }
 
                                     resolveDecode();
@@ -104,22 +86,5 @@ const decodeBytea = conversion => {
                 });
             });
         });
-    });
-};
-
-/**
- * Decodes binary data from from textual representation in string.
- *
- * @param {Conversion} conversion
- *
- * @returns {Promise<Conversion>}
- */
-module.exports = conversion => {
-    return new Promise(resolve => {
-        Promise.all([
-            decodeBytea(conversion),
-            decodeGeometry(conversion),
-        ])
-        .then(() => resolve(conversion));
     });
 };
