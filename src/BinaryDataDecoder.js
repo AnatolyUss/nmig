@@ -29,20 +29,20 @@ const connect       = require('./Connector');
  *
  * @param {Conversion} conversion
  *
- * @returns {Promise<Any>}
+ * @returns {Promise<Conversion>}
  */
 module.exports = conversion => {
-    log(conversion, '\t--[decodeBinaryData] Decodes binary data in BYTEA columns from from textual representation in string.');
+    log(conversion, '\t--[decodeBinaryData] Decodes binary data from textual representation in string.');
 
     return connect(conversion).then(() => {
         return new Promise(resolve => {
             conversion._pg.connect((error, client, release) => {
                 if (error) {
                     generateError(conversion, '\t--[decodeBinaryData] Cannot connect to PostgreSQL server...');
-                    return resolve();
+                    return resolve(conversion);
                 }
 
-                let sql = `SELECT table_name, column_name 
+                const sql = `SELECT table_name, column_name 
                     FROM information_schema.columns
                     WHERE table_catalog = '${ conversion._targetConString.database }' 
                       AND table_schema = '${ conversion._schema }' 
@@ -53,7 +53,7 @@ module.exports = conversion => {
 
                     if (err) {
                         generateError(conversion, `\t--[decodeBinaryData] ${ err }`, sql);
-                        return resolve();
+                        return resolve(conversion);
                     }
 
                     const decodePromises = [];
@@ -66,14 +66,16 @@ module.exports = conversion => {
                                     return resolveDecode();
                                 }
 
-                                sql = `UPDATE ${ conversion._schema }.${ data.rows[i].table_name }
-                                       SET ${ data.rows[i].column_name } = DECODE(ENCODE(${ data.rows[i].column_name }, 'escape'), 'hex');`;
+                                const tableName  = data.rows[i].table_name;
+                                const columnName = data.rows[i].column_name;
+                                const sqlDecode  = `UPDATE ${ conversion._schema }.${ tableName }
+                                                    SET ${ columnName } = DECODE(ENCODE(${ columnName }, 'escape'), 'hex');`;
 
-                                pgClient.query(sql, decodeError => {
+                                pgClient.query(sqlDecode, decodeError => {
                                     clientRelease();
 
                                     if (decodeError) {
-                                        generateError(conversion, `\t--[decodeBinaryData] ${ decodeError }`);
+                                        generateError(conversion, `\t--[decodeBinaryData] ${ decodeError }`, sqlDecode);
                                     }
 
                                     resolveDecode();
@@ -82,7 +84,7 @@ module.exports = conversion => {
                         }));
                     }
 
-                    Promise.all(decodePromises).then(() => resolve());
+                    Promise.all(decodePromises).then(() => resolve(conversion));
                 });
             });
         });
