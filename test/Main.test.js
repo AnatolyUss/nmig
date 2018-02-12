@@ -23,6 +23,7 @@
 const TestSchemaProcessor = require('./TestModules/TestSchemaProcessor');
 const testSchema          = require('./TestModules/SchemaProcessorTest');
 const testDataContent     = require('./TestModules/DataContentTest');
+const testDataTypes       = require('./TestModules/DataTypesTest');
 
 /**
  * Runs test suites.
@@ -36,6 +37,7 @@ const runTestSuites = testSchemaProcessor => {
         Promise.all([
             testSchema(testSchemaProcessor),
             testDataContent(testSchemaProcessor),
+            testDataTypes(testSchemaProcessor),
         ])
         .then(() => testSchemaProcessor.removeTestResources())
         .then(() => process.exit());
