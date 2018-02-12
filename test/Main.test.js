@@ -35,6 +35,8 @@ const testDataTypes       = require('./TestModules/DataTypesTest');
 const runTestSuites = testSchemaProcessor => {
     return () => {
         Promise.all([
+            // A list of test suite modules.
+            // Each test suite module must export a function, that returns a promise.
             testSchema(testSchemaProcessor),
             testDataContent(testSchemaProcessor),
             testDataTypes(testSchemaProcessor),
