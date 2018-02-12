@@ -57,7 +57,7 @@ module.exports = testSchemaProcessor => {
             hasSchemaCreated(testSchemaProcessor).then(schemaExists => {
                 tape.equal(typeof schemaExists, 'boolean');
                 tape.equal(schemaExists, true);
-                tape.end();
+
                 resolve();
             });
         });

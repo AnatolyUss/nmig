@@ -115,7 +115,6 @@ module.exports = testSchemaProcessor => {
                     tape.equal(actualColumnType, expectedColumnType);
                 }
 
-                tape.end();
                 resolve();
             });
         });

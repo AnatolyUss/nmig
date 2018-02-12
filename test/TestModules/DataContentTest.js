@@ -86,7 +86,6 @@ module.exports = testSchemaProcessor => {
                 const time = `${ data.timestamp.getHours() }:${ data.timestamp.getMinutes() }:${ data.timestamp.getSeconds() }`;
                 tape.equal(`${ date } ${ time }`, '2018-11-11 22:21:20');
 
-                tape.end();
                 resolve();
             });
         });
