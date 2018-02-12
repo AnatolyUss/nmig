@@ -10,7 +10,7 @@
     },
     "dependencies": {
         "mysql": "^2.15.0",
-        "pg": "^7.4.0",
+        "pg": "^7.4.1",
         "pg-copy-streams": "^1.2.0"
     },
     "scripts": {
