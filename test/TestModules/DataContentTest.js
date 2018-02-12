@@ -27,7 +27,7 @@ const { test } = require('tape');
  *
  * @param {TestSchemaProcessor} testSchemaProcessor
  *
- * @returns {Promise<pg.Result>}
+ * @returns {Promise<Object>}
  */
 const retrieveData = testSchemaProcessor => {
     const sql = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
