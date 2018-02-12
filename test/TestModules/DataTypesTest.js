@@ -59,7 +59,7 @@ const getExpectedColumnTypes = () => {
         json_test_comment                : 'json',
         bit                              : 'bit varying',
         year                             : 'smallint',
-        tynyint_test_default             : 'smallint',
+        tinyint_test_default             : 'smallint',
         smallint                         : 'smallint',
         mediumint                        : 'integer',
         bigint                           : 'bigint',
@@ -80,6 +80,7 @@ const getExpectedColumnTypes = () => {
         tinytext                         : 'text',
         mediumtext                       : 'text',
         longtext                         : 'text',
+        text                             : 'text',
         blob                             : 'bytea',
         longblob                         : 'bytea',
         mediumblob                       : 'bytea',
@@ -112,7 +113,6 @@ module.exports = testSchemaProcessor => {
                     const actualColumnType   = data[i].data_type;
                     const expectedColumnType = expectedColumnTypes[columnName];
                     tape.equal(actualColumnType, expectedColumnType);
-                    console.log([columnName, actualColumnType, expectedColumnType]);///////////////////////
                 }
 
                 tape.end();
