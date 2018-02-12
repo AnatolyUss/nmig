@@ -15,7 +15,7 @@
     },
     "scripts": {
         "start": "node src/Main.js",
-        "test": "tape test/Main.test.js"
+        "test": "node test/Main.test.js"
     },
     "devDependencies": {
         "tape": "^4.8.0"
