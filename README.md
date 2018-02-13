@@ -32,7 +32,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    If you are planning to migrate spatial data (geometry type columns), then <b>PostGIS</b> should be installed and enabled.
 </p>
 
-<p><b>2.</b> Download NMIG package and put it on the machine running your PostgreSQL (not mandatory, but preferably).<br />
+<p><b>2.</b> Download Nmig package and put it on the machine running your PostgreSQL (not mandatory, but preferably).<br />
    <b>Sample:</b>&nbsp;<code>/path/to/nmig</code></p>
 
 <p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/config.json</code> with correct details.<br /></p>
@@ -42,7 +42,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <li>Make sure, that username, you use in your PostgreSQL connection details, defined as superuser (usually "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
    </ul>
 
-<p><b>4.</b> Go to nmig directory, install dependencies, and run the app<br />
+<p><b>4.</b> Go to Nmig directory, install dependencies, and run the app<br />
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install</pre><br />
@@ -62,13 +62,33 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    please feel free to email me
    <a href="mailto:anatolyuss@gmail.com?subject=NMIG">anatolyuss@gmail.com</a></p>
 
+<h3>RUNNING TESTS</h3>
+<p><b>1.</b> Create a new PostgreSQL database.<br />
+   <b>Sample:</b>&nbsp;<code> CREATE DATABASE nmig_test_db;</code><br />
+</p>
+<p><b>2.</b> Download Nmig package.</p>
+<p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/test_config.json</code> with correct details.<br /></p>
+<b>Notes:</b>
+<ul>
+   <li> test_config.json contains brief description of each configuration parameter</li>
+   <li>Make sure, that username, you use in your PostgreSQL connection details, defined as superuser (usually "postgres")<br>
+        More info:
+        <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a>
+   </li>
+</ul>
+<p><b>4.</b> Go to nmig directory, install dependencies, and run tests<br />
+    &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
+    <pre>$ cd /path/to/nmig</pre><br />
+    <pre>$ npm install</pre><br />
+    <pre>$ npm test</pre><br />
+</p>
+<p><b>5.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;
+   Log files will be located under "logs_directory" folder in the root of the package.<br />&nbsp;&nbsp;&nbsp;
+<b>Note:</b> "logs_directory" will be created during script execution.</p>
+
 <h3>VERSION</h3>
 <p>Current version is 3.4.0<br />
 (major version . improvements . bug fixes)</p>
-
-<h3>REMARKS</h3>
-<p>Errors/Exceptions are not passed silently.<br />
-Any error will be immediately written into the error log file.</p>
 
 <h3>KNOWN ISSUES</h3>
 <ul>
