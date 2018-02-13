@@ -20,8 +20,6 @@
  */
 'use strict';
 
-const { test } = require('tape');
-
 /**
  * Returns `table_a` column types.
  *
@@ -94,29 +92,26 @@ const getExpectedColumnTypes = () => {
  * The data content testing.
  *
  * @param {TestSchemaProcessor} testSchemaProcessor
+ * @param {Tape} tape
  *
- * @returns {Promise<Any>}
+ * @returns {undefined}
  */
-module.exports = testSchemaProcessor => {
-    return new Promise(resolve => {
-        getColumnTypes(testSchemaProcessor).then(data => {
-            test('Test the data types', tape => {
-                const expectedColumnTypes       = getExpectedColumnTypes();
-                const autoTimeoutMs             = 3 * 1000; // 3 seconds.
-                const numberOfPlannedAssertions = data.length;
+module.exports = (testSchemaProcessor, tape) => {
+    getColumnTypes(testSchemaProcessor).then(data => {
+        const expectedColumnTypes       = getExpectedColumnTypes();
+        const autoTimeoutMs             = 3 * 1000; // 3 seconds.
+        const numberOfPlannedAssertions = data.length;
 
-                tape.plan(numberOfPlannedAssertions);
-                tape.timeoutAfter(autoTimeoutMs);
+        tape.plan(numberOfPlannedAssertions);
+        tape.timeoutAfter(autoTimeoutMs);
 
-                for (let i = 0; i < numberOfPlannedAssertions; ++i) {
-                    const columnName         = data[i].column_name;
-                    const actualColumnType   = data[i].data_type;
-                    const expectedColumnType = expectedColumnTypes[columnName];
-                    tape.equal(actualColumnType, expectedColumnType);
-                }
+        for (let i = 0; i < numberOfPlannedAssertions; ++i) {
+            const columnName         = data[i].column_name;
+            const actualColumnType   = data[i].data_type;
+            const expectedColumnType = expectedColumnTypes[columnName];
 
-                resolve();
-            });
-        });
+            tape.comment(`Test ${ columnName } column type`);
+            tape.equal(actualColumnType, expectedColumnType);
+        }
     });
 };

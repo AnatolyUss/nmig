@@ -20,10 +20,11 @@
  */
 'use strict';
 
+const test                = require('tape');
 const TestSchemaProcessor = require('./TestModules/TestSchemaProcessor');
 const testSchema          = require('./TestModules/SchemaProcessorTest');
 const testDataContent     = require('./TestModules/DataContentTest');
-const testDataTypes       = require('./TestModules/DataTypesTest');
+const testColumnTypes     = require('./TestModules/ColumnTypesTest');
 
 /**
  * Runs test suites.
@@ -34,15 +35,22 @@ const testDataTypes       = require('./TestModules/DataTypesTest');
  */
 const runTestSuites = testSchemaProcessor => {
     return () => {
-        Promise.all([
-            // A list of test suite modules.
-            // Each test suite module must export a function, that returns a promise.
-            testSchema(testSchemaProcessor),
-            testDataContent(testSchemaProcessor),
-            testDataTypes(testSchemaProcessor),
-        ])
-        .then(() => testSchemaProcessor.removeTestResources())
-        .then(() => process.exit());
+        test.onFinish(() => {
+            testSchemaProcessor.removeTestResources()
+                .then(() => process.exit());
+        });
+
+        test('Test schema should be created', tapeTestSchema => {
+            testSchema(testSchemaProcessor, tapeTestSchema);
+        });
+
+        test('Test the data content', tapeTestDataContent => {
+            testDataContent(testSchemaProcessor, tapeTestDataContent);
+        });
+
+        test('Test column types', tapeTestColumnTypes => {
+            testColumnTypes(testSchemaProcessor, tapeTestColumnTypes);
+        });
     };
 };
 

@@ -20,8 +20,6 @@
  */
 'use strict';
 
-const { test } = require('tape');
-
 /**
  * Checks if the schema exists.
  *
@@ -42,24 +40,17 @@ const hasSchemaCreated = testSchemaProcessor => {
  * Schema creation testing.
  *
  * @param {TestSchemaProcessor} testSchemaProcessor
+ * @param {Tape} tape
  *
- * @returns {Promise<any>}
+ * @returns {undefined}
  */
-module.exports = testSchemaProcessor => {
-    return new Promise(resolve => {
-        test('Test schema should be created', tape => {
-            const numberOfPlannedAssertions = 2;
-            const autoTimeoutMs             = 3 * 1000; // 3 seconds.
+module.exports = (testSchemaProcessor, tape) => {
+    hasSchemaCreated(testSchemaProcessor).then(schemaExists => {
+        const numberOfPlannedAssertions = 1;
+        const autoTimeoutMs             = 3 * 1000; // 3 seconds.
 
-            tape.plan(numberOfPlannedAssertions);
-            tape.timeoutAfter(autoTimeoutMs);
-
-            hasSchemaCreated(testSchemaProcessor).then(schemaExists => {
-                tape.equal(typeof schemaExists, 'boolean');
-                tape.equal(schemaExists, true);
-
-                resolve();
-            });
-        });
+        tape.plan(numberOfPlannedAssertions);
+        tape.timeoutAfter(autoTimeoutMs);
+        tape.equal(schemaExists, true);
     });
 };

@@ -20,8 +20,6 @@
  */
 'use strict';
 
-const { test } = require('tape');
-
 /**
  * Retrieve a data from `table_a`.
  *
@@ -42,52 +40,91 @@ const retrieveData = testSchemaProcessor => {
  * The data content testing.
  *
  * @param {TestSchemaProcessor} testSchemaProcessor
+ * @param {Tape} tape
  *
- * @returns {Promise<Any>}
+ * @returns {undefined}
  */
-module.exports = testSchemaProcessor => {
-    return new Promise(resolve => {
-        retrieveData(testSchemaProcessor).then(data => {
-            test('Test the data content', tape => {
-                const autoTimeoutMs             = 3 * 1000; // 3 seconds.
-                const numberOfPlannedAssertions = 24;
-                const originalTestBlobText      = testSchemaProcessor
-                    .getTestBlob(testSchemaProcessor._conversion)
-                    .toString();
+module.exports = (testSchemaProcessor, tape) => {
+    retrieveData(testSchemaProcessor).then(data => {
+        const autoTimeoutMs             = 3 * 1000; // 3 seconds.
+        const numberOfPlannedAssertions = 24;
+        const originalTestBlobText      = testSchemaProcessor.getTestBlob(testSchemaProcessor._conversion).toString();
 
-                tape.plan(numberOfPlannedAssertions);
-                tape.timeoutAfter(autoTimeoutMs);
+        tape.plan(numberOfPlannedAssertions);
+        tape.timeoutAfter(autoTimeoutMs);
 
-                tape.equal(data.blob_text, originalTestBlobText);
-                tape.equal(data.bit, '1'); // BIT is actually a "bit string", for example: '1110' -> 14
-                tape.equal(data.id_test_unique_index, 7384);
-                tape.equal(data.id_test_composite_unique_index_1, 125);
-                tape.equal(data.id_test_composite_unique_index_2, 234);
-                tape.equal(data.id_test_index, 123);
-                tape.equal(data.int_test_not_null, 123);
-                tape.equal(data.id_test_composite_index_1, 11);
-                tape.equal(data.id_test_composite_index_2, 22);
-                tape.equal(JSON.stringify(data.json_test_comment), '{"prop1":"First","prop2":2}');
-                tape.equal(data.year, 1984);
-                tape.equal(data.bigint, '1234567890123456800');
-                tape.equal(data.float, 12345.5);
-                tape.equal(data.double, 123456789.23);
-                tape.equal(data.numeric, '1234567890');
-                tape.equal(data.decimal, '1234567890');
-                tape.equal(data.char_5, 'fghij');
-                tape.equal(data.varchar_5, 'abcde');
-                tape.equal(`${ data.date.getFullYear() }-${ data.date.getMonth() + 1 }-${ data.date.getDate() }`, '1984-11-30');
-                tape.equal(data.time, '21:12:33');
-                tape.equal(data.text, 'Test text');
-                tape.equal(data.enum, 'e1');
-                tape.equal(data.set, 's2');
+        tape.comment('Test blob_text column value');
+        tape.equal(data.blob_text, originalTestBlobText);
 
-                const date = `${ data.timestamp.getFullYear() }-${ data.timestamp.getMonth() + 1 }-${ data.timestamp.getDate() }`;
-                const time = `${ data.timestamp.getHours() }:${ data.timestamp.getMinutes() }:${ data.timestamp.getSeconds() }`;
-                tape.equal(`${ date } ${ time }`, '2018-11-11 22:21:20');
+        tape.comment('Test bit column value');
+        tape.equal(data.bit, '1'); // BIT is actually a "bit string", for example: '1110' -> 14
 
-                resolve();
-            });
-        });
+        tape.comment('Test id_test_unique_index column value');
+        tape.equal(data.id_test_unique_index, 7384);
+
+        tape.comment('Test id_test_composite_unique_index_1 column value');
+        tape.equal(data.id_test_composite_unique_index_1, 125);
+
+        tape.comment('Test id_test_composite_unique_index_2 column value');
+        tape.equal(data.id_test_composite_unique_index_2, 234);
+
+        tape.comment('Test id_test_index column value');
+        tape.equal(data.id_test_index, 123);
+
+        tape.comment('Test int_test_not_null column value');
+        tape.equal(data.int_test_not_null, 123);
+
+        tape.comment('Test id_test_composite_index_1 column value');
+        tape.equal(data.id_test_composite_index_1, 11);
+
+        tape.comment('Test id_test_composite_index_2 column value');
+        tape.equal(data.id_test_composite_index_2, 22);
+
+        tape.comment('Test json_test_comment column value');
+        tape.equal(JSON.stringify(data.json_test_comment), '{"prop1":"First","prop2":2}');
+
+        tape.comment('Test year column value');
+        tape.equal(data.year, 1984);
+
+        tape.comment('Test bigint column value');
+        tape.equal(data.bigint, '1234567890123456800');
+
+        tape.comment('Test float column value');
+        tape.equal(data.float, 12345.5);
+
+        tape.comment('Test double column value');
+        tape.equal(data.double, 123456789.23);
+
+        tape.comment('Test numeric column value');
+        tape.equal(data.numeric, '1234567890');
+
+        tape.comment('Test decimal column value');
+        tape.equal(data.decimal, '1234567890');
+
+        tape.comment('Test char_5 column value');
+        tape.equal(data.char_5, 'fghij');
+
+        tape.comment('Test varchar_5 column value');
+        tape.equal(data.varchar_5, 'abcde');
+
+        tape.comment('Test date column value');
+        tape.equal(`${ data.date.getFullYear() }-${ data.date.getMonth() + 1 }-${ data.date.getDate() }`, '1984-11-30');
+
+        tape.comment('Test time column value');
+        tape.equal(data.time, '21:12:33');
+
+        tape.comment('Test text column value');
+        tape.equal(data.text, 'Test text');
+
+        tape.comment('Test enum column value');
+        tape.equal(data.enum, 'e1');
+
+        tape.comment('Test set column value');
+        tape.equal(data.set, 's2');
+
+        const date = `${ data.timestamp.getFullYear() }-${ data.timestamp.getMonth() + 1 }-${ data.timestamp.getDate() }`;
+        const time = `${ data.timestamp.getHours() }:${ data.timestamp.getMinutes() }:${ data.timestamp.getSeconds() }`;
+        tape.comment('Test timestamp column value');
+        tape.equal(`${ date } ${ time }`, '2018-11-11 22:21:20');
     });
 };
