@@ -44,7 +44,7 @@ const Main = class {
      */
     readConfig(baseDir, configFileName = 'config.json') {
         return new Promise(resolve => {
-            const strPathToConfig = path.join(baseDir, configFileName);
+            const strPathToConfig = path.join(baseDir, 'config', configFileName);
 
             fs.readFile(strPathToConfig, (error, data) => {
                 if (error) {
@@ -54,7 +54,7 @@ const Main = class {
 
                 const config            = JSON.parse(data);
                 config.logsDirPath      = path.join(baseDir, 'logs_directory');
-                config.dataTypesMapAddr = path.join(baseDir, 'data_types_map.json');
+                config.dataTypesMapAddr = path.join(baseDir, 'config', 'data_types_map.json');
                 resolve(config);
             });
         });
@@ -75,7 +75,7 @@ const Main = class {
                 return resolve(config);
             }
 
-            const strPathToExtraConfig = path.join(baseDir, 'extra_config.json');
+            const strPathToExtraConfig = path.join(baseDir, 'config', 'extra_config.json');
 
             fs.readFile(strPathToExtraConfig, (error, data) => {
                 if (error) {

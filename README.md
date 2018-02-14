@@ -35,7 +35,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 <p><b>2.</b> Download Nmig package and put it on the machine running your PostgreSQL (not mandatory, but preferably).<br />
    <b>Sample:</b>&nbsp;<code>/path/to/nmig</code></p>
 
-<p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/config.json</code> with correct details.<br /></p>
+<p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/config/config.json</code> with correct details.<br /></p>
 <b>Notes:</b>
    <ul>
    <li> config.json contains brief description of each configuration parameter</li>
@@ -67,7 +67,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <b>Sample:</b>&nbsp;<code> CREATE DATABASE nmig_test_db;</code><br />
 </p>
 <p><b>2.</b> Download Nmig package.</p>
-<p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/test_config.json</code> with correct details.<br /></p>
+<p><b>3.</b> Edit configuration file located at <code>/path/to/nmig/config/test_config.json</code> with correct details.<br /></p>
 <b>Notes:</b>
 <ul>
    <li> test_config.json contains brief description of each configuration parameter</li>
