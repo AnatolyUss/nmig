@@ -8,6 +8,9 @@
         "type": "git",
         "url": "https://github.com/AnatolyUss/nmig.git"
     },
+    "engines": {
+        "node": ">=8.0.0"
+    },
     "dependencies": {
         "mysql": "^2.15.0",
         "pg": "^7.4.1",
@@ -19,5 +22,14 @@
     },
     "devDependencies": {
         "tape": "^4.8.0"
-    }
+    },
+    "keywords": [
+        "database migration",
+        "copy",
+        "mysql",
+        "mariadb",
+        "postgresql",
+        "postgres",
+        "postgre"
+    ]
 }
