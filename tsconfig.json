@@ -1,5 +1,7 @@
 {
     "compilerOptions": {
+        "removeComments": true,
+
         "module": "commonjs",
         "allowJs": true,
         "target": "es6",
@@ -16,9 +18,7 @@
     ],
 
     "include": [
-        "./src/Classes/*",
-        "./src/*",
-        "./test/TestModules/*",
-        "./test/*"
+        "src/**/*",
+        "test/**/*"
     ]
 }
