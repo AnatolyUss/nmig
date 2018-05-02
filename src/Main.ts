@@ -20,33 +20,33 @@
  */
 'use strict';
 
-const fs                                    = require('fs');
-const path                                  = require('path');
-const readDataTypesMap                      = require('./DataTypesMapReader');
-const Conversion                            = require('./Classes/Conversion');
-const SchemaProcessor                       = require('./SchemaProcessor');
-const loadStructureToMigrate                = require('./StructureLoader');
-const pipeData                              = require('./DataPipeManager');
-const boot                                  = require('./BootProcessor');
-const { createStateLogsTable }              = require('./MigrationStateManager');
-const { createDataPoolTable, readDataPool } = require('./DataPoolManager');
-const log                                   = require('./Logger');
+import * as fs from 'fs';
+import * as path from 'path';
+import readDataTypesMap from './DataTypesMapReader';
+import Conversion from './Classes/Conversion';
+import SchemaProcessor from './SchemaProcessor';
+import loadStructureToMigrate from './StructureLoader';
+import pipeData from './DataPipeManager';
+import boot from './BootProcessor';
+import { createStateLogsTable } from './MigrationStateManager';
+import { createDataPoolTable, readDataPool } from './DataPoolManager';
+import log from './Logger';
 
 const Main = class {
 
     /**
      * Read the configuration file.
      *
-     * @param {String} baseDir
-     * @param {String} configFileName
+     * @param {string} baseDir
+     * @param {string} configFileName
      *
-     * @returns {Promise}
+     * @returns {Promise<any>}
      */
-    readConfig(baseDir, configFileName = 'config.json') {
+    readConfig(baseDir: string, configFileName: string = 'config.json'): Promise<any> {
         return new Promise(resolve => {
             const strPathToConfig = path.join(baseDir, 'config', configFileName);
 
-            fs.readFile(strPathToConfig, (error, data) => {
+            fs.readFile(strPathToConfig, (error: Error, data: any) => {
                 if (error) {
                     console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ strPathToConfig }`);
                     process.exit();

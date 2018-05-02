@@ -18,7 +18,8 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import fs from 'fs';
+import * as fs from 'fs';
+import Conversion from './Classes/Conversion';
 
 /**
  * Outputs given log.

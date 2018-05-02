@@ -18,11 +18,31 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
 
-const path = require('path');
+import * as path from 'path';
 
-module.exports = class Conversion {
+export default class Conversion {
+    /**
+     * JavaScript encoding type.
+     *
+     * @type {string}
+     */
+    public _encoding: string;
+
+    /**
+     * The path to the "all.log" file.
+     *
+     * @type {string}
+     */
+    public _allLogsPath: string;
+
+    /**
+     * Default file permissions.
+     *
+     * @type {string}
+     */
+    public _0777: string;
+
     /**
      * Constructor.
      *
