@@ -18,9 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
-
-const fs = require('fs');
+import fs from 'fs';
 
 /**
  * Outputs given log.
@@ -32,10 +30,10 @@ const fs = require('fs');
  * @param {String}     tableLogPath
  * @param {Boolean}    isErrorLog
  *
- * @returns {undefined}
+ * @returns {void}
  */
-module.exports = (self, log, tableLogPath, isErrorLog) => {
-    const buffer = Buffer.from(log + '\n\n', self._encoding);
+export default (self: Conversion, log: string, tableLogPath: string, isErrorLog: boolean): void => {
+    const buffer: Buffer = Buffer.from(log + '\n\n', self._encoding);
 
     if (!isErrorLog) {
         console.log(log);

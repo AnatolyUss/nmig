@@ -16,12 +16,15 @@
         "pg": "^7.4.1",
         "pg-copy-streams": "^1.2.0"
     },
+    "devDependencies": {
+        "@types/node": "^10.0.2",
+        "tape": "^4.8.0"
+    },
     "scripts": {
+        "compile_test": "tsc --outDir ./build --module commonjs ./src/*.ts && node ./build/Main.js",
+        "build": "tsc",
         "start": "node src/Main.js",
         "test": "node test/Main.test.js"
-    },
-    "devDependencies": {
-        "tape": "^4.8.0"
     },
     "keywords": [
         "database migration",
