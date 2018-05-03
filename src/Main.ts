@@ -18,8 +18,6 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
-
 import * as fs from 'fs';
 import * as path from 'path';
 import readDataTypesMap from './DataTypesMapReader';
