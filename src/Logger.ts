@@ -33,7 +33,7 @@ import Conversion from './Classes/Conversion';
  *
  * @returns {void}
  */
-export default (self: Conversion, log: string, tableLogPath: string, isErrorLog: boolean): void => {
+export default (self: Conversion, log: string, tableLogPath?: string, isErrorLog?: boolean): void => {
     const buffer: Buffer = Buffer.from(log + '\n\n', self._encoding);
 
     if (!isErrorLog) {
