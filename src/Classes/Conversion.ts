@@ -18,37 +18,179 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-
 import * as path from 'path';
+import {EventEmitter} from "events";
 
 export default class Conversion {
     /**
-     * JavaScript encoding type.
-     *
-     * @type {string}
+     * Parsed Nmig's configuration object.
      */
-    public _encoding: string;
+    public readonly _config: any;
+
+    /**
+     * An object, representing source (MySQL) db connection details.
+     */
+    public readonly _sourceConString: any;
+
+    /**
+     * An object, representing target (PostgreSQL) db connection details.
+     */
+    public readonly _targetConString: any;
+
+    /**
+     * During migration each table's data will be split into chunks not larger than data_chunk_size (in MB).
+     */
+    public _dataChunkSize: number;
+
+    /**
+     * V8 memory limit of the loader process.
+     */
+    public _loaderMaxOldSpaceSize: number|string;
+
+    /**
+     * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers.
+     */
+    public readonly _maxDbConnectionPoolSize: number;
+
+    /**
+     * JavaScript encoding type.
+     */
+    public readonly _encoding: string;
 
     /**
      * The path to the "all.log" file.
-     *
-     * @type {string}
      */
-    public _allLogsPath: string;
+    public readonly _allLogsPath: string;
 
     /**
      * Default file permissions.
-     *
-     * @type {string}
      */
-    public _0777: string;
+    public readonly _0777: string;
+
+    /**
+     * Specifies the character, that separates columns within each record.
+     */
+    public readonly _delimiter: string;
+
+    /**
+     * Defines if only the data should be migrated (into a preset schema).
+     */
+    public readonly _migrateOnlyData: boolean;
+
+    /**
+     * A path to the "logs_directory".
+     */
+    public readonly _logsDirPath: string;
+
+    /**
+     * A path to the data types map.
+     */
+    public readonly _dataTypesMapAddr: string;
+
+    /**
+     * A path to the "errors-only.log" file.
+     */
+    public readonly _errorLogsPath: string;
+
+    /**
+     * A path to the "not_created_views" folder.
+     */
+    public readonly _notCreatedViewsPath: string;
+
+    /**
+     * A list of tables, to which PostgreSQL's VACUUM will not be applied at the end of migration.
+     */
+    public readonly _noVacuum: string[];
+
+    /**
+     * List of tables, that will not be migrated.List (Array) of tables, that will not be migrated.
+     */
+    public readonly _excludeTables: string[];
+
+    /**
+     * The timestamp, at which the migration began.
+     */
+    public readonly _timeBegin: Date;
+
+    /**
+     * Current version of source (MySQL) db.
+     */
+    public _mysqlVersion: string;
+
+    /**
+     * Node-MySQL connections pool.
+     */
+    public _mysql: any;
+
+    /**
+     * Node-Postgres connection pool.
+     */
+    public _pg: any;
+
+    /**
+     * An object, representing additional configuration options.
+     */
+    public readonly _extraConfig: any;
+
+    /**
+     * A list of tables, that should be migrated.
+     */
+    public readonly _tablesToMigrate: string[];
+
+    /**
+     * A list of views, that should be migrated.
+     */
+    public readonly _viewsToMigrate: string[];
+
+    /**
+     * A name of the schema, that will contain all migrated tables.
+     */
+    public readonly _schema: string;
+
+    /**
+     * A name of source (MySQL) db, that should be migrated.
+     */
+    public readonly _mySqlDbName: string;
+
+    /**
+     * A number of already processed data chunks.
+     */
+    public _processedChunks: number;
+
+    /**
+     * A dictionary of table names, and corresponding metadata.
+     */
+    public readonly _dicTables: any;
+
+    /**
+     * An array of data chunks.
+     */
+    public readonly _dataPool: any[];
+
+    /**
+     * A flag, that indicates if Nmig currently runs in test mode.
+     */
+    public _runsInTestMode: boolean;
+
+    /**
+     * A flag, that indicates if test resources created by Nmig should be removed.
+     */
+    public readonly _removeTestResources: boolean;
+
+    /**
+     * "migrationCompleted" event.
+     */
+    public readonly _migrationCompletedEvent: string;
+
+    /**
+     * An EventEmitter instance.
+     */
+    public _eventEmitter: EventEmitter|null;
 
     /**
      * Constructor.
-     *
-     * @param {Object} config
      */
-    constructor(config) {
+    constructor(config: any) {
         this._config                  = config;
         this._sourceConString         = this._config.source;
         this._targetConString         = this._config.target;
@@ -97,12 +239,8 @@ export default class Conversion {
 
     /**
      * Checks if given value is integer number.
-     *
-     * @param {String|Number} value
-     *
-     * @returns {Boolean}
      */
-    isIntNumeric(value) {
+    isIntNumeric(value: any): boolean {
         return !isNaN(parseInt(value)) && isFinite(value);
     }
 };
