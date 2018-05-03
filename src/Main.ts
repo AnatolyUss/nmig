@@ -36,11 +36,6 @@ const Main = class {
 
     /**
      * Read the configuration file.
-     *
-     * @param {string} baseDir
-     * @param {string} configFileName
-     *
-     * @returns {Promise<any>}
      */
     readConfig(baseDir: string, configFileName: string = 'config.json'): Promise<any> {
         return new Promise(resolve => {
@@ -62,13 +57,8 @@ const Main = class {
 
     /**
      * Read the extra configuration file, if necessary.
-     *
-     * @param {Object} config
-     * @param {String} baseDir
-     *
-     * @returns {Promise}
      */
-    readExtraConfig(config, baseDir) {
+    readExtraConfig(config: any, baseDir: string): Promise<any> {
         return new Promise(resolve => {
             if (config.enable_extra_config !== true) {
                 config.extraConfig = null;
@@ -77,7 +67,7 @@ const Main = class {
 
             const strPathToExtraConfig = path.join(baseDir, 'config', 'extra_config.json');
 
-            fs.readFile(strPathToExtraConfig, (error, data) => {
+            fs.readFile(strPathToExtraConfig, (error: Error, data: any) => {
                 if (error) {
                     console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ strPathToExtraConfig }`);
                     process.exit();
@@ -91,23 +81,15 @@ const Main = class {
 
     /**
      * Initialize Conversion instance.
-     *
-     * @param {Object} config
-     *
-     * @returns {Promise}
      */
-    initializeConversion(config) {
+    initializeConversion(config: any): Promise<Conversion> {
         return Promise.resolve(new Conversion(config));
     }
 
     /**
      * Creates logs directory.
-     *
-     * @param {Conversion} self
-     *
-     * @returns {Promise}
      */
-    createLogsDirectory(self) {
+    createLogsDirectory(self: Conversion): Promise<Conversion> {
         return new Promise(resolve => {
             console.log('\t--[DirectoriesManager.createLogsDirectory] Creating logs directory...');
             fs.stat(self._logsDirPath, (directoryDoesNotExist, stat) => {
