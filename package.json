@@ -17,7 +17,9 @@
         "pg-copy-streams": "^1.2.0"
     },
     "devDependencies": {
+        "@types/mysql": "^2.15.4",
         "@types/node": "^10.0.2",
+        "@types/pg": "^7.4.8",
         "tape": "^4.8.0"
     },
     "scripts": {

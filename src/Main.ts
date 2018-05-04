@@ -118,7 +118,7 @@ const Main = class {
 
 module.exports = Main;
 const app      = new Main();
-const baseDir  = path.join(__dirname, '..');
+const baseDir  = path.join(__dirname, '..', '..');
 
 app.readConfig(baseDir)
     .then(config => {

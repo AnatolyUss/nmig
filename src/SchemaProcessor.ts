@@ -18,34 +18,38 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+import ConnectionEmitter from './ConnectionEmitter';
+import generateError from './ErrorGenerator';
+import Conversion from './Classes/Conversion';
 
-const ConnectionEmitter = require('./ConnectionEmitter');
-const generateError     = require('./ErrorGenerator');
+export default class SchemaProcessor {
+    /**
+     * An instance of "Conversion".
+     */
+    private readonly _conversion: Conversion;
 
-module.exports = class SchemaProcessor {
+    /**
+     * An instance of "ConnectionEmitter".
+     */
+    private readonly _connectionEmitter: ConnectionEmitter;
 
     /**
      * SchemaProcessor constructor.
-     *
-     * @param {Conversion} conversion
      */
-    constructor(conversion) {
+    public constructor(conversion: Conversion) {
         this._conversion        = conversion;
         this._connectionEmitter = new ConnectionEmitter(this._conversion);
     }
 
     /**
      * Create a new database schema if it does not exist yet.
-     *
-     * @returns {Promise<Conversion>}
      */
-    async createSchema() {
-        const client = await this._connectionEmitter.getPgClient();
-        let sql      = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }';`;
+    public async createSchema(): Promise<Conversion> {
+        const client: any = await this._connectionEmitter.getPgClient();
+        let sql: string = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }';`;
 
         try {
-            const result = await client.query(sql);
+            const result: any = await client.query(sql);
 
             if (result.rows.length === 0) {
                 sql = `CREATE SCHEMA "${ this._conversion._schema }";`;
@@ -57,7 +61,7 @@ module.exports = class SchemaProcessor {
 
         } catch (err) {
             generateError(this._conversion, `\t--[createSchema] ${ err }`, sql);
-            process.exit();
+            return Promise.reject(err);
         }
     }
 };
