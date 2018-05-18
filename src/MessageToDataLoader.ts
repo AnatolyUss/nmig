@@ -18,19 +18,23 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+export default class MessageToDataLoader {
+    /**
+     * Parsed Nmig's configuration object.
+     */
+    public readonly config: any;
 
-module.exports = class MessageToDataLoader {
+    /**
+     * An array of data chunks.
+     */
+    public readonly chunks: any[];
+
     /**
      * Representation of a message of the master process to DataLoader process.
-     * Contents migration's configuration and an array of "data-chunks".
-     * Constructor.
-     *
-     * @param {Object} config
-     * @param {Array}  chunks
+     * Contains migration's configuration and an array of "data-chunks".
      */
-    constructor(config, chunks) {
+    public constructor(config: any, chunks: any[]) {
         this.config = config;
         this.chunks = chunks;
     }
-};
+}

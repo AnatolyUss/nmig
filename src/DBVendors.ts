@@ -18,32 +18,9 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+enum DBVendors {
+    MYSQL,
+    PG,
+}
 
-const fs  = require('fs');
-const log = require('./Logger');
-
-/**
- * Writes a ditailed error message to the "/errors-only.log" file
- *
- * @param {Conversion} self
- * @param {String}     message
- * @param {String}     sql
- *
- * @returns {undefined}
- */
-module.exports = (self, message, sql = '') => {
-    message      += '\n\n\tSQL: ' + sql + '\n\n';
-    const buffer  = Buffer.from(message, self._encoding);
-    log(self, message, undefined, true);
-
-    fs.open(self._errorLogsPath, 'a', self._0777, (error, fd) => {
-        if (!error) {
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                fs.close(fd, () => {
-                    // Each async function MUST have a callback (according to Node.js >= 7).
-                });
-            });
-        }
-    });
-};
+export default DBVendors;

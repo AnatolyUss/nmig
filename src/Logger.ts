@@ -19,33 +19,26 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as fs from 'fs';
-import Conversion from './Classes/Conversion';
+import Conversion from './Conversion';
 
 /**
  * Outputs given log.
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/{tableName}.log" file.
- *
- * @param {Conversion} self
- * @param {String}     log
- * @param {String}     tableLogPath
- * @param {Boolean}    isErrorLog
- *
- * @returns {void}
  */
-export default (self: Conversion, log: string, tableLogPath?: string, isErrorLog?: boolean): void => {
-    const buffer: Buffer = Buffer.from(log + '\n\n', self._encoding);
+export default (conversion: Conversion, log: string, tableLogPath?: string, isErrorLog?: boolean): void => {
+    const buffer: Buffer = Buffer.from(`${log}\n\n`, conversion._encoding);
 
     if (!isErrorLog) {
         console.log(log);
     }
 
-    fs.open(self._allLogsPath, 'a', self._0777, (error, fd) => {
+    fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
         if (!error) {
             fs.write(fd, buffer, 0, buffer.length, null, () => {
                 fs.close(fd, () => {
                     if (tableLogPath) {
-                        fs.open(tableLogPath, 'a', self._0777, (error, fd) => {
+                        fs.open(tableLogPath, 'a', conversion._0777, (error: Error, fd: number) => {
                             if (!error) {
                                 fs.write(fd, buffer, 0, buffer.length, null, () => {
                                     fs.close(fd, () => {
@@ -59,4 +52,4 @@ export default (self: Conversion, log: string, tableLogPath?: string, isErrorLog
             });
         }
     });
-};
+}

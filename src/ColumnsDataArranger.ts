@@ -18,16 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
 
 /**
- * Define if given type is one of MySQL spacial types.
- *
- * @param {String} type
- *
- * @returns {Boolean}
+ * Defines if given type is one of MySQL spacial types.
  */
-const isSpacial = type => {
+const isSpacial = (type: string): boolean => {
     return type.indexOf('geometry') !== -1
         || type.indexOf('point') !== -1
         || type.indexOf('linestring') !== -1
@@ -35,69 +30,50 @@ const isSpacial = type => {
 };
 
 /**
- * Define if given type is one of MySQL binary types.
- *
- * @param {String} type
- *
- * @returns {Boolean}
+ * Defines if given type is one of MySQL binary types.
  */
-const isBinary = type => {
+const isBinary = (type: string): boolean => {
     return type.indexOf('blob') !== -1 || type.indexOf('binary') !== -1;
 };
 
 /**
- * Define if given type is one of MySQL bit types.
- *
- * @param {String} type
- *
- * @returns {Boolean}
+ * Defines if given type is one of MySQL bit types.
  */
-const isBit = type => {
+const isBit = (type: string): boolean => {
     return type.indexOf('bit') !== -1;
 };
 
 /**
- * Define if given type is one of MySQL date-time types.
- *
- * @param {String} type
- *
- * @returns {Boolean}
+ * Defines if given type is one of MySQL date-time types.
  */
-const isDateTime = type => {
+const isDateTime = (type: string): boolean => {
     return type.indexOf('timestamp') !== -1 || type.indexOf('date') !== -1;
 };
 
 /**
  * Arranges columns data before loading.
- *
- * @param {Array}      arrTableColumns
- * @param {Number}     mysqlVersion
- *
- * @returns {String}
  */
-module.exports = (arrTableColumns, mysqlVersion) => {
-    let strRetVal               = '';
-    const arrTableColumnsLength = arrTableColumns.length;
-    const wkbFunc               = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
+export default (arrTableColumns: any[], mysqlVersion: string|number): string => {
+    let strRetVal: string = '';
+    const wkbFunc: string = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
-    for (let i = 0; i < arrTableColumnsLength; ++i) {
-        const field = arrTableColumns[i].Field;
-        const type  = arrTableColumns[i].Type;
+    arrTableColumns.forEach((column: any) => {
+        const field: string = column.Field;
+        const type: string  = column.Type;
 
         if (isSpacial(type)) {
             // Apply HEX(ST_AsWKB(...)) due to the issue, described at https://bugs.mysql.com/bug.php?id=69798
-            strRetVal += 'HEX(' + wkbFunc + '(`' + field + '`)) AS `' + field + '`,';
+            strRetVal += `HEX(${ wkbFunc }(\`${ field }\`)) AS \`${ field }\`,`;
         } else if (isBinary(type)) {
-            strRetVal += 'HEX(`' + field + '`) AS `' + field + '`,';
+            strRetVal += `HEX(\`${ field }\`) AS \`${ field }\`,`;
         } else if (isBit(type)) {
-            strRetVal += 'BIN(`' + field + '`) AS `' + field + '`,';
+            strRetVal += `BIN(\`${ field }\`) AS \`${ field }\`,`;
         } else if (isDateTime(type)) {
-            strRetVal += 'IF(`' + field +  '` IN(\'0000-00-00\', \'0000-00-00 00:00:00\'), \'-INFINITY\', CAST(`'
-                +  field + '` AS CHAR)) AS `' + field + '`,';
+            strRetVal += `IF(\`${ field }\` IN('0000-00-00', '0000-00-00 00:00:00'), '-INFINITY', CAST(\`${ field }\` AS CHAR)) AS \`${ field }\`,`;
         } else {
-            strRetVal += '`' + field + '` AS `' + field + '`,';
+            strRetVal += `\`${ field }\` AS \`${ field }\`,`;
         }
-    }
+    });
 
     return strRetVal.slice(0, -1);
-};
+}

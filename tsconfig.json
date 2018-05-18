@@ -3,12 +3,14 @@
         "removeComments": true,
         "module": "commonjs",
         "allowJs": true,
-        "target": "es6",
+        "target": "es2017",
         "sourceMap": true,
         "outDir": "./dist",
         "strict": true,
         "types": [
-            "node"
+            "node",
+            "pg",
+            "mysql"
         ]
     },
 

@@ -19,7 +19,9 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as path from 'path';
-import {EventEmitter} from "events";
+import { EventEmitter } from 'events';
+import { Pool as MySQLPool } from 'mysql';
+import { Pool as PgPool } from 'pg';
 
 export default class Conversion {
     /**
@@ -115,17 +117,17 @@ export default class Conversion {
     /**
      * Current version of source (MySQL) db.
      */
-    public _mysqlVersion: string;
+    public _mysqlVersion: string|number;
 
     /**
      * Node-MySQL connections pool.
      */
-    public _mysql: any;
+    public _mysql?: MySQLPool;
 
     /**
      * Node-Postgres connection pool.
      */
-    public _pg: any;
+    public _pg?: PgPool;
 
     /**
      * An object, representing additional configuration options.
@@ -188,9 +190,14 @@ export default class Conversion {
     public _eventEmitter: EventEmitter|null;
 
     /**
+     * The data types map.
+     */
+    public _dataTypesMap: any;
+
+    /**
      * Constructor.
      */
-    constructor(config: any) {
+    public constructor(config: any) {
         this._config                  = config;
         this._sourceConString         = this._config.source;
         this._targetConString         = this._config.target;
@@ -206,8 +213,6 @@ export default class Conversion {
         this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
         this._dataChunkSize           = this._dataChunkSize <= 0 ? 1 : this._dataChunkSize;
         this._0777                    = '0777';
-        this._mysql                   = null;
-        this._pg                      = null;
         this._mysqlVersion            = '5.6.21'; // Simply a default value.
         this._extraConfig             = this._config.extraConfig === undefined ? false : this._config.extraConfig;
         this._tablesToMigrate         = [];
@@ -240,7 +245,7 @@ export default class Conversion {
     /**
      * Checks if given value is integer number.
      */
-    isIntNumeric(value: any): boolean {
+    private isIntNumeric(value: any): boolean {
         return !isNaN(parseInt(value)) && isFinite(value);
     }
-};
+}

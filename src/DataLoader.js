@@ -26,11 +26,11 @@ const csvStringify           = require('./CsvStringifyModified');
 const log                    = require('./Logger');
 const generateError          = require('./ErrorGenerator');
 const connect                = require('./Connector');
-const Conversion             = require('./Classes/Conversion');
-const MessageToMaster        = require('./Classes/MessageToMaster');
+const Conversion             = require('./Conversion');
+const MessageToMaster        = require('./MessageToMaster');
 const { enforceConsistency } = require('./ConsistencyEnforcer');
 const extraConfigProcessor   = require('./ExtraConfigProcessor');
-const BufferStream           = require('./Classes/BufferStream');
+const BufferStream           = require('./BufferStream');
 
 process.on('message', signal => {
     const self     = new Conversion(signal.config);

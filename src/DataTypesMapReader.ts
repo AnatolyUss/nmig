@@ -18,29 +18,23 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
-
-const fs = require('fs');
+import * as fs from 'fs';
+import Conversion from './Conversion';
 
 /**
  * Reads "./config/data_types_map.json" and converts its json content to js object.
- * Appends this object to "FromMySQL2PostgreSQL" instance.
- *
- * @param {Conversion} self
- *
- * @returns {Promise}
  */
-module.exports = self => {
+export default (conversion: Conversion): Promise<Conversion> => {
     return new Promise(resolve => {
-        fs.readFile(self._dataTypesMapAddr, (error, data) => {
+        fs.readFile(conversion._dataTypesMapAddr, (error: Error, data: Buffer) => {
             if (error) {
-                console.log('\t--[readDataTypesMap] Cannot read "DataTypesMap" from ' + self._dataTypesMapAddr);
+                console.log(`\t--[readDataTypesMap] Cannot read "DataTypesMap" from ${conversion._dataTypesMapAddr}`);
                 process.exit();
             }
 
-            self._dataTypesMap = JSON.parse(data);
+            conversion._dataTypesMap = JSON.parse(data.toString());
             console.log('\t--[readDataTypesMap] Data Types Map is loaded...');
-            resolve(self);
+            resolve(conversion);
         });
     });
-};
+}

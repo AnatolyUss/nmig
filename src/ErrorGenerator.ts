@@ -18,18 +18,25 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+import * as fs from 'fs';
+import log from './Logger';
+import Conversion from './Conversion';
 
-module.exports = class Table {
-    /**
-     * This function represents table related metadata.
-     * Constructor.
-     *
-     * @param {String} tableLogPath
-     */
-    constructor(tableLogPath) {
-        this.tableLogPath      = tableLogPath;
-        this.arrTableColumns   = [];
-        this.totalRowsInserted = 0;
-    }
-};
+/**
+ * Writes a ditailed error message to the "/errors-only.log" file
+ */
+export default (conversion: Conversion, message: string, sql: string = ''): void => {
+    message += `\n\n\tSQL: ${sql}\n\n`;
+    const buffer: Buffer = Buffer.from(message, conversion._encoding);
+    log(conversion, message, undefined, true);
+
+    fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
+        if (!error) {
+            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                fs.close(fd, () => {
+                    // Each async function MUST have a callback (according to Node.js >= 7).
+                });
+            });
+        }
+    });
+}

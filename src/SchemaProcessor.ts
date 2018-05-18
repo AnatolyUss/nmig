@@ -18,9 +18,10 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import ConnectionEmitter from './ConnectionEmitter';
-import generateError from './ErrorGenerator';
-import Conversion from './Classes/Conversion';
+import Conversion from './Conversion';
+import DBAccess from './DBAccess';
+import DBAccessQueryResult from './DBAccessQueryResult';
+import DBVendors from './DBVendors';
 
 export default class SchemaProcessor {
     /**
@@ -29,39 +30,31 @@ export default class SchemaProcessor {
     private readonly _conversion: Conversion;
 
     /**
-     * An instance of "ConnectionEmitter".
+     * An instance of "DBAccess".
      */
-    private readonly _connectionEmitter: ConnectionEmitter;
+    private readonly _dbAccess: DBAccess;
 
     /**
      * SchemaProcessor constructor.
      */
     public constructor(conversion: Conversion) {
-        this._conversion        = conversion;
-        this._connectionEmitter = new ConnectionEmitter(this._conversion);
+        this._conversion = conversion;
+        this._dbAccess = new DBAccess(this._conversion);
     }
 
     /**
      * Create a new database schema if it does not exist yet.
      */
-    public async createSchema(): Promise<Conversion> {
-        const client: any = await this._connectionEmitter.getPgClient();
+    public async createSchema(): Promise<Conversion|void> {
         let sql: string = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }';`;
 
-        try {
-            const result: any = await client.query(sql);
+        const result: DBAccessQueryResult = await this._dbAccess.query('SchemaProcessor::createSchema', sql, DBVendors.PG, true, true);
 
-            if (result.rows.length === 0) {
-                sql = `CREATE SCHEMA "${ this._conversion._schema }";`;
-                await client.query(sql);
-            }
-
-            this._connectionEmitter.releasePgClient(client);
-            return Promise.resolve(this._conversion);
-
-        } catch (err) {
-            generateError(this._conversion, `\t--[createSchema] ${ err }`, sql);
-            return Promise.reject(err);
+        if (result.data.rows.length === 0) {
+            sql = `CREATE SCHEMA "${ this._conversion._schema }";`;
+            await this._dbAccess.query('SchemaProcessor::createSchema', sql, DBVendors.PG, true, false, result.client);
         }
+
+        return this._conversion;
     }
-};
+}
