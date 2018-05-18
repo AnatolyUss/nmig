@@ -20,7 +20,8 @@
         "@types/mysql": "^2.15.4",
         "@types/node": "^10.0.2",
         "@types/pg": "^7.4.8",
-        "tape": "^4.8.0"
+        "tape": "^4.8.0",
+        "typescript": "^2.8.3"
     },
     "scripts": {
         "compile_test": "tsc --outDir ./build --module commonjs ./src/*.ts && node ./build/Main.js",
