@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import sequencesProcessor from './SequencesProcessor';
+import * as sequencesProcessor from './SequencesProcessor';
 import * as dataPoolManager from './DataPoolManager';
 import runVacuumFullAndAnalyze from './VacuumProcessor';
 import * as migrationStateManager from './MigrationStateManager';

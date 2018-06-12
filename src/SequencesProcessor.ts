@@ -18,12 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
-
-const connect              = require('./Connector');
-const log                  = require('./Logger');
-const generateError        = require('./ErrorGenerator');
-const extraConfigProcessor = require('./ExtraConfigProcessor');
+import log from './Logger';
+import Conversion from './Conversion';
+import DBAccess from './DBAccess';
+import DBVendors from './DBVendors';
+import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
  * Set sequence value.
@@ -33,7 +32,16 @@ const extraConfigProcessor = require('./ExtraConfigProcessor');
  *
  * @returns {Promise}
  */
-module.exports.setSequenceValue = (self, tableName) => {
+export async function setSequenceValue(conversion: Conversion, tableName: string): Promise<void> {
+    let hasAutoIncrementColumnFound: boolean = false;
+    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+
+    conversion._dicTables[tableName].arrTableColumns.forEach(async (column: any) => {
+        //
+    });
+
+
+
     return connect(self).then(() => {
         return new Promise(resolve => {
             let hasAutoIncrementColumnFound = false;
@@ -196,4 +204,4 @@ module.exports.createSequence = (self, tableName) => {
             Promise.all(createSequencePromises).then(() => resolve());
         });
     });
-};
+}
