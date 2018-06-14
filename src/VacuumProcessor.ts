@@ -36,7 +36,6 @@ export default async function(conversion: Conversion): Promise<void> {
                 "${ conversion._schema }"."${ table }"...`;
 
             log(conversion, msg);
-
             const sql: string = `VACUUM (FULL, ANALYZE) "${ conversion._schema }"."${ table }";`;
             await dbAccess.query('runVacuumFullAndAnalyze', sql, DBVendors.PG, false, false);
             const msgSuccess: string = `\t--[runVacuumFullAndAnalyze] Table "${ conversion._schema }"."${ table }" is VACUUMed...`;

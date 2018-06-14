@@ -25,77 +25,27 @@ import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
- * Set sequence value.
- *
- * @param {Conversion} self
- * @param {String}     tableName
- *
- * @returns {Promise}
+ * Sets sequence value.
  */
 export async function setSequenceValue(conversion: Conversion, tableName: string): Promise<void> {
-    let hasAutoIncrementColumnFound: boolean = false;
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 
-    conversion._dicTables[tableName].arrTableColumns.forEach(async (column: any) => {
-        //
+    const promises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
+        if (column.Extra === 'auto_increment') {
+            const dbAccess: DBAccess = new DBAccess(conversion);
+            const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
+            const seqName: string = `${ tableName }_${ columnName }_seq`;
+            const sql: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', 
+                (SELECT MAX("' + columnName + '") FROM "${ conversion._schema }"."${ tableName }"));`;
+
+            await dbAccess.query('SequencesProcessor::setSequenceValue', sql, DBVendors.PG, false, false);
+            const successMsg: string = `\t--[setSequenceValue] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
+            log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+        }
     });
 
-
-
-    return connect(self).then(() => {
-        return new Promise(resolve => {
-            let hasAutoIncrementColumnFound = false;
-            const originalTableName         = extraConfigProcessor.getTableName(self, tableName, true);
-
-            for (let i = 0; i < self._dicTables[tableName].arrTableColumns.length; ++i) {
-                if (self._dicTables[tableName].arrTableColumns[i].Extra === 'auto_increment') {
-                    hasAutoIncrementColumnFound = true;
-                    self._pg.connect((error, client, done) => {
-                        if (error) {
-                            const msg = '\t--[setSequenceValue] Cannot connect to PostgreSQL server...\n' + error;
-                            generateError(self, msg);
-                            resolve();
-                        } else {
-                            const columnName = extraConfigProcessor.getColumnName(
-                                self,
-                                originalTableName,
-                                self._dicTables[tableName].arrTableColumns[i].Field,
-                                false
-                            );
-
-                            const seqName = tableName + '_' + columnName + '_seq';
-                            const sql     = 'SELECT SETVAL(\'"' + self._schema + '"."' + seqName + '"\', '
-                                + '(SELECT MAX("' + columnName + '") FROM "'
-                                + self._schema + '"."' + tableName + '"));';
-
-                            client.query(sql, err => {
-                               done();
-
-                               if (err) {
-                                   const errMsg = '\t--[setSequenceValue] Failed to set max-value of "' + self._schema + '"."'
-                                       + tableName + '"."' + columnName + '" '
-                                       + 'as the "NEXTVAL of "' + self._schema + '"."' + seqName + '"...';
-
-                                   generateError(self, errMsg, sql);
-                                   resolve();
-                               } else {
-                                   const success = '\t--[setSequenceValue] Sequence "' + self._schema + '"."' + seqName + '" is created...';
-                                   log(self, success, self._dicTables[tableName].tableLogPath);
-                                   resolve();
-                               }
-                           });
-                        }
-                    });
-
-                    break; // The AUTO_INCREMENTed column was just processed.
-                }
-            }
-
-            if (!hasAutoIncrementColumnFound) {
-                resolve();
-            }
-        });
-    });
+    // Must ensure, that the sequence value is set before proceeding.
+    await Promise.all(promises)
 }
 
 /**
