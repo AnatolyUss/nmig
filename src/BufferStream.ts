@@ -18,51 +18,51 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+import { Readable } from 'stream';
 
-const { Readable } = require('stream');
+export class BufferStream extends Readable {
+    /**
+     * The Buffer, that contains the data to load.
+     */
+    private _source?: Buffer;
 
-module.exports = class BufferStream extends Readable {
+    /**
+     * Indicator of the offset, from which the data should be read into underlying stream buffer.
+     */
+    private _offset?: number;
+
     /**
      * BufferStream constructor.
-     *
-     * @param {Buffer} source
      */
-    constructor(source) {
+    public constructor(source: Buffer) {
         super();
         this._source = source;
         this._offset = 0;
 
-        // When source buffer consumed entirely, then the 'end' event is emitted.
-        this.on('end', this.destroy.bind(this));
+        // When source buffer consumed entirely, the 'end' event is emitted.
+        this.on('end', this._destruct.bind(this));
     }
 
     /**
      * BufferStream destructor.
-     *
-     * @returns {undefined}
      */
-    destroy() {
-        this._source = null;
-        this._offset = null;
+    private _destruct(): void {
+        this._source = undefined;
+        this._offset = undefined;
     }
 
     /**
-     * Read chunks from the source buffer into the underlying stream buffer.
-     *
-     * @param {Number} size
-     *
-     * @returns {undefined}
+     * Reads chunks from the source buffer into the underlying stream buffer.
      */
-    _read(size) {
+    public _read(size: number): void {
         // Push the next chunk onto the internal stream buffer.
-        if (this._offset < this._source.length) {
-            this.push(this._source.slice(this._offset, this._offset + size));
-            this._offset += size;
+        if ((<number>this._offset) < (<Buffer>this._source).length) {
+            this.push((<Buffer>this._source).slice((<number>this._offset), (<number>this._offset) + size));
+            (<number>this._offset) += size;
             return;
         }
 
-        // When the source ends, then the EOF - signaling `null` chunk should be pushed.
+        // When the source ends, the EOF - signaling `null` chunk should be pushed.
         this.push(null);
     }
-};
+}
