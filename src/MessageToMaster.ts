@@ -18,21 +18,29 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+export default class MessageToMaster {
+    /**
+     * A name of a table, to insert the data into.
+     */
+    public readonly tableName: string;
 
-module.exports = class MessageToMaster {
+    /**
+     * A number of rows, that have already been inserted into given table.
+     */
+    public rowsInserted: number;
+
+    /**
+     * A number of rows to insert into given table.
+     */
+    public readonly totalRowsToInsert: number;
+
     /**
      * Representation of a message of DataLoader process to the master process regarding records,
      * inserted to specified table.
-     * Constructor.
-     *
-     * @param {String} tableName
-     * @param {Number} rowsInserted
-     * @param {Number} totalRowsToInsert
      */
-    constructor(tableName, rowsInserted, totalRowsToInsert) {
-        this.tableName         = tableName;
-        this.rowsInserted      = rowsInserted;
+    public constructor(tableName: string, rowsInserted: number, totalRowsToInsert: number) {
+        this.tableName = tableName;
+        this.rowsInserted = rowsInserted;
         this.totalRowsToInsert = totalRowsToInsert;
     }
-};
+}
