@@ -87,65 +87,33 @@ async function getConsistencyState(conversion: Conversion, chunk: any): Promise<
 }
 
 /**
- * Enforce consistency before processing a chunk of data.
- * Ensure there are no any data duplications.
+ * Enforces consistency before processing a chunk of data.
+ * Ensures there are no any data duplications.
  * In case of normal execution - it is a good practice.
- * In case of rerunning nmig after unexpected failure - it is absolutely mandatory.
- *
- * @param {Conversion} self
- * @param {Object}     chunk
- *
- * @returns {Promise}
+ * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
-module.exports.enforceConsistency = (self, chunk) => {
-    return new Promise(resolve => {
-        getConsistencyState(self, chunk).then(hasAlreadyBeenLoaded => {
-            if (hasAlreadyBeenLoaded) {
-                /*
-                 * Current data chunk runs after a disaster recovery.
-                 * It has already been loaded.
-                 */
-                resolve(false);
-            } else {
-                // Normal migration flow.
-                updateConsistencyState(self, chunk._id).then(() => resolve(true));
-            }
-        })
-    });
-};
+export async function enforceConsistency(conversion: Conversion, chunk: any): Promise<boolean> {
+    const hasAlreadyBeenLoaded: boolean = await getConsistencyState(conversion, chunk);
+
+    if (hasAlreadyBeenLoaded) {
+        // Current data chunk runs after a disaster recovery.
+        // It has already been loaded.
+        return false;
+    }
+
+    // Normal migration flow.
+    await updateConsistencyState(conversion, chunk._id);
+    return true;
+}
 
 /**
- * Drop the {self._schema + '_' + originalTableName + '_data_chunk_id_temp'} column from current table.
- *
- * @param {Conversion} self
- * @param {String}     tableName
- *
- * @returns {Promise}
+ * Drops the {conversion._schema + '_' + originalTableName + '_data_chunk_id_temp'} column from current table.
  */
-module.exports.dropDataChunkIdColumn = (self, tableName) => {
-    return new Promise(resolve => {
-        self._pg.connect((pgError, client, done) => {
-            if (pgError) {
-                generateError(self, '\t--[ConsistencyEnforcer::dropDataChunkIdColumn] Cannot connect to PostgreSQL server...\n' + pgError);
-                resolve();
-            } else {
-                const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
-                const columnToDrop      = self._schema + '_' + originalTableName + '_data_chunk_id_temp';
-                const sql               = 'ALTER TABLE "' + self._schema + '"."' + tableName + '" DROP COLUMN "' + columnToDrop + '";';
-
-                client.query(sql, (err, result) => {
-                    done();
-
-                    if (err) {
-                        const errMsg = '\t--[ConsistencyEnforcer::dropDataChunkIdColumn] Failed to drop column "' + columnToDrop + '"\n'
-                            + '\t--[ConsistencyEnforcer::dropDataChunkIdColumn] '+ err;
-
-                        generateError(self, errMsg, sql);
-                    }
-
-                    resolve();
-                });
-            }
-        });
-    });
-};
+export async function dropDataChunkIdColumn(conversion: Conversion, tableName: string): Promise<void> {
+    const logTitle: string = 'ConsistencyEnforcer::dropDataChunkIdColumn';
+    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const columnToDrop: string = `${ conversion._schema }_${ originalTableName }_data_chunk_id_temp`;
+    const sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" DROP COLUMN "${ columnToDrop }";`;
+    const dbAccess: DBAccess = new DBAccess(conversion);
+    await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
+}

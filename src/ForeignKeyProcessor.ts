@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import migrationStateManager from './MigrationStateManager';
+import * as migrationStateManager from './MigrationStateManager';
 import log from './Logger';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
