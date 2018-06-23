@@ -47,12 +47,7 @@ async function getIsStarted(conversion: Conversion, dataPoolId: number): Promise
 
     const dbAccess: DBAccess = new DBAccess(conversion);
     const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
-
-    if ('rows' in result.data) {
-        return Array.isArray(result.data.rows) ? !!result.data.rows[0].is_started : false;
-    }
-
-    return false;
+    return result.error ? false : !!result.data.rows[0].is_started;
 }
 
 /**
@@ -68,12 +63,7 @@ async function hasCurrentChunkLoaded(conversion: Conversion, chunk: any): Promis
 
     const dbAccess: DBAccess = new DBAccess(conversion);
     const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
-
-    if ('rows' in result.data) {
-        return Array.isArray(result.data.rows) ? !!result.data.rows[0].exists : true;
-    }
-
-    return true;
+    return result.error ? true : !!result.data.rows[0].exists;
 }
 
 /**

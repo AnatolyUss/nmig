@@ -30,6 +30,13 @@ export default interface DBAccessQueryResult {
 
     /**
      * Query result.
+     * The data may be undefined.
      */
-    data: any;
+    data?: any;
+
+    /**
+     * Query error.
+     * The data may be undefined.
+     */
+    error?: any;
 }

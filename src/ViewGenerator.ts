@@ -18,40 +18,30 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
-
-const fs                    = require('fs');
-const path                  = require('path');
-const log                   = require('./Logger');
-const generateError         = require('./ErrorGenerator');
-const migrationStateManager = require('./MigrationStateManager');
+import * as fs from 'fs';
+import * as path from 'path';
+import log from './Logger';
+import Conversion from './Conversion';
+import DBAccess from './DBAccess';
+import DBVendors from './DBVendors';
+import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
- *
- * @param {String} schema
- * @param {String} viewName
- * @param {String} mysqlViewCode
- *
- * @returns {String}
  */
-const generateView = (schema, viewName, mysqlViewCode) => {
-    mysqlViewCode          = mysqlViewCode.split('`').join('"');
-    const queryStart       = mysqlViewCode.indexOf('AS');
-    mysqlViewCode          = mysqlViewCode.slice(queryStart);
-    const arrMysqlViewCode = mysqlViewCode.split(' ');
+function generateView(schema: string, viewName: string, mysqlViewCode: string): string {
+    mysqlViewCode = mysqlViewCode.split('`').join('"');
+    const queryStart: number = mysqlViewCode.indexOf('AS');
+    mysqlViewCode = mysqlViewCode.slice(queryStart);
+    const arrMysqlViewCode: string[] = mysqlViewCode.split(' ');
 
-    for (let i = 0; i < arrMysqlViewCode.length; ++i) {
-        if (
-            arrMysqlViewCode[i].toLowerCase() === 'from'
-            || arrMysqlViewCode[i].toLowerCase() === 'join'
-            && i + 1 < arrMysqlViewCode.length
-        ) {
-            arrMysqlViewCode[i + 1] = '"' + schema + '".' + arrMysqlViewCode[i + 1];
+    arrMysqlViewCode.forEach((str: string, index: number) => {
+        if (str.toLowerCase() === 'from' || str.toLowerCase() === 'join' && index + 1 < arrMysqlViewCode.length) {
+            arrMysqlViewCode[index + 1] = `"${ schema }".${ arrMysqlViewCode[index + 1] }`;
         }
-    }
+    });
 
-    return 'CREATE OR REPLACE VIEW "' + schema + '"."' + viewName + '" ' + arrMysqlViewCode.join(' ') + ';';
+    return `CREATE OR REPLACE VIEW "${ schema }"."${ viewName }" ${ arrMysqlViewCode.join(' ') };`;
 }
 
 /**
@@ -61,9 +51,9 @@ const generateView = (schema, viewName, mysqlViewCode) => {
  * @param {String}     viewName
  * @param {String}     sql
  *
- * @returns {undefined}
+ * @returns {undefined} TODO: refactor to return Promise<void>!!!
  */
-const logNotCreatedView = (self, viewName, sql) => {
+const logNotCreatedView = (conversion: Conversion, viewName: string, sql: string) => {
     fs.stat(self._notCreatedViewsPath, (directoryDoesNotExist, stat) => {
         if (directoryDoesNotExist) {
             fs.mkdir(self._notCreatedViewsPath, self._0777, e => {
@@ -169,4 +159,4 @@ module.exports = self => {
             Promise.all(createViewPromises).then(() => resolve());
         });
     });
-};
+}

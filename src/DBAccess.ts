@@ -178,10 +178,10 @@ export default class DBAccess {
                 if (error) {
                     // An error occurred during DB querying.
                     generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-                    return processExitOnError ? process.exit() : reject({ client: client, data: error });
+                    return processExitOnError ? process.exit() : reject({ client: client, data: undefined, error: error });
                 }
 
-                return resolve({ client: client, data: data });
+                return resolve({ client: client, data: data, error: undefined });
             });
         });
     }
@@ -207,11 +207,11 @@ export default class DBAccess {
                 client = undefined;
             }
 
-            return { client: client, data: data };
+            return { client: client, data: data, error: undefined };
         } catch (error) {
             // An error occurred during DB querying.
             generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-            return processExitOnError ? process.exit() : { client: client, data: error };
+            return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
         }
     }
 }
