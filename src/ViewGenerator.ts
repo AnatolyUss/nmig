@@ -19,12 +19,15 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as fs from 'fs';
+import { Stats } from 'fs';
 import * as path from 'path';
 import log from './Logger';
+import generateError from './ErrorGenerator';
 import Conversion from './Conversion';
+import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
-import * as extraConfigProcessor from './ExtraConfigProcessor';
+import DBAccessQueryResult from './DBAccessQueryResult';
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
@@ -46,117 +49,99 @@ function generateView(schema: string, viewName: string, mysqlViewCode: string): 
 
 /**
  * Writes a log, containing a view code.
- *
- * @param {Conversion} self
- * @param {String}     viewName
- * @param {String}     sql
- *
- * @returns {undefined} TODO: refactor to return Promise<void>!!!
  */
-const logNotCreatedView = (conversion: Conversion, viewName: string, sql: string) => {
-    fs.stat(self._notCreatedViewsPath, (directoryDoesNotExist, stat) => {
-        if (directoryDoesNotExist) {
-            fs.mkdir(self._notCreatedViewsPath, self._0777, e => {
-                if (e) {
-                    log(self, '\t--[logNotCreatedView] ' + e);
-                } else {
-                    log(self, '\t--[logNotCreatedView] "not_created_views" directory is created...');
+function logNotCreatedView(conversion: Conversion, viewName: string, sql: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+        fs.stat(conversion._notCreatedViewsPath, (directoryDoesNotExist: NodeJS.ErrnoException, stat: Stats) => {
+            if (directoryDoesNotExist) {
+                fs.mkdir(conversion._notCreatedViewsPath, conversion._0777, (e: NodeJS.ErrnoException) => {
+                    if (e) {
+                        log(conversion, `\t--[logNotCreatedView] ${ e }`);
+                        return resolve();
+                    }
+
+                    log(conversion, '\t--[logNotCreatedView] "not_created_views" directory is created...');
                     // "not_created_views" directory is created. Can write the log...
-                    fs.open(path.join(self._notCreatedViewsPath, viewName + '.sql'), 'w', self._0777, (error, fd) => {
+                    fs.open(
+                        path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`),
+                        'w',
+                        conversion._0777,
+                        (error: NodeJS.ErrnoException, fd: number
+                    ) => {
                         if (error) {
-                            log(self, error);
-                        } else {
-                            const buffer = Buffer.from(sql, self._encoding);
-                            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                                fs.close(fd, () => {
-                                    // Each async function MUST have a callback (according to Node.js >= 7).
-                                });
-                            });
+                            log(conversion, error);
+                            return resolve();
                         }
-                    });
-                }
-            });
-        } else if (!stat.isDirectory()) {
-            log(self, '\t--[logNotCreatedView] Cannot write the log due to unexpected error');
-        } else {
-            // "not_created_views" directory already exists. Can write the log...
-            fs.open(path.join(self._notCreatedViewsPath, viewName + '.sql'), 'w', self._0777, (error, fd) => {
-                if (error) {
-                    log(self, error);
-                } else {
-                    const buffer = Buffer.from(sql, self._encoding);
-                    fs.write(fd, buffer, 0, buffer.length, null, () => {
-                        fs.close(fd, () => {
-                            // Each async function MUST have a callback (according to Node.js >= 7).
+
+                        const buffer = Buffer.from(sql, conversion._encoding);
+                        fs.write(fd, buffer, 0, buffer.length, null, () => {
+                            fs.close(fd, () => {
+                                return resolve();
+                            });
                         });
                     });
+                });
+            }
+
+            if (!stat.isDirectory()) {
+                log(conversion, '\t--[logNotCreatedView] Cannot write the log due to unexpected error');
+                return resolve();
+            }
+
+            // "not_created_views" directory already exists. Can write the log...
+            fs.open(
+                path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`),
+                'w',
+                conversion._0777,
+                (error: NodeJS.ErrnoException, fd: number
+            ) => {
+                if (error) {
+                    log(conversion, error);
+                    return resolve();
                 }
+
+                const buffer = Buffer.from(sql, conversion._encoding);
+                fs.write(fd, buffer, 0, buffer.length, null, () => {
+                    fs.close(fd, () => {
+                        return resolve();
+                    });
+                });
             });
-        }
+        });
     });
 }
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
- *
- * @param {Conversion} self
- *
- * @returns {Promise}
  */
-module.exports = self => {
-    return migrationStateManager.get(self, 'views_loaded').then(hasViewsLoaded => {
-        return new Promise(resolve => {
-            const createViewPromises = [];
+export default async function(conversion: Conversion): Promise<void> {
+    const hasViewsLoaded: boolean = await migrationStateManager.get(conversion, 'views_loaded');
 
-            if (!hasViewsLoaded) {
-                for (let i = 0; i < self._viewsToMigrate.length; ++i) {
-                    createViewPromises.push(
-                        new Promise(resolveProcessView2 => {
-                            self._mysql.getConnection((error, connection) => {
-                                if (error) {
-                                    // The connection is undefined.
-                                    generateError(self, '\t--[processView] Cannot connect to MySQL server...\n' + error);
-                                    resolveProcessView2();
-                                } else {
-                                    let sql = 'SHOW CREATE VIEW `' + self._viewsToMigrate[i] + '`;';
-                                    connection.query(sql, (strErr, rows) => {
-                                        connection.release();
+    if (hasViewsLoaded) {
+        return;
+    }
 
-                                        if (strErr) {
-                                            generateError(self, '\t--[processView] ' + strErr, sql);
-                                            resolveProcessView2();
-                                        } else {
-                                            self._pg.connect((error, client, done) => {
-                                                if (error) {
-                                                    generateError(self, '\t--[processView] Cannot connect to PostgreSQL server...');
-                                                    resolveProcessView2();
-                                                } else {
-                                                    sql  = generateView(self._schema, self._viewsToMigrate[i], rows[0]['Create View']);
-                                                    rows = null;
-                                                    client.query(sql, err => {
-                                                        done();
+    const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(async (view: string) => {
+        const sqlShowCreateView: string = `SHOW CREATE VIEW \`${ view }\`;`;
+        const logTitle: string = 'ViewGenerator';
+        const dbAccess: DBAccess = new DBAccess(conversion);
+        const showCreateViewResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlShowCreateView, DBVendors.MYSQL, false, false);
 
-                                                        if (err) {
-                                                            generateError(self, '\t--[processView] ' + err, sql);
-                                                            logNotCreatedView(self, self._viewsToMigrate[i], sql);
-                                                            resolveProcessView2();
-                                                        } else {
-                                                            log(self, '\t--[processView] View "' + self._schema + '"."' + self._viewsToMigrate[i] + '" is created...');
-                                                            resolveProcessView2();
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        })
-                    );
-                }
-            }
+        if (showCreateViewResult.error) {
+            generateError(conversion, `\t--[${ logTitle }] ${ showCreateViewResult.error }`, sqlShowCreateView);
+            return;
+        }
 
-            Promise.all(createViewPromises).then(() => resolve());
-        });
+        const sqlCreatePgView: string = generateView(conversion._schema, view, showCreateViewResult.data[0]['Create View']);
+        const createPgViewResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreatePgView, DBVendors.PG, false, false);
+
+        if (createPgViewResult.error) {
+            generateError(conversion, `\t--[${ logTitle }] ${ createPgViewResult.error }`, sqlCreatePgView);
+            return logNotCreatedView(conversion, view, sqlCreatePgView);
+        }
+
+        log(conversion, `\t--[${ logTitle }] View "${ conversion._schema }"."${ view }" is created...`);
     });
+
+    await Promise.all(createViewPromises);
 }

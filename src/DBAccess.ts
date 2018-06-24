@@ -146,7 +146,7 @@ export default class DBAccess {
             } catch (error) {
                 // Client request failed.
                 // Must exit the function.
-                return processExitOnError ? process.exit() : { client: client, data: error };
+                return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
             }
         }
 
