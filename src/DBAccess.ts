@@ -144,8 +144,8 @@ export default class DBAccess {
                 // It must be requested from the connections pool.
                 client = vendor === DBVendors.PG ? await this.getPgClient() : await this.getMysqlClient();
             } catch (error) {
-                // Client request failed.
-                // Must exit the function.
+                // An error occurred when tried to obtain a client from one of pools.
+                generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
                 return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
             }
         }

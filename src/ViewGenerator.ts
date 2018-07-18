@@ -22,7 +22,6 @@ import * as fs from 'fs';
 import { Stats } from 'fs';
 import * as path from 'path';
 import log from './Logger';
-import generateError from './ErrorGenerator';
 import Conversion from './Conversion';
 import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
@@ -128,7 +127,6 @@ export default async function(conversion: Conversion): Promise<void> {
         const showCreateViewResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlShowCreateView, DBVendors.MYSQL, false, false);
 
         if (showCreateViewResult.error) {
-            generateError(conversion, `\t--[${ logTitle }] ${ showCreateViewResult.error }`, sqlShowCreateView);
             return;
         }
 
@@ -136,7 +134,6 @@ export default async function(conversion: Conversion): Promise<void> {
         const createPgViewResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreatePgView, DBVendors.PG, false, false);
 
         if (createPgViewResult.error) {
-            generateError(conversion, `\t--[${ logTitle }] ${ createPgViewResult.error }`, sqlCreatePgView);
             return logNotCreatedView(conversion, view, sqlCreatePgView);
         }
 

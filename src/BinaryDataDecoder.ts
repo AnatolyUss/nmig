@@ -39,6 +39,11 @@ export default async function (conversion: Conversion): Promise<Conversion> {
 
     const result: DBAccessQueryResult = await dbAccess.query('BinaryDataDecoder::decodeBinaryData', sql, DBVendors.PG, false, true);
 
+    if (result.error) {
+        // No need to continue if no 'bytea' or 'geometry' columns found.
+        return conversion;
+    }
+
     const decodePromises: Promise<void>[] = result.data.rows.map(async (row: any) => {
         const tableName: string = row.table_name;
         const columnName: string = row.column_name;
