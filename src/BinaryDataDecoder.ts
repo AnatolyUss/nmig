@@ -23,6 +23,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
+import { PoolClient } from 'pg';
 
 /**
  * Decodes binary data from from textual representation in string.
@@ -41,6 +42,7 @@ export default async function (conversion: Conversion): Promise<Conversion> {
 
     if (result.error) {
         // No need to continue if no 'bytea' or 'geometry' columns found.
+        dbAccess.releasePgClient(<PoolClient>result.client);
         return conversion;
     }
 

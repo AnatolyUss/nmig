@@ -23,6 +23,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import DBAccessQueryResult from './DBAccessQueryResult';
 
 /**
  * Defines which columns of the given table are of type "enum".
@@ -47,9 +48,12 @@ export default async function(conversion: Conversion, tableName: string): Promis
                 );
 
                 const sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ADD CHECK ("${ columnName }" IN (${ arrType[1] });`;
-                await dbAccess.query('EnumProcessor', sql, DBVendors.PG, false, false);
-                const successMsg: string = `\t--[EnumProcessor] Set "ENUM" for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
-                log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+                const result: DBAccessQueryResult = await dbAccess.query('EnumProcessor', sql, DBVendors.PG, false, false);
+
+                if (!result.error) {
+                    const successMsg: string = `\t--[EnumProcessor] Set "ENUM" for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
+                    log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+                }
             }
         }
     });

@@ -35,6 +35,10 @@ export default async function(conversion: Conversion, tableName: string): Promis
     const sqlShowIndex: string = `SHOW INDEX FROM \`${ originalTableName }\`;`;
     const showIndexResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlShowIndex, DBVendors.MYSQL, false, false);
 
+    if (showIndexResult.error) {
+        return;
+    }
+
     const objPgIndices: any = Object.create(null);
     let cnt: number = 0;
     let indexType: string = '';

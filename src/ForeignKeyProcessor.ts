@@ -110,6 +110,11 @@ export default async function(conversion: Conversion): Promise<void> {
 
         const dbAccess: DBAccess = new DBAccess(conversion);
         const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, false, false);
+
+        if (result.error) {
+            return;
+        }
+
         const extraRows: any[] = extraConfigProcessor.parseForeignKeys(conversion, tableName);
         const fullRows: any[] = (result.data || []).concat(extraRows); // Prevent failure if "result.data" is undefined.
         await processForeignKeyWorker(conversion, dbAccess, tableName, fullRows);

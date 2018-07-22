@@ -30,7 +30,7 @@ import Conversion from './Conversion';
 export async function get(conversion: Conversion, param: string): Promise<boolean> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     const sql: string = `SELECT ${ param } FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`;
-    const result: DBAccessQueryResult = await dbAccess.query('MigrationStateManager::get', sql, DBVendors.PG, false, false);
+    const result: DBAccessQueryResult = await dbAccess.query('MigrationStateManager::get', sql, DBVendors.PG, true, false);
     return result.data.rows[0][param];
 }
 
@@ -40,7 +40,7 @@ export async function get(conversion: Conversion, param: string): Promise<boolea
 export async function set(conversion: Conversion, param: string): Promise<void> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     const sql: string = `UPDATE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" SET ${ param } = TRUE;`;
-    await dbAccess.query('MigrationStateManager::set', sql, DBVendors.PG, false, false);
+    await dbAccess.query('MigrationStateManager::set', sql, DBVendors.PG, true, false);
 }
 
 /**

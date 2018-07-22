@@ -24,7 +24,6 @@ import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import generateError from './ErrorGenerator';
 
 /**
  * Escapes quotes inside given string.
@@ -47,7 +46,6 @@ async function processTableComments(conversion: Conversion, tableName: string): 
     const resultSelectComment: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSelectComment, DBVendors.MYSQL, false, false);
 
     if (resultSelectComment.error) {
-        generateError(conversion, `\t--[${ logTitle }] ${ resultSelectComment.error }`, sqlSelectComment);
         return;
     }
 
@@ -56,10 +54,6 @@ async function processTableComments(conversion: Conversion, tableName: string): 
     const createCommentResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateComment, DBVendors.PG, false, false);
 
     if (createCommentResult.error) {
-        const msg: string = `\t--[${ logTitle }] Error while processing comment for 
-            "${ conversion._schema }"."${ tableName }"...\n${ createCommentResult.error }`;
-
-        generateError(conversion, msg, sqlCreateComment);
         return;
     }
 
@@ -85,10 +79,6 @@ async function processColumnsComments(conversion: Conversion, tableName: string)
         const createCommentResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateComment, DBVendors.PG, false, false);
 
         if (createCommentResult.error) {
-            const msg: string = `\t--[${ logTitle }] Error while processing comment for 
-            "${ conversion._schema }"."${ tableName }"...\n${ createCommentResult.error }`;
-
-            generateError(conversion, msg, sqlCreateComment);
             return;
         }
 

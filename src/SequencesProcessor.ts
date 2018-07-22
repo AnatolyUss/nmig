@@ -37,9 +37,12 @@ export async function setSequenceValue(conversion: Conversion, tableName: string
     const sql: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', 
                 (SELECT MAX("' + columnName + '") FROM "${ conversion._schema }"."${ tableName }"));`;
 
-    await dbAccess.query('SequencesProcessor::setSequenceValue', sql, DBVendors.PG, false, false);
-    const successMsg: string = `\t--[setSequenceValue] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
-    log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+    const result: DBAccessQueryResult = await dbAccess.query('SequencesProcessor::setSequenceValue', sql, DBVendors.PG, false, false);
+
+    if (!result.error) {
+        const successMsg: string = `\t--[setSequenceValue] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
+        log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+    }
 }
 
 /**

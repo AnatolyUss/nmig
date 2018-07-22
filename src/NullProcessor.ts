@@ -22,6 +22,7 @@ import log from './Logger';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
+import DBAccessQueryResult from './DBAccessQueryResult';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
@@ -38,9 +39,12 @@ export default async function(conversion: Conversion, tableName: string): Promis
         if (column.Null.toLowerCase() === 'no') {
             const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
             const sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ALTER COLUMN "${ columnName }" SET NOT NULL;`;
-            await dbAccess.query('NullConstraintsProcessor', sql, DBVendors.PG, false, false);
-            const successMsg: string = `\t--[NullConstraintsProcessor] Set NOT NULL for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
-            log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+            const result: DBAccessQueryResult = await dbAccess.query('NullConstraintsProcessor', sql, DBVendors.PG, false, false);
+
+            if (!result.error) {
+                const successMsg: string = `\t--[NullConstraintsProcessor] Set NOT NULL for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
+                log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+            }
         }
     });
 

@@ -24,6 +24,7 @@ import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { mapDataTypes } from './TableProcessor';
+import DBAccessQueryResult from './DBAccessQueryResult';
 
 /**
  * Defines which columns of the given table have default value.
@@ -63,9 +64,12 @@ export default async function(conversion: Conversion, tableName: string): Promis
             sql += `${ column.Default };`;
         }
 
-        await dbAccess.query('DefaultValuesProcessor', sql, DBVendors.PG, false, false);
-        const successMsg: string = `\t--[DefaultValuesProcessor] Set default value for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
-        log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+        const result: DBAccessQueryResult = await dbAccess.query('DefaultValuesProcessor', sql, DBVendors.PG, false, false);
+
+        if (!result.error) {
+            const successMsg: string = `\t--[DefaultValuesProcessor] Set default value for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
+            log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+        }
     });
 
     await Promise.all(promises);
