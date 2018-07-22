@@ -22,6 +22,7 @@ import log from './Logger';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
+import DBAccessQueryResult from './DBAccessQueryResult';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
@@ -37,9 +38,12 @@ export default async function(conversion: Conversion): Promise<void> {
 
             log(conversion, msg);
             const sql: string = `VACUUM (FULL, ANALYZE) "${ conversion._schema }"."${ table }";`;
-            await dbAccess.query('runVacuumFullAndAnalyze', sql, DBVendors.PG, false, false);
-            const msgSuccess: string = `\t--[runVacuumFullAndAnalyze] Table "${ conversion._schema }"."${ table }" is VACUUMed...`;
-            log(conversion, msgSuccess);
+            const result: DBAccessQueryResult = await dbAccess.query('runVacuumFullAndAnalyze', sql, DBVendors.PG, false, false);
+
+            if (!result.error) {
+                const msgSuccess: string = `\t--[runVacuumFullAndAnalyze] Table "${ conversion._schema }"."${ table }" is VACUUMed...`;
+                log(conversion, msgSuccess);
+            }
         }
     });
 

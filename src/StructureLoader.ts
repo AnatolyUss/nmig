@@ -44,6 +44,11 @@ async function getMySqlVersion(conversion: Conversion): Promise<void> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     const sql: string = 'SELECT VERSION() AS mysql_version;';
     const result: DBAccessQueryResult = await dbAccess.query('StructureLoader::getMySqlVersion', sql, DBVendors.MYSQL, false, false);
+
+    if (result.error) {
+        return;
+    }
+
     const arrVersion: string[] = result.data[0].mysql_version.split('.');
     const majorVersion: string = arrVersion[0];
     const minorVersion: string = arrVersion.slice(1).join('');

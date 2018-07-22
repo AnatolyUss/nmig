@@ -23,6 +23,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import { PoolClient } from 'pg';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
@@ -60,21 +61,38 @@ export async function createSequence(conversion: Conversion, tableName: string):
     const sqlCreateSequence: string = `CREATE SEQUENCE "${ conversion._schema }"."${ seqName }";`;
     const createSequenceResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateSequence, DBVendors.PG, false, true);
 
+    if (createSequenceResult.error) {
+        dbAccess.releasePgClient(<PoolClient>createSequenceResult.client);
+        return;
+    }
+
     const sqlSetNextVal: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ALTER COLUMN "${ columnName }" 
         SET DEFAULT NEXTVAL("${ conversion._schema }"."${ seqName }");`;
 
     const setNextValResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetNextVal, DBVendors.PG, false, true, createSequenceResult.client);
+
+    if (setNextValResult.error) {
+        dbAccess.releasePgClient(<PoolClient>setNextValResult.client);
+        return;
+    }
 
     const sqlSetSequenceOwner: string = `ALTER SEQUENCE "${ conversion._schema }"."${ seqName }"
         OWNED BY "${ conversion._schema }"."${ tableName }"."${ columnName }";`;
 
     const setSequenceOwnerResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetSequenceOwner, DBVendors.PG, false, true, setNextValResult.client);
 
+    if (setSequenceOwnerResult.error) {
+        dbAccess.releasePgClient(<PoolClient>setSequenceOwnerResult.client);
+        return;
+    }
+
     const sqlSetSequenceValue: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', 
         (SELECT MAX("' + columnName + '") FROM "${ conversion._schema }"."${ tableName }"));`;
 
-    await dbAccess.query(logTitle, sqlSetSequenceValue, DBVendors.PG, false, false, setSequenceOwnerResult.client);
+    const sqlSetSequenceValueResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetSequenceValue, DBVendors.PG, false, false, setSequenceOwnerResult.client);
 
-    const successMsg: string = `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
-    log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+    if (!sqlSetSequenceValueResult.error) {
+        const successMsg: string = `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
+        log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+    }
 }
