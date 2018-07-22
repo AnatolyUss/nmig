@@ -18,54 +18,45 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
-
-const connect              = require('./Connector');
-const log                  = require('./Logger');
-const generateError        = require('./ErrorGenerator');
-const extraConfigProcessor = require('./ExtraConfigProcessor');
+import log from './Logger';
+import Conversion from './Conversion';
+import DBAccess from './DBAccess';
+import DBAccessQueryResult from './DBAccessQueryResult';
+import DBVendors from './DBVendors';
+import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
  * Converts MySQL data types to corresponding PostgreSQL data types.
  * This conversion performs in accordance to mapping rules in './config/data_types_map.json'.
  * './config/data_types_map.json' can be customized.
- *
- * @param {Object} objDataTypesMap
- * @param {String} mySqlDataType
- *
- * @returns {String}
  */
-const mapDataTypes = (objDataTypesMap, mySqlDataType) => {
-    let retVal                 = '';
-    let arrDataTypeDetails     = mySqlDataType.split(' ');
-    mySqlDataType              = arrDataTypeDetails[0].toLowerCase();
-    const increaseOriginalSize = arrDataTypeDetails.indexOf('unsigned') !== -1 || arrDataTypeDetails.indexOf('zerofill') !== -1;
-    arrDataTypeDetails         = null;
+export function mapDataTypes(objDataTypesMap: any, mySqlDataType: string): string {
+    let retVal: string = '';
+    const arrDataTypeDetails: string[] = mySqlDataType.split(' ');
+    mySqlDataType = arrDataTypeDetails[0].toLowerCase();
+    const increaseOriginalSize: boolean = arrDataTypeDetails.indexOf('unsigned') !== -1 || arrDataTypeDetails.indexOf('zerofill') !== -1;
 
     if (mySqlDataType.indexOf('(') === -1) {
         // No parentheses detected.
         retVal = increaseOriginalSize ? objDataTypesMap[mySqlDataType].increased_size : objDataTypesMap[mySqlDataType].type;
     } else {
         // Parentheses detected.
-        let arrDataType               = mySqlDataType.split('(');
-        const strDataType             = arrDataType[0].toLowerCase();
-        const strDataTypeDisplayWidth = arrDataType[1];
-        arrDataType                   = null;
+        const arrDataType: string[] = mySqlDataType.split('(');
+        const strDataType: string = arrDataType[0].toLowerCase();
+        const strDataTypeDisplayWidth: string = arrDataType[1];
 
         if ('enum' === strDataType || 'set' === strDataType) {
             retVal = 'character varying(255)';
         } else if ('decimal' === strDataType || 'numeric' === strDataType) {
-            retVal = objDataTypesMap[strDataType].type + '(' + strDataTypeDisplayWidth;
+            retVal = `${ objDataTypesMap[strDataType].type }(${ strDataTypeDisplayWidth }`;
         } else if ('decimal(19,2)' === mySqlDataType || objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen) {
             // Should be converted without a length definition.
-            retVal = increaseOriginalSize
-                ? objDataTypesMap[strDataType].increased_size
-                : objDataTypesMap[strDataType].type;
+            retVal = increaseOriginalSize ? objDataTypesMap[strDataType].increased_size : objDataTypesMap[strDataType].type;
         } else {
             // Should be converted with a length definition.
             retVal = increaseOriginalSize
-                ? objDataTypesMap[strDataType].increased_size + '(' + strDataTypeDisplayWidth
-                : objDataTypesMap[strDataType].type + '(' + strDataTypeDisplayWidth;
+                ? `${ objDataTypesMap[strDataType].increased_size }(${ strDataTypeDisplayWidth }`
+                : `${ objDataTypesMap[strDataType].type }(${ strDataTypeDisplayWidth }`;
         }
     }
 
@@ -79,18 +70,15 @@ const mapDataTypes = (objDataTypesMap, mySqlDataType) => {
     return retVal;
 }
 
-module.exports.mapDataTypes = mapDataTypes;
-
 /**
  * Migrates structure of a single table to PostgreSql server.
- *
- * @param {Conversion} self
- * @param {String}     tableName
- *
- * @returns {Promise}
  */
-module.exports.createTable = (self, tableName) => {
-    return connect(self).then(() => {
+export async function createTable(conversion: Conversion, tableName: string): Promise<void> {
+    const logTitle: string = 'createTable';
+    //
+
+
+    /*return connect(self).then(() => {
         return new Promise((resolveCreateTable, rejectCreateTable) => {
             log(self, '\t--[createTable] Currently creating table: `' + tableName + '`', self._dicTables[tableName].tableLogPath);
             self._mysql.getConnection((error, connection) => {
@@ -151,5 +139,5 @@ module.exports.createTable = (self, tableName) => {
                 }
             });
         });
-    });
-};
+    });*/
+}
