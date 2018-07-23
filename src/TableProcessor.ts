@@ -71,73 +71,41 @@ export function mapDataTypes(objDataTypesMap: any, mySqlDataType: string): strin
 }
 
 /**
+ * TODO: handle a failure when no table created.
+ *
  * Migrates structure of a single table to PostgreSql server.
  */
 export async function createTable(conversion: Conversion, tableName: string): Promise<void> {
-    const logTitle: string = 'createTable';
-    //
+    const logTitle: string = 'TableProcessor::createTable';
+    log(conversion, `\t--[${ logTitle }] Currently creating table: \`${ tableName }\``, conversion._dicTables[tableName].tableLogPath);
+    const dbAccess: DBAccess = new DBAccess(conversion);
+    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const sqlShowColumns: string = `SHOW FULL COLUMNS FROM \`${ originalTableName }\`;`;
+    const columns: DBAccessQueryResult = await dbAccess.query(logTitle, sqlShowColumns, DBVendors.MYSQL, false, false);
 
+    if (columns.error) {
+        return;
+    }
 
-    /*return connect(self).then(() => {
-        return new Promise((resolveCreateTable, rejectCreateTable) => {
-            log(self, '\t--[createTable] Currently creating table: `' + tableName + '`', self._dicTables[tableName].tableLogPath);
-            self._mysql.getConnection((error, connection) => {
-                if (error) {
-                    // The connection is undefined.
-                    generateError(self, '\t--[createTable] Cannot connect to MySQL server...\n' + error);
-                    rejectCreateTable();
-                } else {
-                    const originalTableName = extraConfigProcessor.getTableName(self, tableName, true);
-                    let sql                 = 'SHOW FULL COLUMNS FROM `' + originalTableName + '`;';
-                    connection.query(sql, (err, rows) => {
-                        connection.release();
+    conversion._dicTables[tableName].arrTableColumns = columns.data;
 
-                        if (err) {
-                            generateError(self, '\t--[createTable] ' + err, sql);
-                            rejectCreateTable();
-                        } else {
-                            self._dicTables[tableName].arrTableColumns = rows;
+    if (conversion._migrateOnlyData) {
+        return;
+    }
 
-                            if (self._migrateOnlyData) {
-                                return resolveCreateTable();
-                            }
+    let sqlCreateTable: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(`;
 
-                            self._pg.connect((error, client, done) => {
-                                if (error) {
-                                    generateError(self, '\t--[createTable] Cannot connect to PostgreSQL server...\n' + error, sql);
-                                    rejectCreateTable();
-                                } else {
-                                    sql = 'CREATE TABLE IF NOT EXISTS "' + self._schema + '"."' + tableName + '"(';
+    columns.data.forEach((column: any) => {
+        const colName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
+        const colType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
+        sqlCreateTable += `"${ colName }" ${ colType },`;
+    });
 
-                                    for (let i = 0; i < rows.length; ++i) {
-                                        sql += '"' + extraConfigProcessor.getColumnName(self, originalTableName, rows[i].Field, false)
-                                            +  '" ' + mapDataTypes(self._dataTypesMap, rows[i].Type) + ',';
-                                    }
+    sqlCreateTable += `"${ conversion._schema }_${ originalTableName }_data_chunk_id_temp" BIGINT);`;
 
-                                    sql += '"' + self._schema + '_' + originalTableName + '_data_chunk_id_temp" BIGINT);';
+    const createTableResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateTable, DBVendors.PG, false, false);
 
-                                    client.query(sql, err => {
-                                        done();
-
-                                        if (err) {
-                                            generateError(self, '\t--[createTable] ' + err, sql);
-                                            rejectCreateTable();
-                                        } else {
-                                            log(
-                                                self,
-                                                '\t--[createTable] Table "' + self._schema + '"."' + tableName + '" is created...',
-                                                self._dicTables[tableName].tableLogPath
-                                            );
-
-                                            resolveCreateTable();
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        });
-    });*/
+    if (!createTableResult.error) {
+        log(conversion, `\t--[${ logTitle }] Table "${ conversion._schema }"."${ tableName }" is created...`, conversion._dicTables[tableName].tableLogPath);
+    }
 }
