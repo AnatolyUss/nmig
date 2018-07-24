@@ -49,7 +49,7 @@ export async function set(conversion: Conversion, param: string): Promise<void> 
 export async function createStateLogsTable(conversion: Conversion): Promise<Conversion> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     let sql: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }"(
-        "tables_loaded" BOOLEAN, "per_table_constraints_loaded" BOOLEAN, "foreign_keys_loaded" BOOLEAN, "views_loaded" BOOLEAN');`;
+        "tables_loaded" BOOLEAN, "per_table_constraints_loaded" BOOLEAN, "foreign_keys_loaded" BOOLEAN, "views_loaded" BOOLEAN);`;
 
     let result: DBAccessQueryResult = await dbAccess.query('MigrationStateManager::createStateLogsTable', sql, DBVendors.PG, true, true);
     sql = `SELECT COUNT(1) AS cnt FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`;

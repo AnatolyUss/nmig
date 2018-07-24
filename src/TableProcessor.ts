@@ -71,8 +71,6 @@ export function mapDataTypes(objDataTypesMap: any, mySqlDataType: string): strin
 }
 
 /**
- * TODO: handle a failure when no table created.
- *
  * Migrates structure of a single table to PostgreSql server.
  */
 export async function createTable(conversion: Conversion, tableName: string): Promise<void> {

@@ -45,7 +45,7 @@ export default class SchemaProcessor {
     /**
      * Create a new database schema if it does not exist yet.
      */
-    public async createSchema(): Promise<Conversion|void> {
+    public async createSchema(): Promise<Conversion> {
         let sql: string = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }';`;
 
         const result: DBAccessQueryResult = await this._dbAccess.query('SchemaProcessor::createSchema', sql, DBVendors.PG, true, true);
