@@ -92,7 +92,8 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
             sql = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"
                 ("is_started", "json", "size_in_mb") VALUES (FALSE, '${ strJson }', ${ currentChunkSizeInMb });`;
 
-            await dbAccess.query('DataChunksProcessor::default', sql, DBVendors.PG,true,false);
+            // TODO: convert to prepared statement.
+            await dbAccess.query('DataChunksProcessor::default', sql, DBVendors.PG,false,false);
             resolveDataUnit();
         }));
     }
