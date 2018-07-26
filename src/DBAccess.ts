@@ -135,7 +135,8 @@ export default class DBAccess {
         vendor: DBVendors,
         processExitOnError: boolean,
         shouldReturnClient: boolean,
-        client?: PoolConnection|PoolClient
+        client?: PoolConnection|PoolClient,
+        bindings?: any[]
     ): Promise<DBAccessQueryResult> {
         // Checks if there is an available client.
         if (!client) {
@@ -151,7 +152,7 @@ export default class DBAccess {
         }
 
         return vendor === DBVendors.PG
-            ? this._queryPG(caller, sql, processExitOnError, shouldReturnClient, (<PoolClient>client))
+            ? this._queryPG(caller, sql, processExitOnError, shouldReturnClient, (<PoolClient>client), bindings)
             : this._queryMySQL(caller, sql, processExitOnError, shouldReturnClient, (<PoolConnection>client));
     }
 
@@ -194,10 +195,11 @@ export default class DBAccess {
         sql: string,
         processExitOnError: boolean,
         shouldReturnClient: boolean,
-        client?: PoolClient
+        client?: PoolClient,
+        bindings?: any[]
     ): Promise<DBAccessQueryResult> {
         try {
-            const data: any = await (<PoolClient>client).query(sql);
+            const data: any = Array.isArray(bindings) ? await (<PoolClient>client).query(sql, bindings) : await (<PoolClient>client).query(sql);
 
             // Checks if there are more queries to be sent using current client.
             if (!shouldReturnClient) {

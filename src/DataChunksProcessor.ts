@@ -39,20 +39,15 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     let sql: string = `SELECT (data_length / 1024 / 1024) AS size_in_mb FROM information_schema.tables 
         WHERE table_schema = '${ conversion._mySqlDbName }' AND table_name = '${ originalTableName }';`;
 
+    const logTitle: string = 'DataChunksProcessor::default';
     const dbAccess: DBAccess = new DBAccess(conversion);
-    const sizeQueryResult: DBAccessQueryResult = await dbAccess.query(
-        'DataChunksProcessor::default',
-        sql,
-        DBVendors.MYSQL,
-        true,
-        true
-    );
+    const sizeQueryResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, true, true);
 
     const tableSizeInMb: number = +sizeQueryResult.data[0].size_in_mb;
     const strSelectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
     sql = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const countResult: DBAccessQueryResult = await dbAccess.query(
-        'DataChunksProcessor::default',
+        logTitle,
         sql,
         DBVendors.MYSQL,
         true,
@@ -71,7 +66,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     for (let offset: number = 0; offset < rowsCnt; offset += rowsInChunk) {
         arrDataPoolPromises.push(new Promise<void>(async resolveDataUnit => {
             const strJson: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }",
-                "_offset":${ offset },"_rowsInChunk":${ rowsInChunk },"_rowsCnt":${ rowsCnt }`;
+                "_offset":${ offset },"_rowsInChunk":${ rowsInChunk },"_rowsCnt":${ rowsCnt }}`;
 
             // Define current data chunk size in MB.
             // If there is only one chunk, then its size is equal to the table size.
@@ -90,10 +85,18 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
             }
 
             sql = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"
-                ("is_started", "json", "size_in_mb") VALUES (FALSE, '${ strJson }', ${ currentChunkSizeInMb });`;
+                ("is_started", "json", "size_in_mb") VALUES (FALSE, $1, $2);`;
 
-            // TODO: convert to prepared statement.
-            await dbAccess.query('DataChunksProcessor::default', sql, DBVendors.PG,false,false);
+            await dbAccess.query(
+                logTitle,
+                sql,
+                DBVendors.PG,
+                false,
+                false,
+                undefined,
+                [strJson, currentChunkSizeInMb]
+            );
+
             resolveDataUnit();
         }));
     }
