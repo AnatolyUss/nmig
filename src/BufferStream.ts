@@ -20,7 +20,7 @@
  */
 import { Readable } from 'stream';
 
-export class BufferStream extends Readable {
+export default class BufferStream extends Readable {
     /**
      * The Buffer, that contains the data to load.
      */

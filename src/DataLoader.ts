@@ -18,149 +18,84 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+import * as path from 'path';
+import * as csvStringify from './CsvStringifyModified';
+import log from './Logger';
+import generateError from './ErrorGenerator';
+import Conversion from './Conversion';
+import DBAccess from './DBAccess';
+import DBAccessQueryResult from './DBAccessQueryResult';
+import DBVendors from './DBVendors';
+import MessageToMaster from './MessageToMaster';
+import { enforceConsistency } from './ConsistencyEnforcer';
+import * as extraConfigProcessor from './ExtraConfigProcessor';
+import BufferStream from './BufferStream';
+const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
 
-const path                   = require('path');
-const { from }               = require('pg-copy-streams');
-const csvStringify           = require('./CsvStringifyModified');
-const log                    = require('./Logger');
-const generateError          = require('./ErrorGenerator');
-const connect                = require('./Connector');
-const Conversion             = require('./Conversion');
-const MessageToMaster        = require('./MessageToMaster');
-const { enforceConsistency } = require('./ConsistencyEnforcer');
-const extraConfigProcessor   = require('./ExtraConfigProcessor');
-const BufferStream           = require('./BufferStream');
+process.on('message', async (signal: any) => {
+    const conv: Conversion = new Conversion(signal.config);
+    log(conv, '\t--[loadData] Loading the data...');
 
-process.on('message', signal => {
-    const self     = new Conversion(signal.config);
-    const promises = [];
-    log(self, '\t--[loadData] Loading the data...');
+    const promises: Promise<void>[] = signal.chunks.map(async (chunk: any) => {
+        const isNormalFlow: boolean = await enforceConsistency(conv, chunk);
 
-    for (let i = 0; i < signal.chunks.length; ++i) {
-        promises.push(
-            connect(self).then(() => {
-                return enforceConsistency(self, signal.chunks[i]);
-            }).then(isNormalFlow => {
-                if (isNormalFlow) {
-                    return populateTableWorker(
-                        self,
-                        signal.chunks[i]._tableName,
-                        signal.chunks[i]._selectFieldList,
-                        signal.chunks[i]._offset,
-                        signal.chunks[i]._rowsInChunk,
-                        signal.chunks[i]._rowsCnt,
-                        signal.chunks[i]._id
-                    );
-                }
+        return isNormalFlow
+            ? populateTableWorker(conv, chunk._tableName, chunk._selectFieldList, chunk._offset, chunk._rowsInChunk, chunk._rowsCnt, chunk._id)
+            : deleteChunk(conv, chunk._id);
+    });
 
-                return deleteChunk(self, signal.chunks[i]._id);
-            })
-        );
-    }
-
-    Promise.all(promises).then(() => process.send('processed'));
+    await Promise.all(promises);
+    process.send('processed');
 });
 
 /**
- * Delete given record from the data-pool.
- *
- * @param {Conversion}               self
- * @param {Number}                   dataPoolId
- * @param {Node-pg client|undefined} client
- * @param {Function|undefined}       done
- *
- * @returns {Promise}
+ * Deletes given record from the data-pool.
  */
-const deleteChunk = (self, dataPoolId, client, done) => {
-    return new Promise(resolve => {
-        if (client) {
-            const sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
-                + '" ' + 'WHERE id = ' + dataPoolId + ';';
-
-            client.query(sql, err => {
-                done();
-
-                if (err) {
-                    generateError(self, '\t--[deleteChunk] ' + err, sql);
-                }
-
-                resolve();
-            });
-        } else {
-            self._pg.connect((error, client, done) => {
-                if (error) {
-                    generateError(self, '\t--[deleteChunk] Cannot connect to PostgreSQL server...\n' + error);
-                    resolve();
-                } else {
-                    const sql = 'DELETE FROM "' + self._schema + '"."data_pool_' + self._schema + self._mySqlDbName
-                        + '" ' + 'WHERE id = ' + dataPoolId + ';';
-
-                    client.query(sql, err => {
-                        done();
-
-                        if (err) {
-                            generateError(self, '\t--[deleteChunk] ' + err, sql);
-                        }
-
-                        resolve();
-                    });
-                }
-            });
-        }
-    });
-};
+async function deleteChunk(conv: Conversion, dataPoolId: number): Promise<void> {
+    const sql: string = `DELETE FROM "${ conv._schema }"."data_pool_${ conv._schema }${ conv._mySqlDbName }" WHERE id = ${ dataPoolId };`;
+    const dbAccess: DBAccess = new DBAccess(conv);
+    await dbAccess.query('DataLoader::deleteChunk', sql, DBVendors.PG, false, false);
+}
 
 /**
- * Build a MySQL query to retrieve the chunk of data.
- *
- * @param {String} tableName
- * @param {String} strSelectFieldList
- * @param {Number} offset
- * @param {Number} rowsInChunk
- *
- * @returns {String}
+ * Builds a MySQL query to retrieve the chunk of data.
  */
-const buildChunkQuery = (tableName, strSelectFieldList, offset, rowsInChunk) => {
-    return 'SELECT ' + strSelectFieldList + ' FROM `' + tableName + '` LIMIT ' + offset + ',' + rowsInChunk + ';';
-};
+function buildChunkQuery(tableName: string, selectFieldList: string, offset: number, rowsInChunk: number): string {
+    return `SELECT ${ selectFieldList } FROM \`${ tableName }\` LIMIT ${ offset },${ rowsInChunk };`;
+}
 
 /**
- * Process data-loading error.
- *
- * @param {Conversion}               self
- * @param {String}                   streamError
- * @param {String}                   sql
- * @param {String}                   sqlCopy
- * @param {String}                   tableName
- * @param {Number}                   dataPoolId
- * @param {Node-pg client|undefined} client
- * @param {Function|undefined}       done
- * @param {Function}                 callback
- *
- * @returns {undefined}
+ * Processes data-loading error.
  */
-const processDataError = (self, streamError, sql, sqlCopy, tableName, dataPoolId, client, done, callback) => {
-    generateError(self, '\t--[populateTableWorker] ' + streamError, sqlCopy);
-    const rejectedData = '\t--[populateTableWorker] Error loading table data:\n' + sql + '\n';
-    log(self, rejectedData, path.join(self._logsDirPath, tableName + '.log'));
-    deleteChunk(self, dataPoolId, client, done).then(() => callback());
-};
+function processDataError(
+    conv: Conversion,
+    streamError: string,
+    sql: string,
+    sqlCopy: string,
+    tableName: string,
+    dataPoolId: number
+): Promise<void> {
+    generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
+    const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
+    log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
+    return deleteChunk(conv, dataPoolId);
+}
 
 /**
- * Load a chunk of data using "PostgreSQL COPY".
- *
- * @param {Conversion} self
- * @param {String}     tableName
- * @param {String}     strSelectFieldList
- * @param {Number}     offset
- * @param {Number}     rowsInChunk
- * @param {Number}     rowsCnt
- * @param {Number}     dataPoolId
- *
- * @returns {Promise}
+ * Loads a chunk of data using "PostgreSQL COPY".
  */
-const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsInChunk, rowsCnt, dataPoolId) => {
+async function populateTableWorker(
+    conv: Conversion,
+    tableName: string,
+    strSelectFieldList: string,
+    offset: number,
+    rowsInChunk: number,
+    rowsCnt: number,
+    dataPoolId: number
+): Promise<void> {
+    //
+
+
     return new Promise(resolvePopulateTableWorker => {
         self._mysql.getConnection((error, connection) => {
             if (error) {
@@ -250,4 +185,4 @@ const populateTableWorker = (self, tableName, strSelectFieldList, offset, rowsIn
             }
         });
     });
-};
+}

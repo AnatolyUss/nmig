@@ -146,7 +146,7 @@ export default async function(conversion: Conversion): Promise<void> {
         return processConstraints(conversion);
     }
 
-    const dataLoaderPath: string = path.join(__dirname, 'DataLoader.js');
+    const dataLoaderPath: string = path.join(__dirname, 'DataLoader.ts');
     const options: any = conversion._loaderMaxOldSpaceSize === 'DEFAULT'
         ? Object.create(null)
         : { execArgv: [`--max-old-space-size=${ conversion._loaderMaxOldSpaceSize }`] };
