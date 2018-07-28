@@ -32,6 +32,12 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
 export async function setSequenceValue(conversion: Conversion, tableName: string): Promise<void> {
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const autoIncrementedColumn: any = conversion._dicTables[tableName].arrTableColumns.find((column: any) => column.Extra === 'auto_increment');
+
+    if (!autoIncrementedColumn) {
+        // No auto-incremented column found.
+        return;
+    }
+
     const dbAccess: DBAccess = new DBAccess(conversion);
     const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
     const seqName: string = `${ tableName }_${ columnName }_seq`;
@@ -53,6 +59,12 @@ export async function setSequenceValue(conversion: Conversion, tableName: string
 export async function createSequence(conversion: Conversion, tableName: string): Promise<void> {
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const autoIncrementedColumn: any = conversion._dicTables[tableName].arrTableColumns.find((column: any) => column.Extra === 'auto_increment');
+
+    if (!autoIncrementedColumn) {
+        // No auto-incremented column found.
+        return;
+    }
+
     const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
     const logTitle: string = 'SequencesProcessor::createSequence';
     const dbAccess: DBAccess = new DBAccess(conversion);

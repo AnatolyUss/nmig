@@ -12,16 +12,16 @@
         "node": ">=8.0.0"
     },
     "dependencies": {
-        "mysql": "^2.15.0",
-        "pg": "^7.4.1",
+        "mysql": "^2.16.0",
+        "pg": "^7.4.3",
         "pg-copy-streams": "^1.2.0"
     },
     "devDependencies": {
-        "@types/mysql": "^2.15.4",
-        "@types/node": "^10.0.2",
-        "@types/pg": "^7.4.8",
-        "tape": "^4.8.0",
-        "typescript": "^2.8.3"
+        "@types/mysql": "^2.15.5",
+        "@types/node": "^10.5.4",
+        "@types/pg": "^7.4.10",
+        "tape": "^4.9.1",
+        "typescript": "^2.9.2"
     },
     "scripts": {
         "compile_test": "tsc --outDir ./build --module commonjs ./src/*.ts && node ./build/Main.js",
