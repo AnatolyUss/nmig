@@ -136,7 +136,7 @@ async function populateTableWorker(
             }
 
             const buffer: Buffer = Buffer.from(csvString, conv._encoding);
-            const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN DELIMITER ${ conv._delimiter } CSV;`;
+            const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN DELIMITER '${ conv._delimiter }' CSV;`;
             const client: PoolClient = await dbAccess.getPgClient();
             const copyStream: any = client.query(from(sqlCopy));
             const bufferStream: BufferStream = new BufferStream(buffer);
