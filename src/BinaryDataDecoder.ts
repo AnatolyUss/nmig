@@ -29,7 +29,8 @@ import { PoolClient } from 'pg';
  * Decodes binary data from from textual representation in string.
  */
 export default async function (conversion: Conversion): Promise<Conversion> {
-    log(conversion, '\t--[BinaryDataDecoder::decodeBinaryData] Decodes binary data from textual representation in string.');
+    const logTitle: string = 'BinaryDataDecoder::decodeBinaryData';
+    log(conversion, `\t--[${ logTitle }] Decodes binary data from textual representation in string.`);
 
     const dbAccess: DBAccess = new DBAccess(conversion);
     const sql: string = `SELECT table_name, column_name 
@@ -38,7 +39,7 @@ export default async function (conversion: Conversion): Promise<Conversion> {
           AND table_schema = '${ conversion._schema }' 
           AND data_type IN ('bytea', 'geometry');`;
 
-    const result: DBAccessQueryResult = await dbAccess.query('BinaryDataDecoder::decodeBinaryData', sql, DBVendors.PG, false, true);
+    const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, true);
 
     if (result.error) {
         // No need to continue if no 'bytea' or 'geometry' columns found.
@@ -52,7 +53,7 @@ export default async function (conversion: Conversion): Promise<Conversion> {
         const sqlDecode: string = `UPDATE ${ conversion._schema }."${ tableName }"
                 SET "${ columnName }" = DECODE(ENCODE("${ columnName }", 'escape'), 'hex');`;
 
-        await dbAccess.query('BinaryDataDecoder::decodeBinaryData', sqlDecode, DBVendors.PG, false, false, result.client);
+        await dbAccess.query(logTitle, sqlDecode, DBVendors.PG, false, false, result.client);
     });
 
     await Promise.all(decodePromises);
