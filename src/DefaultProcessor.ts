@@ -31,8 +31,9 @@ import DBAccessQueryResult from './DBAccessQueryResult';
  * Sets default values, if need.
  */
 export default async function(conversion: Conversion, tableName: string): Promise<void> {
+    const logTitle: string = 'DefaultValuesProcessor';
     const dbAccess: DBAccess = new DBAccess(conversion);
-    const msg: string = `\t--[DefaultValuesProcessor] Defines default values for table: "${ conversion._schema }"."${ tableName }"`;
+    const msg: string = `\t--[${ logTitle }] Defines default values for table: "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const pgSqlNumericTypes: string[] = ['money', 'numeric', 'decimal', 'double precision', 'real', 'bigint', 'int', 'smallint'];
@@ -64,10 +65,10 @@ export default async function(conversion: Conversion, tableName: string): Promis
             sql += `${ column.Default };`;
         }
 
-        const result: DBAccessQueryResult = await dbAccess.query('DefaultValuesProcessor', sql, DBVendors.PG, false, false);
+        const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
 
         if (!result.error) {
-            const successMsg: string = `\t--[DefaultValuesProcessor] Set default value for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
+            const successMsg: string = `\t--[${ logTitle }] Set default value for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
             log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
         }
     });

@@ -166,7 +166,7 @@ export default class DBAccess {
         shouldReturnClient: boolean,
         client?: PoolConnection
     ): Promise<DBAccessQueryResult> {
-        return new Promise<DBAccessQueryResult>(async (resolve, reject) => {
+        return new Promise<DBAccessQueryResult>((resolve, reject) => {
             (<PoolConnection>client).query(sql, (error: MysqlError|null, data: any) => {
                 // Checks if there are more queries to be sent using current client.
                 if (!shouldReturnClient) {
