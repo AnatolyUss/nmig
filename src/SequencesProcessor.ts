@@ -74,7 +74,7 @@ export async function createSequence(conversion: Conversion, tableName: string):
     const createSequenceResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateSequence, DBVendors.PG, false, true);
 
     if (createSequenceResult.error) {
-        dbAccess.releasePgClient(<PoolClient>createSequenceResult.client);
+        dbAccess.releaseDbClient(<PoolClient>createSequenceResult.client);
         return;
     }
 
@@ -84,7 +84,7 @@ export async function createSequence(conversion: Conversion, tableName: string):
     const setNextValResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetNextVal, DBVendors.PG, false, true, createSequenceResult.client);
 
     if (setNextValResult.error) {
-        dbAccess.releasePgClient(<PoolClient>setNextValResult.client);
+        dbAccess.releaseDbClient(<PoolClient>setNextValResult.client);
         return;
     }
 
@@ -94,7 +94,7 @@ export async function createSequence(conversion: Conversion, tableName: string):
     const setSequenceOwnerResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetSequenceOwner, DBVendors.PG, false, true, setNextValResult.client);
 
     if (setSequenceOwnerResult.error) {
-        dbAccess.releasePgClient(<PoolClient>setSequenceOwnerResult.client);
+        dbAccess.releaseDbClient(<PoolClient>setSequenceOwnerResult.client);
         return;
     }
 

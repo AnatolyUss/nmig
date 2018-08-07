@@ -74,7 +74,7 @@ async function deleteChunk(conv: Conversion, dataPoolId: number, client: PoolCli
     } catch (error) {
         generateError(conv, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
-        dbAccess.releasePgClient(client);
+        dbAccess.releaseDbClient(client);
     }
 }
 

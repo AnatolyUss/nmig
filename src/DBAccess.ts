@@ -112,17 +112,25 @@ export default class DBAccess {
     }
 
     /**
-     * Releases MySQL connection back to the pool.
+     * Releases MySQL or PostgreSQL connection back to appropriate pool.
      */
-    public releaseMysqlClient(connection: PoolConnection): void {
-        connection.release();
+    public releaseDbClient(dbClient?: PoolConnection|PoolClient): void {
+        try {
+            (<PoolConnection|PoolClient>dbClient).release();
+            dbClient = undefined;
+        } catch (error) {
+            generateError(this._conversion, `\t--[DBAccess::releaseDbClient] ${ error }`);
+        }
     }
 
     /**
-     * Releases PostgreSQL connection back to the pool.
+     * Checks if there are no more queries to be sent using current client.
+     * In such case the client should be released.
      */
-    public releasePgClient(pgClient: PoolClient): void {
-        pgClient.release();
+    private _releaseDbClientIfNecessary(client: PoolConnection|PoolClient, shouldHoldClient: boolean): void {
+        if (!shouldHoldClient) {
+            this.releaseDbClient(client);
+        }
     }
 
     /**
@@ -168,16 +176,9 @@ export default class DBAccess {
     ): Promise<DBAccessQueryResult> {
         return new Promise<DBAccessQueryResult>((resolve, reject) => {
             (<PoolConnection>client).query(sql, (error: MysqlError|null, data: any) => {
-                // Checks if there are more queries to be sent using current client.
-                if (!shouldReturnClient) {
-                    // No more queries to be sent using current client.
-                    // The client must be released.
-                    this.releaseMysqlClient((<PoolConnection>client));
-                    client = undefined;
-                }
+                this._releaseDbClientIfNecessary((<PoolConnection>client), shouldReturnClient);
 
                 if (error) {
-                    // An error occurred during DB querying.
                     generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
                     return processExitOnError ? process.exit() : reject({ client: client, data: undefined, error: error });
                 }
@@ -200,18 +201,10 @@ export default class DBAccess {
     ): Promise<DBAccessQueryResult> {
         try {
             const data: any = Array.isArray(bindings) ? await (<PoolClient>client).query(sql, bindings) : await (<PoolClient>client).query(sql);
-
-            // Checks if there are more queries to be sent using current client.
-            if (!shouldReturnClient) {
-                // No more queries to be sent using current client.
-                // The client must be released.
-                this.releasePgClient((<PoolClient>client));
-                client = undefined;
-            }
-
+            this._releaseDbClientIfNecessary((<PoolClient>client), shouldReturnClient); // Sets the client undefined.
             return { client: client, data: data, error: undefined };
         } catch (error) {
-            // An error occurred during DB querying.
+            this._releaseDbClientIfNecessary((<PoolClient>client), shouldReturnClient); // Sets the client undefined.
             generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
             return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
         }
