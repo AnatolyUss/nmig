@@ -41,7 +41,7 @@ export default class DBAccess {
     }
 
     /**
-     * Ensure MySQL connection pool existence.
+     * Ensures MySQL connection pool existence.
      */
     private _getMysqlConnection(): void {
         if (!this._conversion._mysql) {
@@ -59,7 +59,7 @@ export default class DBAccess {
     }
 
     /**
-     * Ensure PostgreSQL connection pool existence.
+     * Ensures PostgreSQL connection pool existence.
      */
     private _getPgConnection(): void {
         if (!this._conversion._pg) {
@@ -82,12 +82,12 @@ export default class DBAccess {
     }
 
     /**
-     * Obtain PoolConnection instance.
+     * Obtains PoolConnection instance.
      */
     public getMysqlClient(): Promise<PoolConnection> {
         this._getMysqlConnection();
 
-        return new Promise((resolve, reject) => {
+        return new Promise<PoolConnection>((resolve, reject) => {
             (<MySQLPool>this._conversion._mysql).getConnection((err: MysqlError|null, connection: PoolConnection) => {
                 return err ? reject(err) : resolve(connection);
             });
@@ -95,7 +95,7 @@ export default class DBAccess {
     }
 
     /**
-     * Obtain PoolClient instance.
+     * Obtains PoolClient instance.
      */
     public getPgClient(): Promise<PoolClient> {
         this._getPgConnection();
