@@ -80,32 +80,26 @@ function logNotCreatedView(conversion: Conversion, viewName: string, sql: string
                         });
                     });
                 });
-            }
-
-            if (!stat.isDirectory()) {
+            } else if (!stat.isDirectory()) {
                 log(conversion, '\t--[logNotCreatedView] Cannot write the log due to unexpected error');
                 return resolve();
-            }
-
-            // "not_created_views" directory already exists. Can write the log...
-            fs.open(
-                path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`),
-                'w',
-                conversion._0777,
-                (error: NodeJS.ErrnoException, fd: number
-            ) => {
-                if (error) {
-                    log(conversion, error);
-                    return resolve();
-                }
-
-                const buffer = Buffer.from(sql, conversion._encoding);
-                fs.write(fd, buffer, 0, buffer.length, null, () => {
-                    fs.close(fd, () => {
+            } else {
+                // "not_created_views" directory already exists. Can write the log...
+                const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`);
+                fs.open(viewFilePath,'w', conversion._0777, (error: NodeJS.ErrnoException, fd: number) => {
+                    if (error) {
+                        log(conversion, error);
                         return resolve();
+                    }
+
+                    const buffer = Buffer.from(sql, conversion._encoding);
+                    fs.write(fd, buffer, 0, buffer.length, null, () => {
+                        fs.close(fd, () => {
+                            return resolve();
+                        });
                     });
                 });
-            });
+            }
         });
     });
 }
