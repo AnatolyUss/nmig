@@ -79,7 +79,7 @@ export async function createSequence(conversion: Conversion, tableName: string):
     }
 
     const sqlSetNextVal: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ALTER COLUMN "${ columnName }" 
-        SET DEFAULT NEXTVAL("${ conversion._schema }"."${ seqName }");`;
+      SET DEFAULT NEXTVAL('${ conversion._schema }.${ seqName }');`;
 
     const setNextValResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetNextVal, DBVendors.PG, false, true, createSequenceResult.client);
 
@@ -88,8 +88,7 @@ export async function createSequence(conversion: Conversion, tableName: string):
         return;
     }
 
-    const sqlSetSequenceOwner: string = `ALTER SEQUENCE "${ conversion._schema }"."${ seqName }"
-        OWNED BY "${ conversion._schema }"."${ tableName }"."${ columnName }";`;
+    const sqlSetSequenceOwner: string = `ALTER SEQUENCE "${ conversion._schema }"."${ seqName }" OWNED BY "${ conversion._schema }"."${ tableName }"."${ columnName }";`;
 
     const setSequenceOwnerResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetSequenceOwner, DBVendors.PG, false, true, setNextValResult.client);
 
@@ -98,8 +97,7 @@ export async function createSequence(conversion: Conversion, tableName: string):
         return;
     }
 
-    const sqlSetSequenceValue: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', 
-        (SELECT MAX("' + columnName + '") FROM "${ conversion._schema }"."${ tableName }"));`;
+    const sqlSetSequenceValue: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', (SELECT MAX("${ columnName }") FROM "${ conversion._schema }"."${ tableName }"));`;
 
     const sqlSetSequenceValueResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSetSequenceValue, DBVendors.PG, false, false, setSequenceOwnerResult.client);
 
