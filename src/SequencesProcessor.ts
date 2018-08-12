@@ -42,7 +42,7 @@ export async function setSequenceValue(conversion: Conversion, tableName: string
     const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
     const seqName: string = `${ tableName }_${ columnName }_seq`;
     const sql: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', 
-                (SELECT MAX("' + columnName + '") FROM "${ conversion._schema }"."${ tableName }"));`;
+                (SELECT MAX("${ columnName }") FROM "${ conversion._schema }"."${ tableName }"));`;
 
     const result: DBAccessQueryResult = await dbAccess.query('SequencesProcessor::setSequenceValue', sql, DBVendors.PG, false, false);
 
