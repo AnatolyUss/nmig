@@ -127,11 +127,12 @@ async function pipeData(conversion: Conversion, dataLoaderPath: string, options:
                 Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
             log(conversion, msg);
-        } else {
-            killProcess(loaderProcess.pid, conversion);
-            conversion._processedChunks += chunksToLoad.length;
-            return pipeData(conversion, dataLoaderPath, options);
+            return;
         }
+
+        killProcess(loaderProcess.pid, conversion);
+        conversion._processedChunks += chunksToLoad.length;
+        return pipeData(conversion, dataLoaderPath, options);
     });
 
     loaderProcess.send(new MessageToDataLoader(conversion._config, chunksToLoad));
