@@ -18,40 +18,45 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+import * as path from 'path';
+import * as fs from 'fs';
+import { EventEmitter } from 'events';
+import Conversion from '../../src/Conversion';
+import DBAccess from '../../src/DBAccess';
+import DBAccessQueryResult from '../../src/DBAccessQueryResult';
+import DBVendors from '../../src/DBVendors';
+import { Main } from '../../src/Main';
+import SchemaProcessor from '../../src/SchemaProcessor';
+import readDataTypesMap from '../../src/DataTypesMapReader';
+import loadStructureToMigrate from '../../src/StructureLoader';
+import pipeData from '../../src/DataPipeManager';
+import { createStateLogsTable } from '../../src/MigrationStateManager';
+import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
+import generateError from '../../src/ErrorGenerator';
 
-const fs                                    = require('fs');
-const path                                  = require('path');
-const { EventEmitter }                      = require('events');
-const connect                               = require('../../src/Connector');
-const Main                                  = require('../../src/Main');
-const SchemaProcessor                       = require('../../src/SchemaProcessor');
-const readDataTypesMap                      = require('../../src/DataTypesMapReader');
-const loadStructureToMigrate                = require('../../src/StructureLoader');
-const pipeData                              = require('../../src/DataPipeManager');
-const { createStateLogsTable }              = require('../../src/MigrationStateManager');
-const { createDataPoolTable, readDataPool } = require('../../src/DataPoolManager');
-const generateError                         = require('../../src/ErrorGenerator');
+export default class TestSchemaProcessor {
+    /**
+     * Instance of class Main.
+     */
+    private readonly _app: Main;
 
-module.exports = class TestSchemaProcessor {
+    /**
+     * Instance of class Conversion.
+     */
+    private _conversion?: Conversion;
 
     /**
      * TestSchemaProcessor constructor.
      */
-    constructor() {
-        this._app        = new Main();
-        this._conversion = null;
+    public constructor() {
+        this._app = new Main();
+        this._conversion = undefined;
     }
 
     /**
      * Stops the process in case of fatal error.
-     *
-     * @param {Conversion} conversion
-     * @param {String}     error
-     *
-     * @returns {undefined}
      */
-    processFatalError(conversion, error) {
+    public processFatalError(conversion: Conversion, error: string): void {
         console.log(error);
         generateError(conversion, error);
         process.exit();
