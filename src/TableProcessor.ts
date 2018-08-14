@@ -19,6 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import log from './Logger';
+import generateError from './ErrorGenerator';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
@@ -88,6 +89,17 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
     conversion._dicTables[tableName].arrTableColumns = columns.data;
 
     if (conversion._migrateOnlyData) {
+        // Although the schema is preset, the data chunk id column must be added.
+        // This is due to the need to enforce data consistency in case of failures.
+        const sqlAddDataChunkIdColumn: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
+            ADD COLUMN "${ conversion._schema }_${ originalTableName }_data_chunk_id_temp" BIGINT;`;
+
+        const result: DBAccessQueryResult = await dbAccess.query(logTitle, sqlAddDataChunkIdColumn, DBVendors.PG, false, false);
+
+        if (result.error) {
+            generateError(conversion, `\t--[${ logTitle }] ${ result.error }`, sqlAddDataChunkIdColumn);
+        }
+
         return;
     }
 
