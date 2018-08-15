@@ -216,12 +216,8 @@ export class TestSchemaProcessor {
 
     /**
      * Provides a blob for a sake of testing.
-     *
-     * @param {Conversion} conversion
-     *
-     * @returns {Buffer}
      */
-    getTestBlob(conversion) {
+    public getTestBlob(conversion: Conversion): Buffer {
         return Buffer.from('Automated tests development is in progress.', conversion._encoding);
     }
 
