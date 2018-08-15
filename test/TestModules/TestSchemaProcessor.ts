@@ -34,7 +34,7 @@ import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import generateError from '../../src/ErrorGenerator';
 
-export default class TestSchemaProcessor {
+export class TestSchemaProcessor {
     /**
      * Instance of class Main.
      */
@@ -46,11 +46,17 @@ export default class TestSchemaProcessor {
     public conversion?: Conversion;
 
     /**
+     * Instance of class DBAccess.
+     */
+    public dbAccess?: DBAccess;
+
+    /**
      * TestSchemaProcessor constructor.
      */
     public constructor() {
         this._app = new Main();
         this.conversion = undefined;
+        this.dbAccess = undefined;
     }
 
     /**
@@ -143,15 +149,11 @@ export default class TestSchemaProcessor {
     }
 
     /**
-     * Update the "database" part of MySQL connection.
-     *
-     * @param {Conversion} conversion
-     *
-     * @returns {Promise<Conversion>}
+     * Updates the "database" part of MySQL connection.
      */
-    updateMySqlConnection(conversion) {
-        return new Promise(resolve => {
-            conversion._mysql                    = null;
+    private _updateMySqlConnection(conversion: Conversion): Promise<Conversion> {
+        return new Promise<Conversion>(resolve => {
+            conversion._mysql = undefined;
             conversion._sourceConString.database = conversion._mySqlDbName;
             resolve(conversion);
         });
@@ -159,16 +161,12 @@ export default class TestSchemaProcessor {
 
     /**
      * Reads contents from the specified resource.
-     *
-     * @param {String} filePath
-     *
-     * @returns {Promise<Buffer>}
      */
-    readFile(filePath) {
-        return new Promise(resolve => {
-            fs.readFile(filePath, (error, data) => {
+    private _readFile(filePath: string): Promise<Buffer> {
+        return new Promise<Buffer>(resolve => {
+            fs.readFile(filePath, (error: Error, data: Buffer) => {
                 if (error) {
-                    console.log(`\t--[readFile] Cannot read file from ${ filePath }`);
+                    console.log(`\t--[_readFile] Cannot read file from ${ filePath }`);
                     process.exit();
                 }
 
@@ -179,12 +177,10 @@ export default class TestSchemaProcessor {
 
     /**
      * Reads test schema sql file.
-     *
-     * @returns {Promise<Buffer>}
      */
-    readTestSchema() {
-        const testSchemaFilePath = path.join(__dirname, '..', 'test_schema.sql');
-        return this.readFile(testSchemaFilePath);
+    private _readTestSchema(): Promise<Buffer> {
+        const testSchemaFilePath: string = path.join(__dirname, '..', 'test_schema.sql');
+        return this._readFile(testSchemaFilePath);
     }
 
     /**
@@ -196,7 +192,7 @@ export default class TestSchemaProcessor {
      */
     loadTestSchema(conversion) {
         return connect(conversion)
-            .then(this.readTestSchema.bind(this))
+            .then(this._readTestSchema.bind(this))
             .then(sqlBuffer => {
                 return new Promise(resolve => {
                     conversion._mysql.getConnection((error, connection) => {
@@ -287,36 +283,27 @@ export default class TestSchemaProcessor {
 
     /**
      * Initializes Conversion instance.
-     *
-     * @returns {Promise<Conversion>}
      */
-    initializeConversion() {
-        const baseDir = path.join(__dirname, '..', '..');
-
-        return this._app.readConfig(baseDir, 'test_config.json')
-            .then(config => this._app.readExtraConfig(config, baseDir))
-            .then(this._app.initializeConversion)
-            .then(conversion => {
-                this.conversion                 = conversion;
-                this.conversion._runsInTestMode = true;
-                this.conversion._eventEmitter   = new EventEmitter();
-                delete this.conversion._sourceConString.database;
-                return Promise.resolve(this.conversion);
-            });
+    public async initializeConversion(): Promise<Conversion> {
+        const baseDir: string = path.join(__dirname, '..', '..');
+        const config: any = await this._app.readConfig(baseDir, 'test_config.json');
+        const fullConfig: any = await this._app.readExtraConfig(config, baseDir);
+        this.conversion = await this._app.initializeConversion(fullConfig);
+        this.conversion._runsInTestMode = true;
+        this.conversion._eventEmitter = new EventEmitter();
+        this.dbAccess = new DBAccess(this.conversion);
+        delete this.conversion._sourceConString.database;
+        return this.conversion;
     }
 
     /**
      * Arranges test migration.
      * "migrationCompleted" event will fire on completion.
-     *
-     * @param {Conversion} conversion
-     *
-     * @returns {undefined}
      */
-    arrangeTestMigration(conversion) {
+    public arrangeTestMigration(conversion: Conversion): void {
         Promise.resolve(conversion)
             .then(this.createTestSourceDb.bind(this))
-            .then(this.updateMySqlConnection.bind(this))
+            .then(this._updateMySqlConnection.bind(this))
             .then(this.loadTestSchema.bind(this))
             .then(this.loadTestData.bind(this))
             .then(readDataTypesMap)
@@ -329,33 +316,4 @@ export default class TestSchemaProcessor {
             .then(pipeData)
             .catch(error => console.log(error));
     }
-
-    /**
-     * Query PostgreSQL server.
-     *
-     * @param {String} sql
-     *
-     * @returns {Promise<pg.Result>}
-     */
-    queryPg(sql) {
-        return connect(this.conversion).then(() => {
-            return new Promise(resolve => {
-                this.conversion._pg.connect((error, client, release) => {
-                    if (error) {
-                        this.processFatalError(this.conversion, error);
-                    }
-
-                    client.query(sql, (err, data) => {
-                        release();
-
-                        if (err) {
-                            this.processFatalError(this.conversion, err);
-                        }
-
-                        resolve(data);
-                    });
-                });
-            });
-        });
-    }
-};
+}
