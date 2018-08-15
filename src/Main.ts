@@ -31,8 +31,7 @@ import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import log from './Logger';
 import { Stats } from 'fs';
 
-const Main = class {
-
+export class Main {
     /**
      * Read the configuration file.
      */
@@ -115,10 +114,9 @@ const Main = class {
             });
         });
     }
-};
+}
 
-module.exports = Main;
-const app = new Main();
+const app: Main = new Main();
 const baseDir: string = path.join(__dirname, '..', '..');
 
 app.readConfig(baseDir)

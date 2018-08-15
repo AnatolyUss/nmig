@@ -30,8 +30,8 @@
 const getColumnTypes = testSchemaProcessor => {
     const sql = `SELECT column_name, data_type  
                  FROM information_schema.columns
-                 WHERE table_catalog = '${ testSchemaProcessor._conversion._targetConString.database }' 
-                   AND table_schema = '${ testSchemaProcessor._conversion._schema }' 
+                 WHERE table_catalog = '${ testSchemaProcessor.conversion._targetConString.database }' 
+                   AND table_schema = '${ testSchemaProcessor.conversion._schema }' 
                    AND table_name = 'table_a';`;
 
     return testSchemaProcessor

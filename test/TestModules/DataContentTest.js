@@ -29,7 +29,7 @@
  */
 const retrieveData = testSchemaProcessor => {
     const sql = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
-                 FROM ${ testSchemaProcessor._conversion._schema }.table_a AS table_a;`;
+                 FROM ${ testSchemaProcessor.conversion._schema }.table_a AS table_a;`;
 
     return testSchemaProcessor
         .queryPg(sql)
@@ -48,7 +48,7 @@ module.exports = (testSchemaProcessor, tape) => {
     retrieveData(testSchemaProcessor).then(data => {
         const autoTimeoutMs             = 3 * 1000; // 3 seconds.
         const numberOfPlannedAssertions = 24;
-        const originalTestBlobText      = testSchemaProcessor.getTestBlob(testSchemaProcessor._conversion).toString();
+        const originalTestBlobText      = testSchemaProcessor.getTestBlob(testSchemaProcessor.conversion).toString();
 
         tape.plan(numberOfPlannedAssertions);
         tape.timeoutAfter(autoTimeoutMs);

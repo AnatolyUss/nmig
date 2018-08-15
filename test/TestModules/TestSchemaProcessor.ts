@@ -43,14 +43,14 @@ export default class TestSchemaProcessor {
     /**
      * Instance of class Conversion.
      */
-    private _conversion?: Conversion;
+    public conversion?: Conversion;
 
     /**
      * TestSchemaProcessor constructor.
      */
     public constructor() {
         this._app = new Main();
-        this._conversion = undefined;
+        this.conversion = undefined;
     }
 
     /**
@@ -69,37 +69,37 @@ export default class TestSchemaProcessor {
      */
     removeTestResources() {
         return new Promise(resolve => {
-            if (!this._conversion._removeTestResources) {
+            if (!this.conversion._removeTestResources) {
                 return resolve();
             }
 
-            return connect(this._conversion).then(() => {
-                this._conversion._mysql.getConnection((mysqlConErr, connection) => {
+            return connect(this.conversion).then(() => {
+                this.conversion._mysql.getConnection((mysqlConErr, connection) => {
                     if (mysqlConErr) {
                         // The connection is undefined.
-                        this.processFatalError(this._conversion, mysqlConErr);
+                        this.processFatalError(this.conversion, mysqlConErr);
                     }
 
-                    connection.query(`DROP DATABASE ${ this._conversion._mySqlDbName };`, mysqlDropErr => {
+                    connection.query(`DROP DATABASE ${ this.conversion._mySqlDbName };`, mysqlDropErr => {
                         connection.release();
 
                         if (mysqlDropErr) {
                             // Failed to drop test source database.
-                            this.processFatalError(this._conversion, mysqlDropErr);
+                            this.processFatalError(this.conversion, mysqlDropErr);
                         }
 
-                        this._conversion._pg.connect((pgConErr, client, release) => {
+                        this.conversion._pg.connect((pgConErr, client, release) => {
                             if (pgConErr) {
                                 //The connection is undefined.
-                                this.processFatalError(this._conversion, pgConErr);
+                                this.processFatalError(this.conversion, pgConErr);
                             }
 
-                            client.query(`DROP SCHEMA ${ this._conversion._schema } CASCADE;`, pgDropErr => {
+                            client.query(`DROP SCHEMA ${ this.conversion._schema } CASCADE;`, pgDropErr => {
                                 release();
 
                                 if (pgDropErr) {
                                     // Failed to drop test target schema.
-                                    this.processFatalError(this._conversion, pgDropErr);
+                                    this.processFatalError(this.conversion, pgDropErr);
                                 }
 
                                 resolve();
@@ -127,7 +127,7 @@ export default class TestSchemaProcessor {
                         this.processFatalError(conversion, error);
                     }
 
-                    connection.query(`CREATE DATABASE IF NOT EXISTS ${ this._conversion._mySqlDbName };`, err => {
+                    connection.query(`CREATE DATABASE IF NOT EXISTS ${ this.conversion._mySqlDbName };`, err => {
                         connection.release();
 
                         if (err) {
@@ -297,11 +297,11 @@ export default class TestSchemaProcessor {
             .then(config => this._app.readExtraConfig(config, baseDir))
             .then(this._app.initializeConversion)
             .then(conversion => {
-                this._conversion                 = conversion;
-                this._conversion._runsInTestMode = true;
-                this._conversion._eventEmitter   = new EventEmitter();
-                delete this._conversion._sourceConString.database;
-                return Promise.resolve(this._conversion);
+                this.conversion                 = conversion;
+                this.conversion._runsInTestMode = true;
+                this.conversion._eventEmitter   = new EventEmitter();
+                delete this.conversion._sourceConString.database;
+                return Promise.resolve(this.conversion);
             });
     }
 
@@ -338,18 +338,18 @@ export default class TestSchemaProcessor {
      * @returns {Promise<pg.Result>}
      */
     queryPg(sql) {
-        return connect(this._conversion).then(() => {
+        return connect(this.conversion).then(() => {
             return new Promise(resolve => {
-                this._conversion._pg.connect((error, client, release) => {
+                this.conversion._pg.connect((error, client, release) => {
                     if (error) {
-                        this.processFatalError(this._conversion, error);
+                        this.processFatalError(this.conversion, error);
                     }
 
                     client.query(sql, (err, data) => {
                         release();
 
                         if (err) {
-                            this.processFatalError(this._conversion, err);
+                            this.processFatalError(this.conversion, err);
                         }
 
                         resolve(data);

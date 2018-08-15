@@ -29,7 +29,7 @@
  */
 const hasSchemaCreated = testSchemaProcessor => {
     const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
-                 WHERE schema_name = '${ testSchemaProcessor._conversion._schema }');`;
+                 WHERE schema_name = '${ testSchemaProcessor.conversion._schema }');`;
 
     return testSchemaProcessor
         .queryPg(sql)
