@@ -18,8 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { ChildProcess } from 'child_process';
-import * as childProcess from 'child_process';
+import { ChildProcess, fork } from 'child_process';
 import * as path from 'path';
 import log from './Logger';
 import Conversion from './Conversion';
@@ -116,7 +115,7 @@ async function pipeData(conversion: Conversion, dataLoaderPath: string, options:
         return processConstraints(conversion);
     }
 
-    const loaderProcess: ChildProcess = childProcess.fork(dataLoaderPath, options);
+    const loaderProcess: ChildProcess = fork(dataLoaderPath, options);
     const bandwidth: number[] = fillBandwidth(conversion);
     const chunksToLoad: any[] = bandwidth.map((index: number) => conversion._dataPool[index]);
 

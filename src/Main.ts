@@ -29,7 +29,6 @@ import boot from './BootProcessor';
 import { createStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import log from './Logger';
-import { Stats } from 'fs';
 
 export class Main {
     /**
@@ -90,7 +89,7 @@ export class Main {
     public createLogsDirectory(self: Conversion): Promise<Conversion> {
         return new Promise(resolve => {
             console.log('\t--[DirectoriesManager.createLogsDirectory] Creating logs directory...');
-            fs.stat(self._logsDirPath, (directoryDoesNotExist: Error, stat: Stats) => {
+            fs.stat(self._logsDirPath, (directoryDoesNotExist: Error, stat: fs.Stats) => {
                 if (directoryDoesNotExist) {
                     fs.mkdir(self._logsDirPath, self._0777, e => {
                         if (e) {
