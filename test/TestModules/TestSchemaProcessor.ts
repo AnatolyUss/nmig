@@ -223,58 +223,55 @@ export class TestSchemaProcessor {
 
     /**
      * Loads test data into MySQL test database.
-     *
-     * @param {Conversion} conversion
-     *
-     * @returns {Promise<Conversion>}
      */
-    loadTestData(conversion) {
-        return connect(conversion).then(() => {
-            return new Promise(resolve => {
-                conversion._mysql.getConnection((error, connection) => {
-                    if (error) {
-                        this.processFatalError(conversion, error);
-                    }
+    async loadTestData(conversion: Conversion): Promise<Conversion> {
+        const dbAccess: DBAccess = new DBAccess(conversion);
+        const insertParams: any = {
+            id_test_unique_index: 7384,
+            id_test_composite_unique_index_1: 125,
+            id_test_composite_unique_index_2: 234,
+            id_test_index: 123,
+            int_test_not_null: 123,
+            id_test_composite_index_1: 11,
+            id_test_composite_index_2: 22,
+            json_test_comment: '{"prop1":"First","prop2":2}',
+            bit: 1,
+            year: 1984,
+            bigint: '1234567890123456800',
+            float: 12345.5,
+            double: 123456789.23,
+            numeric: '1234567890',
+            decimal: '1234567890',
+            char_5: 'fghij',
+            varchar_5: 'abcde',
+            date: '1984-11-30',
+            time: '21:12:33',
+            timestamp: '2018-11-11 22:21:20',
+            enum: 'e1',
+            set: 's2',
+            text: 'Test text',
+            blob: this.getTestBlob(conversion),
+        };
 
-                    const insertParams = {
-                        id_test_unique_index             : 7384,
-                        id_test_composite_unique_index_1 : 125,
-                        id_test_composite_unique_index_2 : 234,
-                        id_test_index                    : 123,
-                        int_test_not_null                : 123,
-                        id_test_composite_index_1        : 11,
-                        id_test_composite_index_2        : 22,
-                        json_test_comment                : '{"prop1":"First","prop2":2}',
-                        bit                              : 1,
-                        year                             : 1984,
-                        bigint                           : '1234567890123456800',
-                        float                            : 12345.5,
-                        double                           : 123456789.23,
-                        numeric                          : '1234567890',
-                        decimal                          : '1234567890',
-                        char_5                           : 'fghij',
-                        varchar_5                        : 'abcde',
-                        date                             : '1984-11-30',
-                        time                             : '21:12:33',
-                        timestamp                        : '2018-11-11 22:21:20',
-                        enum                             : 'e1',
-                        set                              : 's2',
-                        text                             : 'Test text',
-                        blob                             : this.getTestBlob(conversion),
-                    };
+        const insertParamsKeys: string[] = Object.keys(insertParams);
+        const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) 
+            VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
 
-                    connection.query('INSERT INTO `table_a` SET ?;', insertParams, err => {
-                        connection.release();
+        const result: DBAccessQueryResult = await dbAccess.query(
+            'TestSchemaProcessor::loadTestData',
+            sql,
+            DBVendors.MYSQL,
+            false,
+            false,
+            undefined,
+            Object.values(insertParams)
+        );
 
-                        if (err) {
-                            this.processFatalError(conversion, err);
-                        }
+        if (result.error) {
+            this.processFatalError(conversion, result.error);
+        }
 
-                        resolve(conversion);
-                    });
-                });
-            });
-        });
+        return conversion;
     }
 
     /**

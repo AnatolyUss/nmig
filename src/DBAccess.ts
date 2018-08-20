@@ -161,7 +161,7 @@ export default class DBAccess {
 
         return vendor === DBVendors.PG
             ? this._queryPG(caller, sql, processExitOnError, shouldReturnClient, (<PoolClient>client), bindings)
-            : this._queryMySQL(caller, sql, processExitOnError, shouldReturnClient, (<PoolConnection>client));
+            : this._queryMySQL(caller, sql, processExitOnError, shouldReturnClient, (<PoolConnection>client), bindings);
     }
 
     /**
@@ -172,9 +172,14 @@ export default class DBAccess {
         sql: string,
         processExitOnError: boolean,
         shouldReturnClient: boolean,
-        client?: PoolConnection
+        client?: PoolConnection,
+        bindings?: any[]
     ): Promise<DBAccessQueryResult> {
         return new Promise<DBAccessQueryResult>((resolve, reject) => {
+            if (Array.isArray(bindings)) {
+                sql = (<PoolConnection>client).format(sql, bindings);
+            }
+
             (<PoolConnection>client).query(sql, (error: MysqlError|null, data: any) => {
                 this._releaseDbClientIfNecessary((<PoolConnection>client), shouldReturnClient);
 
