@@ -70,10 +70,11 @@ export class TestSchemaProcessor {
 
     /**
      * Removes resources created by test scripts.
-     *
-     * @returns {Promise<any>}
      */
-    removeTestResources() {
+    public async removeTestResources(): Promise<void> {
+        //
+
+
         return new Promise(resolve => {
             if (!this.conversion._removeTestResources) {
                 return resolve();
@@ -119,33 +120,24 @@ export class TestSchemaProcessor {
 
     /**
      * Creates test source database.
-     *
-     * @param {Conversion} conversion
-     *
-     * @returns {Promise<Conversion>}
      */
-    createTestSourceDb(conversion) {
-        return connect(conversion).then(() => {
-            return new Promise(resolve => {
-                conversion._mysql.getConnection((error, connection) => {
-                    if (error) {
-                        // The connection is undefined.
-                        this.processFatalError(conversion, error);
-                    }
+    private async _createTestSourceDb(conversion: Conversion): Promise<Conversion> {
+        const dbAccess: DBAccess = new DBAccess(conversion);
+        const sql: string = `CREATE DATABASE IF NOT EXISTS ${ (<Conversion>this.conversion)._mySqlDbName };`;
+        const result: DBAccessQueryResult = await dbAccess.query(
+            '_createTestSourceDb',
+            sql,
+            DBVendors.MYSQL,
+            false,
+            false
+        );
 
-                    connection.query(`CREATE DATABASE IF NOT EXISTS ${ this.conversion._mySqlDbName };`, err => {
-                        connection.release();
+        if (result.error) {
+            // Failed to create test source database.
+            this.processFatalError(conversion, result.error);
+        }
 
-                        if (err) {
-                            // Failed to create test source database.
-                            this.processFatalError(conversion, err);
-                        }
-
-                        resolve(conversion);
-                    });
-                });
-            });
-        });
+        return conversion;
     }
 
     /**
@@ -185,33 +177,23 @@ export class TestSchemaProcessor {
 
     /**
      * Loads test schema into MySQL test database.
-     *
-     * @param {Conversion} conversion
-     *
-     * @returns {Promise<Conversion>}
      */
-    loadTestSchema(conversion) {
-        return connect(conversion)
-            .then(this._readTestSchema.bind(this))
-            .then(sqlBuffer => {
-                return new Promise(resolve => {
-                    conversion._mysql.getConnection((error, connection) => {
-                        if (error) {
-                            this.processFatalError(conversion, error);
-                        }
+    private async _loadTestSchema(conversion: Conversion): Promise<Conversion> {
+        const dbAccess: DBAccess = new DBAccess(conversion);
+        const sqlBuffer: Buffer = await this._readTestSchema.bind(this);
+        const result: DBAccessQueryResult = await dbAccess.query(
+            '_loadTestSchema',
+            sqlBuffer.toString(),
+            DBVendors.MYSQL,
+            false,
+            false
+        );
 
-                        connection.query(sqlBuffer.toString(), err => {
-                            connection.release();
+        if (result.error) {
+            this.processFatalError(conversion, result.error);
+        }
 
-                            if (err) {
-                                this.processFatalError(conversion, err);
-                            }
-
-                            resolve(conversion);
-                        });
-                    });
-                });
-            });
+        return conversion;
     }
 
     /**
@@ -224,7 +206,7 @@ export class TestSchemaProcessor {
     /**
      * Loads test data into MySQL test database.
      */
-    async loadTestData(conversion: Conversion): Promise<Conversion> {
+    private async _loadTestData(conversion: Conversion): Promise<Conversion> {
         const dbAccess: DBAccess = new DBAccess(conversion);
         const insertParams: any = {
             id_test_unique_index: 7384,
@@ -258,7 +240,7 @@ export class TestSchemaProcessor {
             VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
 
         const result: DBAccessQueryResult = await dbAccess.query(
-            'TestSchemaProcessor::loadTestData',
+            'TestSchemaProcessor::_loadTestData',
             sql,
             DBVendors.MYSQL,
             false,
@@ -295,10 +277,10 @@ export class TestSchemaProcessor {
      */
     public arrangeTestMigration(conversion: Conversion): void {
         Promise.resolve(conversion)
-            .then(this.createTestSourceDb.bind(this))
+            .then(this._createTestSourceDb.bind(this))
             .then(this._updateMySqlConnection.bind(this))
-            .then(this.loadTestSchema.bind(this))
-            .then(this.loadTestData.bind(this))
+            .then(this._loadTestSchema.bind(this))
+            .then(this._loadTestData.bind(this))
             .then(readDataTypesMap)
             .then(this._app.createLogsDirectory)
             .then(conversion => (new SchemaProcessor(conversion)).createSchema())
