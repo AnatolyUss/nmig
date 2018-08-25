@@ -23,7 +23,6 @@ import * as fs from 'fs';
 import { EventEmitter } from 'events';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
-import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 import DBVendors from '../../src/DBVendors';
 import { Main } from '../../src/Main';
 import SchemaProcessor from '../../src/SchemaProcessor';
@@ -72,50 +71,24 @@ export class TestSchemaProcessor {
      * Removes resources created by test scripts.
      */
     public async removeTestResources(): Promise<void> {
-        //
+        const dbAccess: DBAccess = new DBAccess(<Conversion>this.conversion);
+        const sqlDropMySqlDatabase: string = `DROP DATABASE ${ (<Conversion>this.conversion)._mySqlDbName };`;
+        await dbAccess.query(
+            'removeTestResources',
+            sqlDropMySqlDatabase,
+            DBVendors.MYSQL,
+            true,
+            false
+        );
 
-
-        return new Promise(resolve => {
-            if (!this.conversion._removeTestResources) {
-                return resolve();
-            }
-
-            return connect(this.conversion).then(() => {
-                this.conversion._mysql.getConnection((mysqlConErr, connection) => {
-                    if (mysqlConErr) {
-                        // The connection is undefined.
-                        this.processFatalError(this.conversion, mysqlConErr);
-                    }
-
-                    connection.query(`DROP DATABASE ${ this.conversion._mySqlDbName };`, mysqlDropErr => {
-                        connection.release();
-
-                        if (mysqlDropErr) {
-                            // Failed to drop test source database.
-                            this.processFatalError(this.conversion, mysqlDropErr);
-                        }
-
-                        this.conversion._pg.connect((pgConErr, client, release) => {
-                            if (pgConErr) {
-                                //The connection is undefined.
-                                this.processFatalError(this.conversion, pgConErr);
-                            }
-
-                            client.query(`DROP SCHEMA ${ this.conversion._schema } CASCADE;`, pgDropErr => {
-                                release();
-
-                                if (pgDropErr) {
-                                    // Failed to drop test target schema.
-                                    this.processFatalError(this.conversion, pgDropErr);
-                                }
-
-                                resolve();
-                            });
-                        });
-                    });
-                });
-            });
-        });
+        const sqlDropPgDatabase: string = `DROP SCHEMA ${ (<Conversion>this.conversion)._schema } CASCADE;`;
+        await dbAccess.query(
+            'removeTestResources',
+            sqlDropPgDatabase,
+            DBVendors.PG,
+            true,
+            false
+        );
     }
 
     /**
@@ -124,19 +97,7 @@ export class TestSchemaProcessor {
     private async _createTestSourceDb(conversion: Conversion): Promise<Conversion> {
         const dbAccess: DBAccess = new DBAccess(conversion);
         const sql: string = `CREATE DATABASE IF NOT EXISTS ${ (<Conversion>this.conversion)._mySqlDbName };`;
-        const result: DBAccessQueryResult = await dbAccess.query(
-            '_createTestSourceDb',
-            sql,
-            DBVendors.MYSQL,
-            false,
-            false
-        );
-
-        if (result.error) {
-            // Failed to create test source database.
-            this.processFatalError(conversion, result.error);
-        }
-
+        await dbAccess.query('_createTestSourceDb', sql, DBVendors.MYSQL, true, false);
         return conversion;
     }
 
@@ -181,17 +142,13 @@ export class TestSchemaProcessor {
     private async _loadTestSchema(conversion: Conversion): Promise<Conversion> {
         const dbAccess: DBAccess = new DBAccess(conversion);
         const sqlBuffer: Buffer = await this._readTestSchema.bind(this);
-        const result: DBAccessQueryResult = await dbAccess.query(
+        await dbAccess.query(
             '_loadTestSchema',
             sqlBuffer.toString(),
             DBVendors.MYSQL,
-            false,
+            true,
             false
         );
-
-        if (result.error) {
-            this.processFatalError(conversion, result.error);
-        }
 
         return conversion;
     }
@@ -239,19 +196,15 @@ export class TestSchemaProcessor {
         const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) 
             VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
 
-        const result: DBAccessQueryResult = await dbAccess.query(
+        await dbAccess.query(
             'TestSchemaProcessor::_loadTestData',
             sql,
             DBVendors.MYSQL,
-            false,
+            true,
             false,
             undefined,
             Object.values(insertParams)
         );
-
-        if (result.error) {
-            this.processFatalError(conversion, result.error);
-        }
 
         return conversion;
     }
