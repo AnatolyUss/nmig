@@ -18,25 +18,33 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
+import {TestSchemaProcessor} from './TestSchemaProcessor';
+import Conversion from '../../src/Conversion';
+import DBAccess from '../../src/DBAccess';
+import DBVendors from '../../src/DBVendors';
+import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 
 /**
  * Checks if the schema exists.
- *
- * @param {TestSchemaProcessor} testSchemaProcessor
- *
- * @returns {Promise<Boolean>}
  */
-const hasSchemaCreated = testSchemaProcessor => {
-    const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
-                 WHERE schema_name = '${ testSchemaProcessor.conversion._schema }');`;
+async function hasSchemaCreated(testSchemaProcessor: TestSchemaProcessor): Promise<boolean> {
+    const logTitle: string = 'SchemaProcessorTest::hasSchemaCreated';
+    const sql: string = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
+         WHERE schema_name = '${ (<Conversion>testSchemaProcessor.conversion)._schema }');`;
 
-    return testSchemaProcessor
-        .queryPg(sql)
-        .then(data => !!data.rows[0].exists);
-};
+    const result: DBAccessQueryResult = await (<DBAccess>testSchemaProcessor.dbAccess).query(
+        logTitle,
+        sql,
+        DBVendors.PG,
+        true,
+        false
+    );
+
+    return !!result.data.rows[0].exists;
+}
 
 /**
+ * TODO: check @types/tape.
  * Schema creation testing.
  *
  * @param {TestSchemaProcessor} testSchemaProcessor
@@ -53,4 +61,4 @@ module.exports = (testSchemaProcessor, tape) => {
         tape.timeoutAfter(autoTimeoutMs);
         tape.equal(schemaExists, true);
     });
-};
+}

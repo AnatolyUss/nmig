@@ -71,9 +71,8 @@ export class TestSchemaProcessor {
      * Removes resources created by test scripts.
      */
     public async removeTestResources(): Promise<void> {
-        const dbAccess: DBAccess = new DBAccess(<Conversion>this.conversion);
         const sqlDropMySqlDatabase: string = `DROP DATABASE ${ (<Conversion>this.conversion)._mySqlDbName };`;
-        await dbAccess.query(
+        await (<DBAccess>this.dbAccess).query(
             'removeTestResources',
             sqlDropMySqlDatabase,
             DBVendors.MYSQL,
@@ -82,7 +81,7 @@ export class TestSchemaProcessor {
         );
 
         const sqlDropPgDatabase: string = `DROP SCHEMA ${ (<Conversion>this.conversion)._schema } CASCADE;`;
-        await dbAccess.query(
+        await (<DBAccess>this.dbAccess).query(
             'removeTestResources',
             sqlDropPgDatabase,
             DBVendors.PG,
@@ -95,9 +94,8 @@ export class TestSchemaProcessor {
      * Creates test source database.
      */
     private async _createTestSourceDb(conversion: Conversion): Promise<Conversion> {
-        const dbAccess: DBAccess = new DBAccess(conversion);
         const sql: string = `CREATE DATABASE IF NOT EXISTS ${ (<Conversion>this.conversion)._mySqlDbName };`;
-        await dbAccess.query('_createTestSourceDb', sql, DBVendors.MYSQL, true, false);
+        await (<DBAccess>this.dbAccess).query('_createTestSourceDb', sql, DBVendors.MYSQL, true, false);
         return conversion;
     }
 
@@ -140,9 +138,8 @@ export class TestSchemaProcessor {
      * Loads test schema into MySQL test database.
      */
     private async _loadTestSchema(conversion: Conversion): Promise<Conversion> {
-        const dbAccess: DBAccess = new DBAccess(conversion);
         const sqlBuffer: Buffer = await this._readTestSchema.bind(this);
-        await dbAccess.query(
+        await (<DBAccess>this.dbAccess).query(
             '_loadTestSchema',
             sqlBuffer.toString(),
             DBVendors.MYSQL,
@@ -164,7 +161,6 @@ export class TestSchemaProcessor {
      * Loads test data into MySQL test database.
      */
     private async _loadTestData(conversion: Conversion): Promise<Conversion> {
-        const dbAccess: DBAccess = new DBAccess(conversion);
         const insertParams: any = {
             id_test_unique_index: 7384,
             id_test_composite_unique_index_1: 125,
@@ -196,7 +192,7 @@ export class TestSchemaProcessor {
         const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) 
             VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
 
-        await dbAccess.query(
+        await (<DBAccess>this.dbAccess).query(
             'TestSchemaProcessor::_loadTestData',
             sql,
             DBVendors.MYSQL,
