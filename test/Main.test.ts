@@ -18,49 +18,45 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-'use strict';
-
-const test                = require('tape');
-const TestSchemaProcessor = require('./TestModules/TestSchemaProcessor');
-const testSchema          = require('./TestModules/SchemaProcessorTest');
-const testDataContent     = require('./TestModules/DataContentTest');
-const testColumnTypes     = require('./TestModules/ColumnTypesTest');
+import * as test from 'tape';
+import { EventEmitter } from 'events';
+import Conversion from '../src/Conversion';
+import TestSchemaProcessor from './TestModules/TestSchemaProcessor';
+import testSchema from './TestModules/SchemaProcessorTest';
+import testDataContent from './TestModules/DataContentTest';
+import testColumnTypes from './TestModules/ColumnTypesTest';
 
 /**
  * Runs test suites.
- *
- * @param {TestSchemaProcessor} testSchemaProcessor
- *
- * @returns {Function}
  */
-const runTestSuites = testSchemaProcessor => {
+function runTestSuites(testSchemaProcessor: TestSchemaProcessor): () => void {
     return () => {
-        test.onFinish(() => {
-            testSchemaProcessor.removeTestResources()
-                .then(() => process.exit());
+        test.onFinish(async () => {
+            await testSchemaProcessor.removeTestResources();
+            process.exit();
         });
 
-        test('Test schema should be created', tapeTestSchema => {
+        test('Test schema should be created', (tapeTestSchema: test.Test) => {
             testSchema(testSchemaProcessor, tapeTestSchema);
         });
 
-        test('Test the data content', tapeTestDataContent => {
+        test('Test the data content', (tapeTestDataContent: test.Test) => {
             testDataContent(testSchemaProcessor, tapeTestDataContent);
         });
 
-        test('Test column types', tapeTestColumnTypes => {
+        test('Test column types', (tapeTestColumnTypes: test.Test) => {
             testColumnTypes(testSchemaProcessor, tapeTestColumnTypes);
         });
     };
-};
+}
 
-const testSchemaProcessor = new TestSchemaProcessor();
+const testSchemaProcessor: TestSchemaProcessor = new TestSchemaProcessor();
 
 testSchemaProcessor
     .initializeConversion()
-    .then(conversion => {
+    .then((conversion: Conversion) => {
         // Registers callback, that will be invoked when the test database arrangement will be completed.
-        conversion._eventEmitter.on(conversion._migrationCompletedEvent, runTestSuites(testSchemaProcessor));
+        (<EventEmitter>conversion._eventEmitter).on(conversion._migrationCompletedEvent, runTestSuites(testSchemaProcessor));
 
         // Continues the test database arrangement.
         return Promise.resolve(conversion);

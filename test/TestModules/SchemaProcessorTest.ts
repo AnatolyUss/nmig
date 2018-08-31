@@ -18,11 +18,12 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { TestSchemaProcessor } from './TestSchemaProcessor';
+import TestSchemaProcessor from './TestSchemaProcessor';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
+import { Test } from 'tape';
 
 /**
  * Checks if the schema exists.
@@ -44,21 +45,14 @@ async function hasSchemaCreated(testSchemaProcessor: TestSchemaProcessor): Promi
 }
 
 /**
- * TODO: check @types/tape.
- * Schema creation testing.
- *
- * @param {TestSchemaProcessor} testSchemaProcessor
- * @param {Tape} tape
- *
- * @returns {undefined}
+ * Tests schema creation.
  */
-module.exports = (testSchemaProcessor, tape) => {
-    hasSchemaCreated(testSchemaProcessor).then(schemaExists => {
-        const numberOfPlannedAssertions = 1;
-        const autoTimeoutMs             = 3 * 1000; // 3 seconds.
+export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> {
+    const schemaExists: boolean = await hasSchemaCreated(testSchemaProcessor);
+    const numberOfPlannedAssertions: number = 1;
+    const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
 
-        tape.plan(numberOfPlannedAssertions);
-        tape.timeoutAfter(autoTimeoutMs);
-        tape.equal(schemaExists, true);
-    });
+    tape.plan(numberOfPlannedAssertions);
+    tape.timeoutAfter(autoTimeoutMs);
+    tape.equal(schemaExists, true);
 }

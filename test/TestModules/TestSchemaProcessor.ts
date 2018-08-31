@@ -33,7 +33,7 @@ import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import generateError from '../../src/ErrorGenerator';
 
-export class TestSchemaProcessor {
+export default class TestSchemaProcessor {
     /**
      * Instance of class Main.
      */
