@@ -109,7 +109,7 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     for (let i: number = 0; i < numberOfPlannedAssertions; ++i) {
         const columnName: string = data[i].column_name;
         const actualColumnType: string = data[i].data_type;
-        const expectedColumnType: string = expectedColumnTypesMap.get(columnName);
+        const expectedColumnType: string = <string>expectedColumnTypesMap.get(columnName);
 
         tape.comment(`Test ${ columnName } column type`);
         tape.equal(actualColumnType, expectedColumnType);
