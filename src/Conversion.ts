@@ -47,7 +47,7 @@ export default class Conversion {
     /**
      * V8 memory limit of the loader process.
      */
-    public _loaderMaxOldSpaceSize: number|string;
+    public _loaderMaxOldSpaceSize: number | string;
 
     /**
      * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers.
@@ -117,7 +117,7 @@ export default class Conversion {
     /**
      * Current version of source (MySQL) db.
      */
-    public _mysqlVersion: string|number;
+    public _mysqlVersion: string | number;
 
     /**
      * Node-MySQL connections pool.
@@ -187,7 +187,7 @@ export default class Conversion {
     /**
      * An EventEmitter instance.
      */
-    public _eventEmitter: EventEmitter|null;
+    public _eventEmitter: EventEmitter | null;
 
     /**
      * The data types map.

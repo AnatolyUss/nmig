@@ -53,7 +53,7 @@ const isDateTime = (type: string): boolean => {
 /**
  * Arranges columns data before loading.
  */
-export default (arrTableColumns: any[], mysqlVersion: string|number): string => {
+export default (arrTableColumns: any[], mysqlVersion: string | number): string => {
     let strRetVal: string = '';
     const wkbFunc: string = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
