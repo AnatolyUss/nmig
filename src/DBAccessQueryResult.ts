@@ -26,7 +26,7 @@ export default interface DBAccessQueryResult {
      * MySQL's or PostgreSQL's client instance.
      * The client may be undefined.
      */
-    client?: PoolConnection|PoolClient;
+    client?: PoolConnection | PoolClient;
 
     /**
      * Query result.

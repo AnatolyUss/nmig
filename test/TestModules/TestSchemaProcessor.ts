@@ -209,7 +209,7 @@ export default class TestSchemaProcessor {
      * Initializes Conversion instance.
      */
     public async initializeConversion(): Promise<Conversion> {
-        const baseDir: string = path.join(__dirname, '..', '..');
+        const baseDir: string = path.join(__dirname, '..', '..', '..');
         const config: any = await this._app.readConfig(baseDir, 'test_config.json');
         const fullConfig: any = await this._app.readExtraConfig(config, baseDir);
         this.conversion = await this._app.initializeConversion(fullConfig);

@@ -88,7 +88,7 @@ export default class DBAccess {
         this._getMysqlConnection();
 
         return new Promise<PoolConnection>((resolve, reject) => {
-            (<MySQLPool>this._conversion._mysql).getConnection((err: MysqlError|null, connection: PoolConnection) => {
+            (<MySQLPool>this._conversion._mysql).getConnection((err: MysqlError | null, connection: PoolConnection) => {
                 return err ? reject(err) : resolve(connection);
             });
         });
@@ -114,9 +114,9 @@ export default class DBAccess {
     /**
      * Releases MySQL or PostgreSQL connection back to appropriate pool.
      */
-    public releaseDbClient(dbClient?: PoolConnection|PoolClient): void {
+    public releaseDbClient(dbClient?: PoolConnection | PoolClient): void {
         try {
-            (<PoolConnection|PoolClient>dbClient).release();
+            (<PoolConnection | PoolClient>dbClient).release();
             dbClient = undefined;
         } catch (error) {
             generateError(this._conversion, `\t--[DBAccess::releaseDbClient] ${ error }`);
@@ -127,7 +127,7 @@ export default class DBAccess {
      * Checks if there are no more queries to be sent using current client.
      * In such case the client should be released.
      */
-    private _releaseDbClientIfNecessary(client: PoolConnection|PoolClient, shouldHoldClient: boolean): void {
+    private _releaseDbClientIfNecessary(client: PoolConnection | PoolClient, shouldHoldClient: boolean): void {
         if (!shouldHoldClient) {
             this.releaseDbClient(client);
         }
@@ -143,7 +143,7 @@ export default class DBAccess {
         vendor: DBVendors,
         processExitOnError: boolean,
         shouldReturnClient: boolean,
-        client?: PoolConnection|PoolClient,
+        client?: PoolConnection | PoolClient,
         bindings?: any[]
     ): Promise<DBAccessQueryResult> {
         // Checks if there is an available client.
@@ -180,7 +180,7 @@ export default class DBAccess {
                 sql = (<PoolConnection>client).format(sql, bindings);
             }
 
-            (<PoolConnection>client).query(sql, (error: MysqlError|null, data: any) => {
+            (<PoolConnection>client).query(sql, (error: MysqlError | null, data: any) => {
                 this._releaseDbClientIfNecessary((<PoolConnection>client), shouldReturnClient);
 
                 if (error) {
