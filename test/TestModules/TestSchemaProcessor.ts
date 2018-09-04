@@ -130,7 +130,7 @@ export default class TestSchemaProcessor {
      * Reads test schema sql file.
      */
     private _readTestSchema(): Promise<Buffer> {
-        const testSchemaFilePath: string = path.join(__dirname, '..', 'test_schema.sql');
+        const testSchemaFilePath: string = path.join(__dirname, '..', '..', '..', 'test', 'test_schema.sql');
         return this._readFile(testSchemaFilePath);
     }
 
@@ -138,7 +138,7 @@ export default class TestSchemaProcessor {
      * Loads test schema into MySQL test database.
      */
     private async _loadTestSchema(conversion: Conversion): Promise<Conversion> {
-        const sqlBuffer: Buffer = await this._readTestSchema.bind(this);
+        const sqlBuffer: Buffer = await this._readTestSchema();
         await (<DBAccess>this.dbAccess).query(
             '_loadTestSchema',
             sqlBuffer.toString(),
@@ -189,8 +189,7 @@ export default class TestSchemaProcessor {
         };
 
         const insertParamsKeys: string[] = Object.keys(insertParams);
-        const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) 
-            VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
+        const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
 
         await (<DBAccess>this.dbAccess).query(
             'TestSchemaProcessor::_loadTestData',
