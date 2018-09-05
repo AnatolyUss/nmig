@@ -71,6 +71,10 @@ export default class TestSchemaProcessor {
      * Removes resources created by test scripts.
      */
     public async removeTestResources(): Promise<void> {
+        if (!(<Conversion>this.conversion)._removeTestResources) {
+            return;
+        }
+
         const sqlDropMySqlDatabase: string = `DROP DATABASE ${ (<Conversion>this.conversion)._mySqlDbName };`;
         await (<DBAccess>this.dbAccess).query(
             'removeTestResources',
@@ -185,7 +189,7 @@ export default class TestSchemaProcessor {
             enum: 'e1',
             set: 's2',
             text: 'Test text',
-            blob: this.getTestBlob(conversion),
+            blob: this.getTestBlob(conversion)
         };
 
         const insertParamsKeys: string[] = Object.keys(insertParams).map((k: string) => `\`${ k }\``);
