@@ -188,7 +188,7 @@ export default class TestSchemaProcessor {
             blob: this.getTestBlob(conversion),
         };
 
-        const insertParamsKeys: string[] = Object.keys(insertParams);
+        const insertParamsKeys: string[] = Object.keys(insertParams).map((k: string) => `\`${ k }\``);
         const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
 
         await (<DBAccess>this.dbAccess).query(
