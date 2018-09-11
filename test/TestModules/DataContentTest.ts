@@ -37,9 +37,13 @@ async function retrieveData(testSchemaProcessor: TestSchemaProcessor): Promise<a
         logTitle,
         sql,
         DBVendors.PG,
-        true,
+        false,
         false
     );
+
+    if (result.error) {
+        testSchemaProcessor.processFatalError(result.error);
+    }
 
     return result.data.rows[0];
 }

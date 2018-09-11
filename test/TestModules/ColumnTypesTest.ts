@@ -40,9 +40,13 @@ async function getColumnTypes(testSchemaProcessor: TestSchemaProcessor): Promise
         logTitle,
         sql,
         DBVendors.PG,
-        true,
+        false,
         false
     );
+
+    if (result.error) {
+        testSchemaProcessor.processFatalError(result.error);
+    }
 
     return result.data.rows;
 }

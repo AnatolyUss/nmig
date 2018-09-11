@@ -61,9 +61,9 @@ export default class TestSchemaProcessor {
     /**
      * Stops the process in case of fatal error.
      */
-    public processFatalError(conversion: Conversion, error: string): void {
+    public processFatalError(error: string): void {
         console.log(error);
-        generateError(conversion, error);
+        generateError(<Conversion>this.conversion, error);
         process.exit();
     }
 
