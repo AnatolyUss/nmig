@@ -24,6 +24,7 @@ import { EventEmitter } from 'events';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
+import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 import { Main } from '../../src/Main';
 import SchemaProcessor from '../../src/SchemaProcessor';
 import readDataTypesMap from '../../src/DataTypesMapReader';
@@ -32,6 +33,7 @@ import pipeData from '../../src/DataPipeManager';
 import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import generateError from '../../src/ErrorGenerator';
+import log from '../../src/Logger';
 
 export default class TestSchemaProcessor {
     /**
@@ -92,6 +94,56 @@ export default class TestSchemaProcessor {
             true,
             false
         );
+    }
+
+    /**
+     * Prevents tests from running if test dbs (both MySQL and PostgreSQL) already exist.
+     */
+    private async _checkResources(conversion: Conversion): Promise<Conversion> {
+        const logTitle: string = 'TestSchemaProcessor::_checkResources';
+
+        const sqlIsMySqlDbExist: string = `SELECT EXISTS (SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA 
+            WHERE SCHEMA_NAME = '${ (<Conversion>this.conversion)._mySqlDbName }') AS \`exists\`;`;
+
+        const mySqlResult: DBAccessQueryResult = await (<DBAccess>this.dbAccess).query(
+            logTitle,
+            sqlIsMySqlDbExist,
+            DBVendors.MYSQL,
+            true,
+            false
+        );
+
+        const mySqlExists: boolean = !!mySqlResult.data[0].exists;
+
+        const sqlIsPgDbExist: string = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
+            WHERE schema_name = '${ (<Conversion>this.conversion)._schema }');`;
+
+        const pgResult: DBAccessQueryResult = await (<DBAccess>this.dbAccess).query(
+            logTitle,
+            sqlIsPgDbExist,
+            DBVendors.PG,
+            true,
+            false
+        );
+
+        const pgExists: boolean = !!pgResult.data.rows[0].exists;
+        let msg: string = '';
+
+        if (mySqlResult) {
+            msg += `Please, remove '${ (<Conversion>this.conversion)._mySqlDbName }' database from your MySQL server prior to running tests.\n\n`;
+        }
+
+        if (pgResult) {
+            msg += `Please, remove '${ (<Conversion>this.conversion)._targetConString.database }.${ (<Conversion>this.conversion)._schema }' 
+                schema from your PostgreSQL server prior to running tests.`;
+        }
+
+        if (msg) {
+            log(<Conversion>this.conversion, msg);
+            process.exit();
+        }
+
+        return conversion;
     }
 
     /**
@@ -229,6 +281,7 @@ export default class TestSchemaProcessor {
      */
     public arrangeTestMigration(conversion: Conversion): void {
         Promise.resolve(conversion)
+            .then(this._checkResources.bind(this))
             .then(this._createTestSourceDb.bind(this))
             .then(this._updateMySqlConnection.bind(this))
             .then(this._loadTestSchema.bind(this))
