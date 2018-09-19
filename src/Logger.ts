@@ -27,7 +27,7 @@ import Conversion from './Conversion';
  * If necessary, writes given log to the "/{tableName}.log" file.
  */
 export default (conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, isErrorLog?: boolean): void => {
-    const buffer: Buffer = Buffer.from(`${log}\n\n`, conversion._encoding);
+    const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
 
     if (!isErrorLog) {
         console.log(log);
