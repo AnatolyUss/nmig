@@ -102,8 +102,8 @@ export default class TestSchemaProcessor {
     private async _checkResources(conversion: Conversion): Promise<Conversion> {
         const logTitle: string = 'TestSchemaProcessor::_checkResources';
 
-        const sqlIsMySqlDbExist: string = `SELECT EXISTS (SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA 
-            WHERE SCHEMA_NAME = '${ (<Conversion>this.conversion)._mySqlDbName }') AS \`exists\`;`;
+        const sqlIsMySqlDbExist: string = `SELECT EXISTS (SELECT schema_name FROM information_schema.schemata 
+            WHERE schema_name = '${ (<Conversion>this.conversion)._mySqlDbName }') AS \`exists\`;`;
 
         const mySqlResult: DBAccessQueryResult = await (<DBAccess>this.dbAccess).query(
             logTitle,

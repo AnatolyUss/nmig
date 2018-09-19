@@ -24,11 +24,48 @@ import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 
 /**
+ * Checks correctness of connection details of both MySQL and PostgreSQL.
+ */
+async function checkConnection(conversion: Conversion, dbAccess: DBAccess): Promise<string> {
+    const logTitle: string = 'BootProcessor::checkConnection';
+    let resultMessage: string = '';
+    const sql: string = 'SELECT 1;';
+
+    const mySqlResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, false, false);
+    resultMessage += `\tMySQL connection error: ${ (JSON.stringify(mySqlResult.error) || '') }\n`;
+    // const pgResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
+    // resultMessage += `\tPostgreSQL connection error: ${ (JSON.stringify(pgResult.error) || '') }`;
+    return resultMessage;
+}
+
+/**
+ * Returns Nmig's logo.
+ */
+function getLogo(): string {
+    return '\n\t/\\_  |\\  /\\/\\ /\\___'
+        + '\n\t|  \\ | |\\ | | | __'
+        + '\n\t| |\\\\| || | | | \\_ \\'
+        + '\n\t| | \\| || | | |__/ |'
+        + '\n\t\\|   \\/ /_|/______/'
+        + '\n\n\tNMIG - the database migration tool'
+        + '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
+        + '\t--[boot] Configuration has been just loaded.';
+}
+
+/**
  * Boots the migration.
  */
 export default(conversion: Conversion): Promise<Conversion> => {
     return new Promise<Conversion>(async resolve => {
         const dbAccess: DBAccess = new DBAccess(conversion);
+        const connectionErrorMessage = await checkConnection(conversion, dbAccess);
+        const logo: string = getLogo();
+
+        if (connectionErrorMessage) {
+            console.log(`${ logo } \n ${ connectionErrorMessage }`);
+            process.exit();
+        }
+
         const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables 
         WHERE table_schema = '${ conversion._schema }'
             AND table_name = 'state_logs_${ conversion._schema }${ conversion._mySqlDbName }');`;
@@ -39,17 +76,7 @@ export default(conversion: Conversion): Promise<Conversion> => {
             ? '\n\t--[boot] NMIG is ready to restart after some failure.\n\t--[boot] Consider checking log files at the end of migration.'
             : '\n\t--[boot] NMIG is ready to start.') } \n\t--[boot] Proceed? [Y/n]`;
 
-        const logo: string = '\n\t/\\_  |\\  /\\/\\ /\\___'
-            + '\n\t|  \\ | |\\ | | | __'
-            + '\n\t| |\\\\| || | | | \\_ \\'
-            + '\n\t| | \\| || | | |__/ |'
-            + '\n\t\\|   \\/ /_|/______/'
-            + '\n\n\tNMIG - the database migration tool'
-            + '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
-            + '\t--[boot] Configuration has been just loaded.'
-            + message;
-
-        console.log(logo);
+        console.log(logo + message);
 
         process
             .stdin
