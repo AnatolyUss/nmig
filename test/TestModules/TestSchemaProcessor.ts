@@ -129,13 +129,13 @@ export default class TestSchemaProcessor {
         const pgExists: boolean = !!pgResult.data.rows[0].exists;
         let msg: string = '';
 
-        if (mySqlResult) {
-            msg += `Please, remove '${ (<Conversion>this.conversion)._mySqlDbName }' database from your MySQL server prior to running tests.\n\n`;
+        if (mySqlExists) {
+            msg += `Please, remove '${ (<Conversion>this.conversion)._mySqlDbName }' database from your MySQL server prior to running tests.\n`;
         }
 
-        if (pgResult) {
-            msg += `Please, remove '${ (<Conversion>this.conversion)._targetConString.database }.${ (<Conversion>this.conversion)._schema }' 
-                schema from your PostgreSQL server prior to running tests.`;
+        if (pgExists) {
+            const schemaName: string = `'${ (<Conversion>this.conversion)._targetConString.database }.${ (<Conversion>this.conversion)._schema }'`;
+            msg += `Please, remove ${ schemaName } schema from your PostgreSQL server prior to running tests.`;
         }
 
         if (msg) {
