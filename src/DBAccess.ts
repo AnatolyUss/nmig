@@ -19,7 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as mysql from 'mysql';
-import { Pool as MySQLPool, PoolConnection, MysqlError } from 'mysql';
+import { MysqlError, Pool as MySQLPool, PoolConnection } from 'mysql';
 import { Pool as PgPool, PoolClient, QueryResult } from 'pg';
 import generateError from './ErrorGenerator';
 import Conversion from './Conversion';
