@@ -32,9 +32,10 @@ async function checkConnection(conversion: Conversion, dbAccess: DBAccess): Prom
     const sql: string = 'SELECT 1;';
 
     const mySqlResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, false, false);
-    resultMessage += `\tMySQL connection error: ${ (JSON.stringify(mySqlResult.error) || '') }\n`;
-    // const pgResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
-    // resultMessage += `\tPostgreSQL connection error: ${ (JSON.stringify(pgResult.error) || '') }`;
+    resultMessage += mySqlResult.error ? `\tMySQL connection error: ${ JSON.stringify(mySqlResult.error) }\n` : '';
+
+    const pgResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
+    resultMessage += pgResult.error ? `\tPostgreSQL connection error: ${ JSON.stringify(pgResult.error) }` : '';
     return resultMessage;
 }
 
