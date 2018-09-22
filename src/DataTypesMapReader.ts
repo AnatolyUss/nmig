@@ -25,7 +25,7 @@ import Conversion from './Conversion';
  * Reads "./config/data_types_map.json" and converts its json content to js object.
  */
 export default (conversion: Conversion): Promise<Conversion> => {
-    return new Promise(resolve => {
+    return new Promise<Conversion>(resolve => {
         fs.readFile(conversion._dataTypesMapAddr, (error: Error, data: Buffer) => {
             if (error) {
                 console.log(`\t--[readDataTypesMap] Cannot read "DataTypesMap" from ${conversion._dataTypesMapAddr}`);
