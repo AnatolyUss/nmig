@@ -265,14 +265,14 @@ export default class TestSchemaProcessor {
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();
         this.dbAccess = new DBAccess(this.conversion);
-        const connectionErrorMessage = await checkConnection(this.conversion, this.dbAccess);
         const logo: string = getLogo();
         console.log(logo);
+        /* const connectionErrorMessage = await checkConnection(this.conversion, this.dbAccess);
 
         if (connectionErrorMessage) {
             console.log(connectionErrorMessage);
-            // process.exit();
-        }
+            process.exit();
+        } */
 
         delete this.conversion._sourceConString.database;
         return this.conversion;
