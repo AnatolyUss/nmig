@@ -18,113 +18,25 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as fs from 'fs';
 import * as path from 'path';
-import readDataTypesMap from './DataTypesMapReader';
 import Conversion from './Conversion';
-import SchemaProcessor from './SchemaProcessor';
+import createSchema from './SchemaProcessor';
 import loadStructureToMigrate from './StructureLoader';
 import pipeData from './DataPipeManager';
-import boot from './BootProcessor';
+import { boot } from './BootProcessor';
 import { createStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
-import log from './Logger';
+import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from './FsOps';
 
-export class Main {
-    /**
-     * Read the configuration file.
-     */
-    public readConfig(baseDir: string, configFileName: string = 'config.json'): Promise<any> {
-        return new Promise(resolve => {
-            const strPathToConfig = path.join(baseDir, 'config', configFileName);
-
-            fs.readFile(strPathToConfig, (error: Error, data: Buffer) => {
-                if (error) {
-                    console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ strPathToConfig }`);
-                    process.exit();
-                }
-
-                const config: any = JSON.parse(data.toString());
-                config.logsDirPath = path.join(baseDir, 'logs_directory');
-                config.dataTypesMapAddr = path.join(baseDir, 'config', 'data_types_map.json');
-                resolve(config);
-            });
-        });
-    }
-
-    /**
-     * Read the extra configuration file, if necessary.
-     */
-    public readExtraConfig(config: any, baseDir: string): Promise<any> {
-        return new Promise(resolve => {
-            if (config.enable_extra_config !== true) {
-                config.extraConfig = null;
-                return resolve(config);
-            }
-
-            const strPathToExtraConfig = path.join(baseDir, 'config', 'extra_config.json');
-
-            fs.readFile(strPathToExtraConfig, (error: Error, data: Buffer) => {
-                if (error) {
-                    console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ strPathToExtraConfig }`);
-                    process.exit();
-                }
-
-                config.extraConfig = JSON.parse(data.toString());
-                resolve(config);
-            });
-        });
-    }
-
-    /**
-     * Initialize Conversion instance.
-     */
-    public initializeConversion(config: any): Promise<Conversion> {
-        return Promise.resolve(new Conversion(config));
-    }
-
-    /**
-     * Creates logs directory.
-     */
-    public createLogsDirectory(self: Conversion): Promise<Conversion> {
-        return new Promise(resolve => {
-            console.log('\t--[DirectoriesManager.createLogsDirectory] Creating logs directory...');
-            fs.stat(self._logsDirPath, (directoryDoesNotExist: Error, stat: fs.Stats) => {
-                if (directoryDoesNotExist) {
-                    fs.mkdir(self._logsDirPath, self._0777, e => {
-                        if (e) {
-                            const msg = `\t--[DirectoriesManager.createLogsDirectory] Cannot perform a migration due to impossibility to create 
-                                "logs_directory": ${ self._logsDirPath }`;
-
-                            console.log(msg);
-                            process.exit();
-                        } else {
-                            log(self, '\t--[DirectoriesManager.createLogsDirectory] Logs directory is created...');
-                            resolve(self);
-                        }
-                    });
-                } else if (!stat.isDirectory()) {
-                    console.log('\t--[DirectoriesManager.createLogsDirectory] Cannot perform a migration due to unexpected error');
-                    process.exit();
-                } else {
-                    log(self, '\t--[DirectoriesManager.createLogsDirectory] Logs directory already exists...');
-                    resolve(self);
-                }
-            });
-        });
-    }
-}
-
-const app: Main = new Main();
 const baseDir: string = path.join(__dirname, '..', '..');
 
-app.readConfig(baseDir)
-    .then(config => app.readExtraConfig(config, baseDir))
-    .then(app.initializeConversion)
+readConfig(baseDir)
+    .then(config => readExtraConfig(config, baseDir))
+    .then(Conversion.initializeConversion)
     .then(boot)
     .then(readDataTypesMap)
-    .then(app.createLogsDirectory)
-    .then(conversion => (new SchemaProcessor(conversion)).createSchema())
+    .then(createLogsDirectory)
+    .then(createSchema)
     .then(createStateLogsTable)
     .then(createDataPoolTable)
     .then(loadStructureToMigrate)

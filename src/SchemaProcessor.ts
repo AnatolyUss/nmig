@@ -23,38 +23,19 @@ import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 
-export default class SchemaProcessor {
-    /**
-     * An instance of "Conversion".
-     */
-    private readonly _conversion: Conversion;
+/**
+ * Creates a new PostgreSQL schema if it does not exist yet.
+ */
+export default async function(conversion: Conversion): Promise<Conversion> {
+    const logTitle: string = 'SchemaProcessor::createSchema';
+    let sql: string = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ conversion._schema }';`;
+    const dbAccess: DBAccess = new DBAccess(conversion);
+    const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, true, true);
 
-    /**
-     * An instance of "DBAccess".
-     */
-    private readonly _dbAccess: DBAccess;
-
-    /**
-     * SchemaProcessor constructor.
-     */
-    public constructor(conversion: Conversion) {
-        this._conversion = conversion;
-        this._dbAccess = new DBAccess(this._conversion);
+    if (result.data.rows.length === 0) {
+        sql = `CREATE SCHEMA "${ conversion._schema }";`;
+        await dbAccess.query(logTitle, sql, DBVendors.PG, true, false, result.client);
     }
 
-    /**
-     * Create a new database schema if it does not exist yet.
-     */
-    public async createSchema(): Promise<Conversion> {
-        let sql: string = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ this._conversion._schema }';`;
-
-        const result: DBAccessQueryResult = await this._dbAccess.query('SchemaProcessor::createSchema', sql, DBVendors.PG, true, true);
-
-        if (result.data.rows.length === 0) {
-            sql = `CREATE SCHEMA "${ this._conversion._schema }";`;
-            await this._dbAccess.query('SchemaProcessor::createSchema', sql, DBVendors.PG, true, false, result.client);
-        }
-
-        return this._conversion;
-    }
+    return conversion;
 }

@@ -25,22 +25,17 @@ import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
-import { Main } from '../../src/Main';
-import SchemaProcessor from '../../src/SchemaProcessor';
-import readDataTypesMap from '../../src/DataTypesMapReader';
+import createSchema from '../../src/SchemaProcessor';
 import loadStructureToMigrate from '../../src/StructureLoader';
 import pipeData from '../../src/DataPipeManager';
 import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import generateError from '../../src/ErrorGenerator';
 import log from '../../src/Logger';
+import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from '../../src/FsOps';
+import { checkConnection, getLogo } from '../../src/BootProcessor';
 
 export default class TestSchemaProcessor {
-    /**
-     * Instance of class Main.
-     */
-    private readonly _app: Main;
-
     /**
      * Instance of class Conversion.
      */
@@ -55,7 +50,6 @@ export default class TestSchemaProcessor {
      * TestSchemaProcessor constructor.
      */
     public constructor() {
-        this._app = new Main();
         this.conversion = undefined;
         this.dbAccess = undefined;
     }
@@ -265,12 +259,21 @@ export default class TestSchemaProcessor {
      */
     public async initializeConversion(): Promise<Conversion> {
         const baseDir: string = path.join(__dirname, '..', '..', '..');
-        const config: any = await this._app.readConfig(baseDir, 'test_config.json');
-        const fullConfig: any = await this._app.readExtraConfig(config, baseDir);
-        this.conversion = await this._app.initializeConversion(fullConfig);
+        const config: any = await readConfig(baseDir, 'test_config.json');
+        const fullConfig: any = await readExtraConfig(config, baseDir);
+        this.conversion = await Conversion.initializeConversion(fullConfig);
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();
         this.dbAccess = new DBAccess(this.conversion);
+        const connectionErrorMessage = await checkConnection(this.conversion, this.dbAccess);
+        const logo: string = getLogo();
+        console.log(logo);
+
+        if (connectionErrorMessage) {
+            console.log(connectionErrorMessage);
+            // process.exit();
+        }
+
         delete this.conversion._sourceConString.database;
         return this.conversion;
     }
@@ -287,8 +290,8 @@ export default class TestSchemaProcessor {
             .then(this._loadTestSchema.bind(this))
             .then(this._loadTestData.bind(this))
             .then(readDataTypesMap)
-            .then(this._app.createLogsDirectory)
-            .then(conversion => (new SchemaProcessor(conversion)).createSchema())
+            .then(createLogsDirectory)
+            .then(createSchema)
             .then(createStateLogsTable)
             .then(createDataPoolTable)
             .then(loadStructureToMigrate)

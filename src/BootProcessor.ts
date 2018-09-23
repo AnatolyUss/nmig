@@ -26,7 +26,7 @@ import DBVendors from './DBVendors';
 /**
  * Checks correctness of connection details of both MySQL and PostgreSQL.
  */
-async function checkConnection(conversion: Conversion, dbAccess: DBAccess): Promise<string> {
+export async function checkConnection(conversion: Conversion, dbAccess: DBAccess): Promise<string> {
     const logTitle: string = 'BootProcessor::checkConnection';
     let resultMessage: string = '';
     const sql: string = 'SELECT 1;';
@@ -42,7 +42,7 @@ async function checkConnection(conversion: Conversion, dbAccess: DBAccess): Prom
 /**
  * Returns Nmig's logo.
  */
-function getLogo(): string {
+export function getLogo(): string {
     return '\n\t/\\_  |\\  /\\/\\ /\\___'
         + '\n\t|  \\ | |\\ | | | __'
         + '\n\t| |\\\\| || | | | \\_ \\'
@@ -56,7 +56,7 @@ function getLogo(): string {
 /**
  * Boots the migration.
  */
-export default(conversion: Conversion): Promise<Conversion> => {
+export function boot(conversion: Conversion): Promise<Conversion> {
     return new Promise<Conversion>(async resolve => {
         const dbAccess: DBAccess = new DBAccess(conversion);
         const connectionErrorMessage = await checkConnection(conversion, dbAccess);
