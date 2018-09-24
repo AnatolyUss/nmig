@@ -267,13 +267,6 @@ export default class TestSchemaProcessor {
         this.dbAccess = new DBAccess(this.conversion);
         const logo: string = getLogo();
         console.log(logo);
-        /* const connectionErrorMessage = await checkConnection(this.conversion, this.dbAccess);
-
-        if (connectionErrorMessage) {
-            console.log(connectionErrorMessage);
-            process.exit();
-        } */
-
         delete this.conversion._sourceConString.database;
         return this.conversion;
     }
@@ -282,7 +275,14 @@ export default class TestSchemaProcessor {
      * Arranges test migration.
      * "migrationCompleted" event will fire on completion.
      */
-    public arrangeTestMigration(conversion: Conversion): void {
+    public async arrangeTestMigration(conversion: Conversion): Promise<void> {
+        const connectionErrorMessage = await checkConnection(conversion, <DBAccess>this.dbAccess);
+
+        if (connectionErrorMessage) {
+            console.log(connectionErrorMessage);
+            process.exit();
+        }
+
         Promise.resolve(conversion)
             .then(this._checkResources.bind(this))
             .then(this._createTestSourceDb.bind(this))
