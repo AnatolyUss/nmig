@@ -19,7 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as migrationStateManager from './MigrationStateManager';
-import log from './Logger';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';

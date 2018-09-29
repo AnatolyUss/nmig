@@ -21,7 +21,58 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import Conversion from './Conversion';
-import log from './Logger';
+
+/**
+ * Writes a detailed error message to the "/errors-only.log" file.
+ */
+export function generateError(conversion: Conversion, message: string, sql: string = ''): Promise<void> {
+    return new Promise<void>(resolve => {
+        message += `\n\n\tSQL: ${sql}\n\n`;
+        const buffer: Buffer = Buffer.from(message, conversion._encoding);
+        log(conversion, message, undefined, true);
+
+        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
+            if (!error) {
+                fs.write(fd, buffer, 0, buffer.length, null, () => {
+                    fs.close(fd, () => resolve());
+                });
+            }
+        });
+    });
+}
+
+/**
+ * Outputs given log.
+ * Writes given log to the "/all.log" file.
+ * If necessary, writes given log to the "/{tableName}.log" file.
+ */
+export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, isErrorLog?: boolean): void {
+    const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
+
+    if (!isErrorLog) {
+        console.log(log);
+    }
+
+    fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
+        if (!error) {
+            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                fs.close(fd, () => {
+                    if (tableLogPath) {
+                        fs.open(tableLogPath, 'a', conversion._0777, (error: Error, fd: number) => {
+                            if (!error) {
+                                fs.write(fd, buffer, 0, buffer.length, null, () => {
+                                    fs.close(fd, () => {
+                                        // Each async function MUST have a callback (according to Node.js >= 7).
+                                    });
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+        }
+    });
+}
 
 /**
  * Reads the configuration file.

@@ -19,7 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as fs from 'fs';
-import log from './Logger';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 
 /**

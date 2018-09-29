@@ -21,7 +21,7 @@
 import * as fs from 'fs';
 import { Stats } from 'fs';
 import * as path from 'path';
-import log from './Logger';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';

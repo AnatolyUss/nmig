@@ -21,7 +21,7 @@
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
-import log from './Logger';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 import Table from './Table';
 import { createTable } from './TableProcessor';

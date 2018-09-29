@@ -20,7 +20,7 @@
  */
 import { ChildProcess, fork } from 'child_process';
 import * as path from 'path';
-import log from './Logger';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 import generateError from './ErrorGenerator';
 import MessageToDataLoader from './MessageToDataLoader';
