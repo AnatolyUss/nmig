@@ -31,7 +31,7 @@ import pipeData from '../../src/DataPipeManager';
 import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import generateError from '../../src/ErrorGenerator';
-import log from '../../src/Logger';
+import { log } from '../../src/FsOps';
 import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from '../../src/FsOps';
 import { checkConnection, getLogo } from '../../src/BootProcessor';
 
