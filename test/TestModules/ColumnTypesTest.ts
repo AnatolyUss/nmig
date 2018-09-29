@@ -45,7 +45,7 @@ async function getColumnTypes(testSchemaProcessor: TestSchemaProcessor): Promise
     );
 
     if (result.error) {
-        testSchemaProcessor.processFatalError(result.error);
+        await testSchemaProcessor.processFatalError(result.error);
     }
 
     return result.data.rows;

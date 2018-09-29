@@ -32,11 +32,13 @@ export function generateError(conversion: Conversion, message: string, sql: stri
         log(conversion, message, undefined, true);
 
         fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
-            if (!error) {
-                fs.write(fd, buffer, 0, buffer.length, null, () => {
-                    fs.close(fd, () => resolve());
-                });
+            if (error) {
+                return resolve();
             }
+
+            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                fs.close(fd, () => resolve());
+            });
         });
     });
 }

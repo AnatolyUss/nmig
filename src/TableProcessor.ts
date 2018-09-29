@@ -18,8 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { log } from './FsOps';
-import generateError from './ErrorGenerator';
+import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
@@ -97,7 +96,7 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
         const result: DBAccessQueryResult = await dbAccess.query(logTitle, sqlAddDataChunkIdColumn, DBVendors.PG, false, false);
 
         if (result.error) {
-            generateError(conversion, `\t--[${ logTitle }] ${ result.error }`, sqlAddDataChunkIdColumn);
+            await generateError(conversion, `\t--[${ logTitle }] ${ result.error }`, sqlAddDataChunkIdColumn);
         }
 
         return;

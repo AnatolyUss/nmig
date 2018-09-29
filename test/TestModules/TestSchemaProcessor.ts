@@ -30,10 +30,15 @@ import loadStructureToMigrate from '../../src/StructureLoader';
 import pipeData from '../../src/DataPipeManager';
 import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
-import generateError from '../../src/ErrorGenerator';
-import { log } from '../../src/FsOps';
-import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from '../../src/FsOps';
 import { checkConnection, getLogo } from '../../src/BootProcessor';
+import {
+    readConfig,
+    readExtraConfig,
+    createLogsDirectory,
+    readDataTypesMap,
+    log,
+    generateError
+} from '../../src/FsOps';
 
 export default class TestSchemaProcessor {
     /**
@@ -57,9 +62,9 @@ export default class TestSchemaProcessor {
     /**
      * Stops the process in case of fatal error.
      */
-    public processFatalError(error: string): void {
+    public async processFatalError(error: string): Promise<void> {
         console.log(error);
-        generateError(<Conversion>this.conversion, error);
+        await generateError(<Conversion>this.conversion, error);
         process.exit();
     }
 

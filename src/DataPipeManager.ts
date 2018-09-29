@@ -20,9 +20,8 @@
  */
 import { ChildProcess, fork } from 'child_process';
 import * as path from 'path';
-import { log } from './FsOps';
+import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
-import generateError from './ErrorGenerator';
 import MessageToDataLoader from './MessageToDataLoader';
 import processConstraints from './ConstraintsProcessor';
 import decodeBinaryData from './BinaryDataDecoder';
@@ -30,11 +29,11 @@ import decodeBinaryData from './BinaryDataDecoder';
 /**
  * Kills a process specified by the pid.
  */
-function killProcess(pid: number, conversion: Conversion): void {
+async function killProcess(pid: number, conversion: Conversion): Promise<void> {
     try {
         process.kill(pid);
     } catch (killError) {
-        generateError(conversion, `\t--[killProcess] ${ killError }`);
+        await generateError(conversion, `\t--[killProcess] ${ killError }`);
     }
 }
 
@@ -119,7 +118,7 @@ async function pipeData(conversion: Conversion, dataLoaderPath: string, options:
     const bandwidth: number[] = fillBandwidth(conversion);
     const chunksToLoad: any[] = bandwidth.map((index: number) => conversion._dataPool[index]);
 
-    loaderProcess.on('message', (signal: any) => {
+    loaderProcess.on('message', async (signal: any) => {
         if (typeof signal === 'object') {
             conversion._dicTables[signal.tableName].totalRowsInserted += signal.rowsInserted;
             const msg: string = `\t--[pipeData]  For now inserted: ${ conversion._dicTables[signal.tableName].totalRowsInserted } rows, 
@@ -129,7 +128,7 @@ async function pipeData(conversion: Conversion, dataLoaderPath: string, options:
             return;
         }
 
-        killProcess(loaderProcess.pid, conversion);
+        await killProcess(loaderProcess.pid, conversion);
         conversion._processedChunks += chunksToLoad.length;
         return pipeData(conversion, dataLoaderPath, options);
     });

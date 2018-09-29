@@ -19,8 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as csvStringify from './CsvStringifyModified';
-import { log } from './FsOps';
-import generateError from './ErrorGenerator';
+import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
@@ -72,7 +71,7 @@ async function deleteChunk(conv: Conversion, dataPoolId: number, client: PoolCli
     try {
         await client.query(sql);
     } catch (error) {
-        generateError(conv, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
+        await generateError(conv, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
         dbAccess.releaseDbClient(client);
     }
@@ -88,7 +87,7 @@ function buildChunkQuery(tableName: string, selectFieldList: string, offset: num
 /**
  * Processes data-loading error.
  */
-function processDataError(
+async function processDataError(
     conv: Conversion,
     streamError: string,
     sql: string,
@@ -97,7 +96,7 @@ function processDataError(
     dataPoolId: number,
     client: PoolClient
 ): Promise<void> {
-    generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
+    await generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
     const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
     log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
     return deleteChunk(conv, dataPoolId, client);
@@ -131,7 +130,7 @@ async function populateTableWorker(
 
         csvStringify(result.data, async (csvError: any, csvString: string) => {
             if (csvError) {
-                generateError(conv, `\t--[${ logTitle }] ${ csvError }`);
+                await generateError(conv, `\t--[${ logTitle }] ${ csvError }`);
                 return resolvePopulateTableWorker();
             }
 

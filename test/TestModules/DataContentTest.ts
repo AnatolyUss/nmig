@@ -42,7 +42,7 @@ async function retrieveData(testSchemaProcessor: TestSchemaProcessor): Promise<a
     );
 
     if (result.error) {
-        testSchemaProcessor.processFatalError(result.error);
+        await testSchemaProcessor.processFatalError(result.error);
     }
 
     return result.data.rows[0];
