@@ -42,10 +42,11 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    <li>Make sure, that username, you use in your PostgreSQL connection details, defined as superuser (usually "postgres")<br> More info: <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a></li>
    </ul>
 
-<p><b>4.</b> Go to Nmig directory, install dependencies, and run the app<br />
+<p><b>4.</b> Go to Nmig directory, install dependencies, compile and run the app<br />
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install</pre><br />
+    <pre>$ npm run build</pre><br />
     <pre>$ npm start</pre><br />
 </p>
 
@@ -76,10 +77,11 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
         <a href="http://www.postgresql.org/docs/current/static/app-createuser.html">http://www.postgresql.org/docs/current/static/app-createuser.html</a>
    </li>
 </ul>
-<p><b>4.</b> Go to nmig directory, install dependencies, and run tests<br />
+<p><b>4.</b> Go to nmig directory, install dependencies, compile and run tests<br />
     &nbsp;&nbsp;&nbsp;&nbsp;<b>Sample:</b><br />
     <pre>$ cd /path/to/nmig</pre><br />
     <pre>$ npm install</pre><br />
+    <pre>$ npm run build</pre><br />
     <pre>$ npm test</pre><br />
 </p>
 <p><b>5.</b> At the end of migration check log files, if necessary.<br />&nbsp;&nbsp;&nbsp;

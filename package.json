@@ -22,12 +22,12 @@
         "@types/pg": "^7.4.10",
         "@types/tape": "^4.2.32",
         "tape": "^4.9.1",
-        "typescript": "^3.0.3"
+        "typescript": "^3.1.1"
     },
     "scripts": {
         "build": "tsc",
-        "start": "npm run build && node dist/src/Main.js",
-        "test": "npm run build && node dist/test/Main.test.js"
+        "start": "node dist/src/Main.js",
+        "test": "node dist/test/Main.test.js"
     },
     "keywords": [
         "database migration",
