@@ -10,7 +10,8 @@
         "types": [
             "node",
             "pg",
-            "mysql"
+            "mysql",
+            "tape"
         ]
     },
 
