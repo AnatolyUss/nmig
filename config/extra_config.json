@@ -93,7 +93,7 @@
 
         {
             "constraint_name" : "composite_foreign_key_example",
-            "table_name" : "loGs_Test-6",
+            "table_name" : "logs_test-6",
             "column_name" : "id1",
             "referenced_table_name" : "logs_test_4",
             "referenced_column_name" : "id1",
@@ -103,7 +103,7 @@
 
         {
             "constraint_name" : "composite_foreign_key_example",
-            "table_name" : "loGs_Test-6",
+            "table_name" : "logs_test-6",
             "column_name" : "id2",
             "referenced_table_name" : "logs_test_4",
             "referenced_column_name" : "id2",
