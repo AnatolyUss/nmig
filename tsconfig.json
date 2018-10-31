@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "removeComments": true,
+        "module": "commonjs",
+        "allowJs": true,
+        "target": "es2017",
+        "sourceMap": true,
+        "outDir": "./dist",
+        "strict": true,
+        "types": [
+            "node",
+            "pg",
+            "mysql",
+            "tape"
+        ]
+    },
+
+    "exclude": [
+        "node_modules"
+    ],
+
+    "include": [
+        "src/**/*",
+        "test/**/*"
+    ]
+}
