@@ -84,18 +84,19 @@ export function boot(conversion: Conversion): Promise<Conversion> {
             .resume()
             .setEncoding(conversion._encoding)
             .on('data', (stdin: string) => {
-                if (stdin.indexOf('n') !== -1) {
+                const trimedStdin: string = stdin.trim();
+
+                if (trimedStdin === 'n' || trimedStdin === 'N') {
                     console.log('\t--[boot] Migration aborted.\n');
                     process.exit();
-                } else if (stdin.indexOf('Y') !== -1) {
-                    return resolve(conversion);
-                } else {
-                    const hint: string = `\t--[boot] Unexpected input ${ stdin }\n
-                    \t--[boot] Expected input is upper case Y\n
-                    \t--[boot] or lower case n\n${ message }`;
-
-                    console.log(hint);
                 }
+
+                if (trimedStdin === 'y' || trimedStdin === 'Y') {
+                    return resolve(conversion);
+                }
+
+                const hint: string = `\t--[boot] Unexpected input ${ trimedStdin }\n\t--[boot] Expected input is upper case Y\n\t--[boot] or lower case n\n${ message }`;
+                console.log(hint);
             });
     });
 }
