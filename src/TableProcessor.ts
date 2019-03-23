@@ -87,7 +87,7 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
 
     conversion._dicTables[tableName].arrTableColumns = columns.data;
 
-    if (conversion._migrateOnlyData) {
+    if (conversion.shouldMigrateOnlyDataFor(tableName)) {
         // Although the schema is preset, the data chunk id column must be added.
         // This is due to the need to enforce data consistency in case of failures.
         const sqlAddDataChunkIdColumn: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 

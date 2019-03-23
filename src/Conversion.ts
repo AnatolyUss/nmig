@@ -75,9 +75,10 @@ export default class Conversion {
     public readonly _delimiter: string;
 
     /**
-     * Defines if only the data should be migrated (into a preset schema).
+     * Defines preset tables.
+     * The only thing to do with these tables is a data migration, since the schema is preset.
      */
-    public readonly _migrateOnlyData: boolean;
+    public readonly _migrateOnlyData: string[];
 
     /**
      * A path to the "logs_directory".
@@ -236,10 +237,17 @@ export default class Conversion {
         this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
         this._loaderMaxOldSpaceSize   = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize   = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
-        this._migrateOnlyData         = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
+        this._migrateOnlyData         = this._config.migrate_only_data === undefined ? [] : this._config.migrate_only_data;
         this._delimiter               = this._config.delimiter !== undefined && this._config.delimiter.length === 1
             ? this._config.delimiter
             : ',';
+    }
+
+    /**
+     * Checks if there are actions to take on given table other than data migration.
+     */
+    public shouldMigrateOnlyDataFor(tableName: string): boolean {
+        return this._migrateOnlyData.indexOf(tableName) !== -1 || this._migrateOnlyData.indexOf('*') !== -1;
     }
 
     /**
