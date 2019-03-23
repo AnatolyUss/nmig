@@ -82,15 +82,16 @@
     "exclude_tables": [],
 
     "migrate_only_data_description" : [
-        "In order to skip schema migration, and just migrate data into a preset schema",
-        " - set this parameter true."
+        "In order to skip schema migration, and just migrate data into a preset tables",
+        "fill following array with preset table names.",
+        "If all of your tables are preset, then use '*'"
     ],
-    "migrate_only_data" : false,
+    "migrate_only_data" : [],
 
     "delimiter_description" : [
-      "Specifies the character, that separates columns within each record.",
-      "This must be a single one-byte character.",
-      "The default is comma."
+        "Specifies the character, that separates columns within each record.",
+        "This must be a single one-byte character.",
+        "The default is comma."
     ],
     "delimiter" : ",",
 

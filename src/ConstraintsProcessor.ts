@@ -34,28 +34,18 @@ import { dropDataChunkIdColumn } from './ConsistencyEnforcer';
 import Conversion from './Conversion';
 
 /**
- * Continues migration process after data loading, when migrate_only_data is true.
+ * Continues migration process after data loading.
  */
-async function continueProcessAfterDataLoadingShort(conversion: Conversion): Promise<void> {
-    const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
-        await dropDataChunkIdColumn(conversion, tableName);
-        return sequencesProcessor.setSequenceValue(conversion, tableName);
-    });
-
-    await Promise.all(promises);
-    await dataPoolManager.dropDataPoolTable(conversion);
-    await runVacuumFullAndAnalyze(conversion);
-    await migrationStateManager.dropStateLogsTable(conversion);
-    generateReport(conversion, 'NMIG migration is accomplished.');
-}
-
-/**
- * Continues migration process after data loading, when migrate_only_data is false.
- */
-async function continueProcessAfterDataLoadingLong(conversion: Conversion): Promise<void> {
+export default async function(conversion: Conversion): Promise<void> {
     const isTableConstraintsLoaded: boolean = await migrationStateManager.get(conversion, 'per_table_constraints_loaded');
+
     const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
         if (!isTableConstraintsLoaded) {
+            if (conversion.shouldMigrateOnlyDataFor(tableName)) {
+                await dropDataChunkIdColumn(conversion, tableName);
+                return sequencesProcessor.setSequenceValue(conversion, tableName);
+            }
+
             await dropDataChunkIdColumn(conversion, tableName);
             await processEnum(conversion, tableName);
             await processNull(conversion, tableName);
@@ -76,16 +66,4 @@ async function continueProcessAfterDataLoadingLong(conversion: Conversion): Prom
     await runVacuumFullAndAnalyze(conversion);
     await migrationStateManager.dropStateLogsTable(conversion);
     generateReport(conversion, 'NMIG migration is accomplished.');
-}
-
-/**
- * Continues migration process after data loading.
- */
-export default async function(conversion: Conversion): Promise<void> {
-    if (conversion._migrateOnlyData) {
-        await continueProcessAfterDataLoadingShort(conversion);
-        return;
-    }
-
-    await continueProcessAfterDataLoadingLong(conversion);
 }
