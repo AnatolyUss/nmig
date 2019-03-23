@@ -106,9 +106,14 @@ export default class Conversion {
     public readonly _noVacuum: string[];
 
     /**
-     * List of tables, that will not be migrated.List (Array) of tables, that will not be migrated.
+     * List of tables, that will not be migrated.
      */
     public readonly _excludeTables: string[];
+
+    /**
+     * List of tables, that will be migrated.
+     */
+    public readonly _includeTables: string[];
 
     /**
      * The timestamp, at which the migration began.
@@ -209,6 +214,7 @@ export default class Conversion {
         this._notCreatedViewsPath     = path.join(this._logsDirPath, 'not_created_views');
         this._noVacuum                = this._config.no_vacuum === undefined ? [] : this._config.no_vacuum;
         this._excludeTables           = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
+        this._includeTables           = this._config.include_tables === undefined ? [] : this._config.include_tables;
         this._timeBegin               = new Date();
         this._encoding                = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
