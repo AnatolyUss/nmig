@@ -24,8 +24,8 @@
     "tables" : [
         {
             "name" : {
-                "original" : "admins",
-                "new" : "renamed_admins"
+                "original" : "salary",
+                "new" : "renamed_salary"
             },
 
             "columns" : [
@@ -35,21 +35,16 @@
                 },
 
                 {
-                    "original" : "username",
-                    "new" : "renamed_username"
-                },
-
-                {
-                    "original" : "group_id",
-                    "new" : "renamed_group_id"
+                    "original" : "employee_id",
+                    "new" : "renamed_employee_id"
                 }
             ]
         },
 
         {
             "name" : {
-                "original" : "groups",
-                "new" : "renamed_groups"
+                "original" : "contract",
+                "new" : "renamed_contract"
             },
 
             "columns" : [

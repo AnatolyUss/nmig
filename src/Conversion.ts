@@ -22,6 +22,7 @@ import * as path from 'path';
 import { EventEmitter } from 'events';
 import { Pool as MySQLPool } from 'mysql';
 import { Pool as PgPool } from 'pg';
+import { Encoding } from './Encoding';
 
 export default class Conversion {
     /**
@@ -57,7 +58,7 @@ export default class Conversion {
     /**
      * JavaScript encoding type.
      */
-    public readonly _encoding: string;
+    public readonly _encoding: Encoding;
 
     /**
      * The path to the "all.log" file.
@@ -75,9 +76,10 @@ export default class Conversion {
     public readonly _delimiter: string;
 
     /**
-     * Defines if only the data should be migrated (into a preset schema).
+     * Defines preset tables.
+     * The only thing to do with these tables is a data migration, since the schema is preset.
      */
-    public readonly _migrateOnlyData: boolean;
+    public readonly _migrateOnlyData: string[];
 
     /**
      * A path to the "logs_directory".
@@ -105,9 +107,14 @@ export default class Conversion {
     public readonly _noVacuum: string[];
 
     /**
-     * List of tables, that will not be migrated.List (Array) of tables, that will not be migrated.
+     * List of tables, that will not be migrated.
      */
     public readonly _excludeTables: string[];
+
+    /**
+     * List of tables, that will be migrated.
+     */
+    public readonly _includeTables: string[];
 
     /**
      * The timestamp, at which the migration began.
@@ -208,9 +215,10 @@ export default class Conversion {
         this._notCreatedViewsPath     = path.join(this._logsDirPath, 'not_created_views');
         this._noVacuum                = this._config.no_vacuum === undefined ? [] : this._config.no_vacuum;
         this._excludeTables           = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
+        this._includeTables           = this._config.include_tables === undefined ? [] : this._config.include_tables;
         this._timeBegin               = new Date();
         this._encoding                = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
-        this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
+        this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : Math.ceil(+this._config.data_chunk_size);
         this._dataChunkSize           = this._dataChunkSize <= 0 ? 1 : this._dataChunkSize;
         this._0777                    = '0777';
         this._mysqlVersion            = '5.6.21'; // Simply a default value.
@@ -236,10 +244,17 @@ export default class Conversion {
         this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
         this._loaderMaxOldSpaceSize   = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize   = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
-        this._migrateOnlyData         = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
+        this._migrateOnlyData         = this._config.migrate_only_data === undefined ? [] : this._config.migrate_only_data;
         this._delimiter               = this._config.delimiter !== undefined && this._config.delimiter.length === 1
             ? this._config.delimiter
             : ',';
+    }
+
+    /**
+     * Checks if there are actions to take on given table other than data migration.
+     */
+    public shouldMigrateOnlyDataFor(tableName: string): boolean {
+        return this._migrateOnlyData.indexOf(tableName) !== -1 || this._migrateOnlyData.indexOf('*') !== -1;
     }
 
     /**
