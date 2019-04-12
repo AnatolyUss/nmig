@@ -217,7 +217,7 @@ export default class Conversion {
         this._includeTables           = this._config.include_tables === undefined ? [] : this._config.include_tables;
         this._timeBegin               = new Date();
         this._encoding                = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
-        this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : +this._config.data_chunk_size;
+        this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : Math.ceil(+this._config.data_chunk_size);
         this._dataChunkSize           = this._dataChunkSize <= 0 ? 1 : this._dataChunkSize;
         this._0777                    = '0777';
         this._mysqlVersion            = '5.6.21'; // Simply a default value.
