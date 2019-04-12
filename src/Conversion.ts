@@ -22,6 +22,7 @@ import * as path from 'path';
 import { EventEmitter } from 'events';
 import { Pool as MySQLPool } from 'mysql';
 import { Pool as PgPool } from 'pg';
+import { Encoding } from './Encoding';
 
 export default class Conversion {
     /**
@@ -57,7 +58,7 @@ export default class Conversion {
     /**
      * JavaScript encoding type.
      */
-    public readonly _encoding: string;
+    public readonly _encoding: Encoding;
 
     /**
      * The path to the "all.log" file.
