@@ -100,6 +100,27 @@ function fillBandwidth(conversion: Conversion): number[] {
         }
     }
 
+    if (dataChunkIndexes.length === 0 && conversion._dataPool.length !== 0) {
+        // This is the case where there are chunks, larger than "conversion._dataChunkSize".
+        // It may happen with maximum one chunk per table.
+        // See calculations from DataChunksProcessor.ts for the reference.
+        //
+        // Each call to "fillBandwidth()" will return an index of one (and only one!!!) such chunk.
+        // Eventually, all of the chunks, including the "bigger" ones, will be processed.
+        const firstUnprocessedChunkIndex: number = conversion
+            ._dataPool
+            .findIndex((item: any) => item._processed === false);
+
+        if (firstUnprocessedChunkIndex === -1) {
+            const msg: string = 'Something went wrong with DataPipeManager.';
+            log(conversion, msg, undefined, true);
+            process.exit();
+        }
+
+        dataChunkIndexes.push(firstUnprocessedChunkIndex);
+        conversion._dataPool[firstUnprocessedChunkIndex]._processed = true;
+    }
+
     return dataChunkIndexes;
 }
 
@@ -114,9 +135,8 @@ async function pipeData(conversion: Conversion, dataLoaderPath: string, options:
         return processConstraints(conversion);
     }
 
+    const chunksToLoad: any[] = fillBandwidth(conversion).map((index: number) => conversion._dataPool[index]);
     const loaderProcess: ChildProcess = fork(dataLoaderPath, options);
-    const bandwidth: number[] = fillBandwidth(conversion);
-    const chunksToLoad: any[] = bandwidth.map((index: number) => conversion._dataPool[index]);
 
     loaderProcess.on('message', async (signal: any) => {
         if (typeof signal === 'object') {

@@ -43,7 +43,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     const dbAccess: DBAccess = new DBAccess(conversion);
     const sizeQueryResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, true, true);
 
-    const tableSizeInMb: number = +sizeQueryResult.data[0].size_in_mb;
+    const tableSizeInMb: number = Math.ceil(+sizeQueryResult.data[0].size_in_mb);
     const strSelectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
     sql = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const countResult: DBAccessQueryResult = await dbAccess.query(
@@ -56,8 +56,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     );
 
     const rowsCnt: number = countResult.data[0].rows_count;
-    let chunksCnt: number = tableSizeInMb / conversion._dataChunkSize;
-    chunksCnt = chunksCnt < 1 ? 1 : chunksCnt;
+    const chunksCnt: number = Math.ceil(tableSizeInMb / conversion._dataChunkSize);
     const rowsInChunk: number = Math.ceil(rowsCnt / chunksCnt);
     const arrDataPoolPromises: Promise<void>[] = [];
     const msg: string = `\t--[prepareDataChunks] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
@@ -78,8 +77,8 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
             if (chunksCnt === 1) {
                 currentChunkSizeInMb = tableSizeInMb;
             } else if (offset + rowsInChunk >= rowsCnt) {
-                currentChunkSizeInMb = tableSizeInMb % chunksCnt;
-                currentChunkSizeInMb = currentChunkSizeInMb || conversion._dataChunkSize;
+                // !!!Note, it can happen only on the last iteration, when defining a size of the last chunk.
+                currentChunkSizeInMb = tableSizeInMb - conversion._dataChunkSize * (chunksCnt - 1);
             } else {
                 currentChunkSizeInMb = conversion._dataChunkSize;
             }
