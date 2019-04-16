@@ -29,7 +29,7 @@ export function generateError(conversion: Conversion, message: string, sql: stri
     return new Promise<void>(resolve => {
         message += `\n\n\tSQL: ${sql}\n\n`;
         const buffer: Buffer = Buffer.from(message, conversion._encoding);
-        log(conversion, message, undefined, true);
+        log(conversion, message, undefined);
 
         fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
             if (error) {
@@ -48,12 +48,9 @@ export function generateError(conversion: Conversion, message: string, sql: stri
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/{tableName}.log" file.
  */
-export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, isErrorLog?: boolean): void {
+export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string): void {
+    console.log(log);
     const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
-
-    if (!isErrorLog) {
-        console.log(log);
-    }
 
     fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
         if (!error) {
