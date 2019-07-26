@@ -21,6 +21,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import Conversion from './Conversion';
+import ErrnoException = NodeJS.ErrnoException;
 
 /**
  * Writes a detailed error message to the "/errors-only.log" file.
@@ -31,7 +32,7 @@ export function generateError(conversion: Conversion, message: string, sql: stri
         const buffer: Buffer = Buffer.from(message, conversion._encoding);
         log(conversion, message, undefined);
 
-        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
+        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
             if (error) {
                 return resolve();
             }
@@ -52,12 +53,12 @@ export function log(conversion: Conversion, log: string | NodeJS.ErrnoException,
     console.log(log);
     const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
 
-    fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
+    fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
         if (!error) {
             fs.write(fd, buffer, 0, buffer.length, null, () => {
                 fs.close(fd, () => {
                     if (tableLogPath) {
-                        fs.open(tableLogPath, 'a', conversion._0777, (error: Error, fd: number) => {
+                        fs.open(tableLogPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
                             if (!error) {
                                 fs.write(fd, buffer, 0, buffer.length, null, () => {
                                     fs.close(fd, () => {
@@ -80,7 +81,7 @@ export function readConfig(baseDir: string, configFileName: string = 'config.jso
     return new Promise<any>(resolve => {
         const strPathToConfig = path.join(baseDir, 'config', configFileName);
 
-        fs.readFile(strPathToConfig, (error: Error, data: Buffer) => {
+        fs.readFile(strPathToConfig, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
                 console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ strPathToConfig }`);
                 process.exit();
@@ -106,7 +107,7 @@ export function readExtraConfig(config: any, baseDir: string): Promise<any> {
 
         const strPathToExtraConfig = path.join(baseDir, 'config', 'extra_config.json');
 
-        fs.readFile(strPathToExtraConfig, (error: Error, data: Buffer) => {
+        fs.readFile(strPathToExtraConfig, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
                 console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ strPathToExtraConfig }`);
                 process.exit();
@@ -135,7 +136,7 @@ function createDirectory(conversion: Conversion, directoryPath: string, logTitle
     return new Promise<void>(resolve => {
         console.log(`\t--[${ logTitle }] Creating directory ${ directoryPath }...`);
 
-        fs.stat(directoryPath, (directoryDoesNotExist: Error, stat: fs.Stats) => {
+        fs.stat(directoryPath, (directoryDoesNotExist: ErrnoException | null, stat: fs.Stats) => {
             if (directoryDoesNotExist) {
                 fs.mkdir(directoryPath, conversion._0777, e => {
                     if (e) {
@@ -162,7 +163,7 @@ function createDirectory(conversion: Conversion, directoryPath: string, logTitle
  */
 export function readDataTypesMap(conversion: Conversion): Promise<Conversion> {
     return new Promise<Conversion>(resolve => {
-        fs.readFile(conversion._dataTypesMapAddr, (error: Error, data: Buffer) => {
+        fs.readFile(conversion._dataTypesMapAddr, (error: ErrnoException | null, data: Buffer) => {
             const logTitle: string = 'FsOps::readDataTypesMap';
 
             if (error) {
