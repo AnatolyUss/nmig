@@ -1,6 +1,6 @@
 {
     "name": "nmig",
-    "version": "4.0.0",
+    "version": "4.0.1",
     "description": "The database migration app",
     "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
     "license": "GPL-3.0",

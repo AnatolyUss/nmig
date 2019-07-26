@@ -89,7 +89,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 <b>Note:</b> "logs_directory" will be created during script execution.</p>
 
 <h3>VERSION</h3>
-<p>Current version is 4.0.0<br />
+<p>Current version is 4.0.1<br />
 (major version . improvements . bug fixes)</p>
 
 <h3>KNOWN ISSUES</h3>
