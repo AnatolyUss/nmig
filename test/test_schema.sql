@@ -65,3 +65,15 @@ CREATE TABLE IF NOT EXISTS `table_c`(
     CONSTRAINT `table_c_table_a_id_foreign` FOREIGN KEY(`table_a_id`) REFERENCES `table_a`(`id_test_sequence`) ON UPDATE RESTRICT ON DELETE CASCADE,
     CONSTRAINT `table_c_table_b_id_1_2_foreign` FOREIGN KEY(`table_b_id1`, `table_b_id2`) REFERENCES `table_b`(`id1`, `id2`)
 ) ENGINE = innodb;
+
+CREATE TABLE IF NOT EXISTS `category_company`(
+	`id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+	`company_id` INT(10) UNSIGNED NOT NULL,
+	`category_id` INT(10) UNSIGNED NOT NULL,
+	PRIMARY KEY (`id`)
+)
+CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_unicode_ci
+ENGINE = innodb;
+
+INSERT INTO `category_company`(`company_id`, `category_id`) VALUES(111, 2), (333, 2);

@@ -61,7 +61,7 @@ function getSmallestDataChunkSizeInMb(conversion: Conversion): number {
 /**
  * Creates an array of indexes, that point to data chunks, that will be processed during current COPY operation.
  */
-function fillBandwidth(conversion: Conversion): number[] {
+async function fillBandwidth(conversion: Conversion): Promise<number[]> {
     const dataChunkIndexes: number[] = [];
 
     // Loop through the data pool from the beginning to the end.
@@ -113,7 +113,7 @@ function fillBandwidth(conversion: Conversion): number[] {
 
         if (firstUnprocessedChunkIndex === -1) {
             const msg: string = 'Something went wrong with DataPipeManager.';
-            log(conversion, msg, undefined, true);
+            await generateError(conversion, msg);
             process.exit();
         }
 
@@ -135,7 +135,8 @@ async function pipeData(conversion: Conversion, dataLoaderPath: string, options:
         return processConstraints(conversion);
     }
 
-    const chunksToLoad: any[] = fillBandwidth(conversion).map((index: number) => conversion._dataPool[index]);
+    const chunksIndexes: number[] = await fillBandwidth(conversion);
+    const chunksToLoad: any[] = chunksIndexes.map((index: number) => conversion._dataPool[index]);
     const loaderProcess: ChildProcess = fork(dataLoaderPath, options);
 
     loaderProcess.on('message', async (signal: any) => {

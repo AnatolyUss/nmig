@@ -29,7 +29,7 @@ export function generateError(conversion: Conversion, message: string, sql: stri
     return new Promise<void>(resolve => {
         message += `\n\n\tSQL: ${sql}\n\n`;
         const buffer: Buffer = Buffer.from(message, conversion._encoding);
-        log(conversion, message, undefined, true);
+        log(conversion, message, undefined);
 
         fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
             if (error) {
@@ -48,12 +48,9 @@ export function generateError(conversion: Conversion, message: string, sql: stri
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/{tableName}.log" file.
  */
-export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, isErrorLog?: boolean): void {
+export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string): void {
+    console.log(log);
     const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
-
-    if (!isErrorLog) {
-        console.log(log);
-    }
 
     fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: Error, fd: number) => {
         if (!error) {
@@ -124,28 +121,37 @@ export function readExtraConfig(config: any, baseDir: string): Promise<any> {
 /**
  * Creates logs directory.
  */
-export function createLogsDirectory(conversion: Conversion): Promise<Conversion> {
-    return new Promise<Conversion>(resolve => {
-        const logTitle: string = 'FsOps::createLogsDirectory';
-        console.log(`\t--[${ logTitle }] Creating logs directory...`);
+export async function createLogsDirectory(conversion: Conversion): Promise<Conversion> {
+    const logTitle: string = 'FsOps::createLogsDirectory';
+    await createDirectory(conversion, conversion._logsDirPath, logTitle);
+    await createDirectory(conversion, conversion._notCreatedViewsPath, logTitle);
+    return conversion;
+}
 
-        fs.stat(conversion._logsDirPath, (directoryDoesNotExist: Error, stat: fs.Stats) => {
+/**
+ * Creates a directory at the specified path.
+ */
+function createDirectory(conversion: Conversion, directoryPath: string, logTitle: string): Promise<void> {
+    return new Promise<void>(resolve => {
+        console.log(`\t--[${ logTitle }] Creating directory ${ directoryPath }...`);
+
+        fs.stat(directoryPath, (directoryDoesNotExist: Error, stat: fs.Stats) => {
             if (directoryDoesNotExist) {
-                fs.mkdir(conversion._logsDirPath, conversion._0777, e => {
+                fs.mkdir(directoryPath, conversion._0777, e => {
                     if (e) {
-                        console.log(`\t--[${ logTitle }] Cannot perform a migration due to impossibility to create "logs_directory": ${ conversion._logsDirPath }`);
+                        console.log(`\t--[${ logTitle }] Cannot perform a migration due to impossibility to create directory: ${ directoryPath }`);
                         process.exit();
                     } else {
-                        log(conversion, '\t--[logTitle] Logs directory is created...');
-                        resolve(conversion);
+                        log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } is created...`);
+                        resolve();
                     }
                 });
             } else if (!stat.isDirectory()) {
                 console.log(`\t--[${ logTitle }] Cannot perform a migration due to unexpected error`);
                 process.exit();
             } else {
-                log(conversion, `\t--[${ logTitle }] Logs directory already exists...`);
-                resolve(conversion);
+                log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
+                resolve();
             }
         });
     });

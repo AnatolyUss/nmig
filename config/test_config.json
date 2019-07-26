@@ -11,7 +11,7 @@
     "source" : {
         "host"     : "localhost",
         "port"     : 3306,
-        "charset"  : "UTF8",
+        "charset"  : "utf8mb4",
         "database" : "nmig_test_db",
         "user"     : "root",
         "password" : "0123456789"
