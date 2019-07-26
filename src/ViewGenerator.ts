@@ -51,55 +51,19 @@ function generateView(schema: string, viewName: string, mysqlViewCode: string): 
  */
 function logNotCreatedView(conversion: Conversion, viewName: string, sql: string): Promise<void> {
     return new Promise<void>((resolve) => {
-        fs.stat(conversion._notCreatedViewsPath, (directoryDoesNotExist: NodeJS.ErrnoException, stat: Stats) => {
-            if (directoryDoesNotExist) {
-                fs.mkdir(conversion._notCreatedViewsPath, conversion._0777, (e: NodeJS.ErrnoException) => {
-                    if (e) {
-                        log(conversion, `\t--[logNotCreatedView] ${ e }`);
-                        return resolve();
-                    }
-
-                    log(conversion, '\t--[logNotCreatedView] "not_created_views" directory is created...');
-                    // "not_created_views" directory is created. Can write the log...
-                    fs.open(
-                        path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`),
-                        'w',
-                        conversion._0777,
-                        (error: NodeJS.ErrnoException, fd: number
-                    ) => {
-                        if (error) {
-                            log(conversion, error);
-                            return resolve();
-                        }
-
-                        const buffer = Buffer.from(sql, conversion._encoding);
-                        fs.write(fd, buffer, 0, buffer.length, null, () => {
-                            fs.close(fd, () => {
-                                return resolve();
-                            });
-                        });
-                    });
-                });
-            } else if (!stat.isDirectory()) {
-                log(conversion, '\t--[logNotCreatedView] Cannot write the log due to unexpected error');
+        const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`);
+        fs.open(viewFilePath,'w', conversion._0777, (error: NodeJS.ErrnoException, fd: number) => {
+            if (error) {
+                log(conversion, error);
                 return resolve();
-            } else {
-                // "not_created_views" directory already exists. Can write the log...
-                const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`);
-                fs.open(viewFilePath,'w', conversion._0777, (error: NodeJS.ErrnoException, fd: number) => {
-                    if (error) {
-                        log(conversion, error);
-                        return resolve();
-                    }
-
-                    const buffer = Buffer.from(sql, conversion._encoding);
-                    fs.write(fd, buffer, 0, buffer.length, null, () => {
-                        fs.close(fd, () => {
-                            return resolve();
-                        });
-                    });
-                });
             }
+
+            const buffer = Buffer.from(sql, conversion._encoding);
+            fs.write(fd, buffer, 0, buffer.length, null, () => {
+                fs.close(fd, () => {
+                    return resolve();
+                });
+            });
         });
     });
 }
