@@ -28,6 +28,7 @@ import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 import createSchema from '../../src/SchemaProcessor';
 import loadStructureToMigrate from '../../src/StructureLoader';
 import pipeData from '../../src/DataPipeManager';
+import ErrnoException = NodeJS.ErrnoException;
 import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import { checkConnection, getLogo } from '../../src/BootProcessor';
@@ -170,7 +171,7 @@ export default class TestSchemaProcessor {
      */
     private _readFile(filePath: string): Promise<Buffer> {
         return new Promise<Buffer>(resolve => {
-            fs.readFile(filePath, (error: Error, data: Buffer) => {
+            fs.readFile(filePath, (error: ErrnoException | null, data: Buffer) => {
                 if (error) {
                     console.log(`\t--[_readFile] Cannot read file from ${ filePath }`);
                     process.exit();
