@@ -19,7 +19,6 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as fs from 'fs';
-import { Stats } from 'fs';
 import * as path from 'path';
 import { log } from './FsOps';
 import Conversion from './Conversion';
@@ -27,6 +26,7 @@ import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import ErrnoException = NodeJS.ErrnoException;
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
@@ -52,7 +52,7 @@ function generateView(schema: string, viewName: string, mysqlViewCode: string): 
 function logNotCreatedView(conversion: Conversion, viewName: string, sql: string): Promise<void> {
     return new Promise<void>((resolve) => {
         const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`);
-        fs.open(viewFilePath,'w', conversion._0777, (error: NodeJS.ErrnoException, fd: number) => {
+        fs.open(viewFilePath,'w', conversion._0777, (error: ErrnoException | null, fd: number) => {
             if (error) {
                 log(conversion, error);
                 return resolve();
