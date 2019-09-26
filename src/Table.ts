@@ -30,16 +30,10 @@ export default class Table {
     public readonly arrTableColumns: any[];
 
     /**
-     * Total rows inserted into given table.
-     */
-    public totalRowsInserted: number;
-
-    /**
      * Constructor.
      */
     public constructor(tableLogPath: string) {
         this.tableLogPath = tableLogPath;
         this.arrTableColumns = [];
-        this.totalRowsInserted = 0;
     }
 }

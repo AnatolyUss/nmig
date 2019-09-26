@@ -102,16 +102,15 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
         return;
     }
 
-    let sqlCreateTable: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(`;
+    const columnsDefinition: string = columns.data
+        .map((column: any) => {
+            const colName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
+            const colType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
+            return `"${ colName }" ${ colType }`;
+        })
+        .join(',');
 
-    columns.data.forEach((column: any) => {
-        const colName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
-        const colType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
-        sqlCreateTable += `"${ colName }" ${ colType },`;
-    });
-
-    sqlCreateTable += `"${ conversion._schema }_${ originalTableName }_data_chunk_id_temp" BIGINT);`;
-
+    const sqlCreateTable: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(${ columnsDefinition });`;
     const createTableResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateTable, DBVendors.PG, false, false);
 
     if (!createTableResult.error) {

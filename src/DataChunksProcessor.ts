@@ -27,78 +27,40 @@ import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 
 /**
- * Prepares an array of tables and chunk offsets.
+ * Prepares an array of tables metadata.
  */
 export default async (conversion: Conversion, tableName: string, haveDataChunksProcessed: boolean): Promise<void> => {
     if (haveDataChunksProcessed) {
         return;
     }
 
-    // Determine current table size, apply "chunking".
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    let sql: string = `SELECT (data_length / 1024 / 1024) AS size_in_mb FROM information_schema.tables 
-        WHERE table_schema = '${ conversion._mySqlDbName }' AND table_name = '${ originalTableName }';`;
-
     const logTitle: string = 'DataChunksProcessor::default';
     const dbAccess: DBAccess = new DBAccess(conversion);
-    const sizeQueryResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, true, true);
-
-    const tableSizeInMb: number = Math.ceil(+sizeQueryResult.data[0].size_in_mb);
     const strSelectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
-    sql = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
+    const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const countResult: DBAccessQueryResult = await dbAccess.query(
         logTitle,
-        sql,
+        sqlRowsCnt,
         DBVendors.MYSQL,
         true,
-        false,
-        sizeQueryResult.client
+        false
     );
 
     const rowsCnt: number = countResult.data[0].rows_count;
-    const chunksCnt: number = Math.ceil(tableSizeInMb / conversion._dataChunkSize);
-    const rowsInChunk: number = Math.ceil(rowsCnt / chunksCnt);
-    const arrDataPoolPromises: Promise<void>[] = [];
     const msg: string = `\t--[prepareDataChunks] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
+    const strJson: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }","_rowsCnt":${ rowsCnt }}`;
+    const sql: string = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`
+        + `("is_started", "json") VALUES (FALSE, $1);`;
 
-    for (let offset: number = 0; offset < rowsCnt; offset += rowsInChunk) {
-        arrDataPoolPromises.push(new Promise<void>(async resolveDataUnit => {
-            const strJson: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }",
-                "_offset":${ offset },"_rowsInChunk":${ rowsInChunk },"_rowsCnt":${ rowsCnt }}`;
-
-            // Define current data chunk size in MB.
-            // If there is only one chunk, then its size is equal to the table size.
-            // If there are more than one chunk,
-            // then a size of each chunk besides the last one is equal to "data_chunk_size",
-            // and a size of the last chunk is either "data_chunk_size" or tableSizeInMb % chunksCnt.
-            let currentChunkSizeInMb: number = 0;
-
-            if (chunksCnt === 1) {
-                currentChunkSizeInMb = tableSizeInMb;
-            } else if (offset + rowsInChunk >= rowsCnt) {
-                // !!!Note, it can happen only on the last iteration, when defining a size of the last chunk.
-                currentChunkSizeInMb = tableSizeInMb - conversion._dataChunkSize * (chunksCnt - 1);
-            } else {
-                currentChunkSizeInMb = conversion._dataChunkSize;
-            }
-
-            sql = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"
-                ("is_started", "json", "size_in_mb") VALUES (FALSE, $1, $2);`;
-
-            await dbAccess.query(
-                logTitle,
-                sql,
-                DBVendors.PG,
-                false,
-                false,
-                undefined,
-                [strJson, currentChunkSizeInMb]
-            );
-
-            resolveDataUnit();
-        }));
-    }
-
-    await Promise.all(arrDataPoolPromises);
+    await dbAccess.query(
+        logTitle,
+        sql,
+        DBVendors.PG,
+        false,
+        false,
+        undefined,
+        [strJson]
+    );
 }

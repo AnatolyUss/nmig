@@ -50,7 +50,7 @@
 
     "encoding_description" : [
         "JavaScript encoding type.",
-        "If not supplied, then utf-8 will be used as a default."
+        "If not supplied, then utf8 will be used as a default."
     ],
     "encoding" : "utf8",
 
@@ -59,12 +59,6 @@
         "If not supplied, then a new schema will be created automatically."
     ],
     "schema" : "public",
-
-    "data_chunk_size_description" : [
-        "During migration each table's data will be split into chunks not larger than data_chunk_size (in MB).",
-        "If not supplied, then 10 MB will be used as a default."
-    ],
-    "data_chunk_size" : 10,
 
     "no_vacuum_description" : [
         "PostgreSQL VACUUM reclaims storage occupied by dead tuples.",

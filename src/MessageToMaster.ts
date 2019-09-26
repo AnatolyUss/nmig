@@ -25,11 +25,6 @@ export default class MessageToMaster {
     public readonly tableName: string;
 
     /**
-     * A number of rows, that have already been inserted into given table.
-     */
-    public rowsInserted: number;
-
-    /**
      * A number of rows to insert into given table.
      */
     public readonly totalRowsToInsert: number;
@@ -38,9 +33,8 @@ export default class MessageToMaster {
      * Representation of a message of DataLoader process to the master process regarding records,
      * inserted to specified table.
      */
-    public constructor(tableName: string, rowsInserted: number, totalRowsToInsert: number) {
+    public constructor(tableName: string, totalRowsToInsert: number) {
         this.tableName = tableName;
-        this.rowsInserted = rowsInserted;
         this.totalRowsToInsert = totalRowsToInsert;
     }
 }

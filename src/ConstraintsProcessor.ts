@@ -30,7 +30,6 @@ import processIndexAndKey from './IndexAndKeyProcessor';
 import processComments from './CommentsProcessor';
 import processForeignKey from './ForeignKeyProcessor';
 import processViews from './ViewGenerator';
-import { dropDataChunkIdColumn } from './ConsistencyEnforcer';
 import Conversion from './Conversion';
 
 /**
@@ -42,11 +41,9 @@ export default async function(conversion: Conversion): Promise<void> {
     const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
         if (!isTableConstraintsLoaded) {
             if (conversion.shouldMigrateOnlyDataFor(tableName)) {
-                await dropDataChunkIdColumn(conversion, tableName);
                 return sequencesProcessor.setSequenceValue(conversion, tableName);
             }
 
-            await dropDataChunkIdColumn(conversion, tableName);
             await processEnum(conversion, tableName);
             await processNull(conversion, tableName);
             await processDefault(conversion, tableName);
