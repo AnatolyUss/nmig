@@ -100,7 +100,8 @@ async function processDataError(
     await generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
     const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
     log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
-    return deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
+    await deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
+    processSend(new MessageToMaster(tableName, 0));
 }
 
 /**
@@ -137,9 +138,8 @@ async function populateTableWorker(
     );
 
     const streamsHighWaterMark: number = 16384; // Commonly used as the default, but may vary across different machines.
-    const json2csvStream = await getJson2csvStream(conv, dbAccess, originalTableName, streamsHighWaterMark);
+    const json2csvStream = await getJson2csvStream(conv, dbAccess, originalTableName, streamsHighWaterMark, dataPoolId, client, originalSessionReplicationRole);
     const mysqlClientErrorHandler = async (err: string) => {
-        // Handle error, the 'end' event will be emitted after this as well.
         await processDataError(conv, err, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
     };
 
@@ -188,7 +188,10 @@ async function getJson2csvStream(
     conversion: Conversion,
     dbAccess: DBAccess,
     originalTableName: string,
-    streamsHighWaterMark: number
+    streamsHighWaterMark: number,
+    dataPoolId: number,
+    client: PoolClient,
+    originalSessionReplicationRole: string | null
 ): Promise<any> {
     const tableColumnsResult: DBAccessQueryResult = await dbAccess.query(
         'DataLoader::populateTableWorker',
@@ -210,7 +213,13 @@ async function getJson2csvStream(
         encoding: conversion._encoding
     };
 
-    return new Json2CsvTransform(options, transformOptions);
+    const json2CsvTransformStream = new Json2CsvTransform(options, transformOptions);
+
+    json2CsvTransformStream.on('error', async (transformError: string) => {
+        await processDataError(conversion, transformError, '', '', originalTableName, dataPoolId, client, originalSessionReplicationRole);
+    });
+
+    return json2CsvTransformStream;
 }
 
 /**

@@ -29,17 +29,15 @@ import MessageToMaster from './MessageToMaster';
 import processConstraints from './ConstraintsProcessor';
 import decodeBinaryData from './BinaryDataDecoder';
 
-// TODO: add more comments.
+/**
+ * A number of currently running loader processes.
+ */
+let loaderProcessesCount: number = 0;
 
 /**
- * An amount of currently running loader processes.
+ * "dataPoolEmpty" event.
  */
-let loaderProcessCount: number = 0;
-
-/**
- * "onDataPoolEmpty" event.
- */
-const onDataPoolEmptyEvent: string = 'onDataPoolEmpty';
+const dataPoolEmptyEvent: string = 'dataPoolEmpty';
 
 /**
  * An EventEmitter instance.
@@ -47,7 +45,7 @@ const onDataPoolEmptyEvent: string = 'onDataPoolEmpty';
 const eventEmitter: EventEmitter = new EventEmitter();
 
 /**
- * Runs the DataPipe.
+ * Runs the data pipe.
  */
 export default async function(conversion: Conversion): Promise<void> {
     if (dataPoolProcessed(conversion)) {
@@ -55,21 +53,27 @@ export default async function(conversion: Conversion): Promise<void> {
         return;
     }
 
-    eventEmitter.on(onDataPoolEmptyEvent, async () => {
-        if (loaderProcessCount === 0) {
+    // Register a listener for the "dataPoolEmpty" event.
+    eventEmitter.on(dataPoolEmptyEvent, async () => {
+        if (loaderProcessesCount === 0) {
+            // On the event of "dataPoolEmpty" check a number of active loader processes.
+            // If no active loader processes found, then all the data is transferred, so Nmig can proceed to the next step.
             await continueConversionProcess(conversion);
         }
     });
 
+    // Determine a number of simultaneously running loader processes.
+    // In most cases it will be a number of logical CPU cores on the machine running Nmig;
+    // unless a number of tables in the source database is smaller.
     const numberOfSimultaneouslyRunningLoaderProcesses: number = Math.min(conversion._dataPool.length, getNumberOfCpus());
 
-    for (let i = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
+    for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
         runLoaderProcess(conversion);
     }
 }
 
 /**
- * Continues the conversion process upon data loading completion.
+ * Continues the conversion process upon data transfer completion.
  */
 async function continueConversionProcess(conversion: Conversion): Promise<void> {
     await decodeBinaryData(conversion);
@@ -81,23 +85,30 @@ async function continueConversionProcess(conversion: Conversion): Promise<void> 
  */
 function runLoaderProcess(conversion: Conversion): void {
     if (dataPoolProcessed(conversion)) {
-        eventEmitter.emit(onDataPoolEmptyEvent);
+        // Emit the "dataPoolEmpty" event if there are no more data to transfer.
+        eventEmitter.emit(dataPoolEmptyEvent);
         return;
     }
 
+    // Start a new data loader process.
     const loaderProcess: ChildProcess = fork(getDataLoaderPath(), getDataLoaderOptions(conversion));
-    loaderProcessCount++;
+    loaderProcessesCount++;
 
     loaderProcess.on('message', async (signal: MessageToMaster) => {
+        // Following actions are performed when a message from the loader process is accepted:
+        // 1. Log an info regarding the just-populated table.
+        // 2. Kill the loader process to release unused RAM as quick as possible.
+        // 3. Call the "runLoaderProcess" function recursively to transfer next data-chunk.
         const msg: string = `\t--[pipeData]  For now inserted: ${ signal.totalRowsToInsert } rows,`
             + `Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
         log(conversion, msg);
         await killProcess(loaderProcess.pid, conversion);
-        loaderProcessCount--;
+        loaderProcessesCount--;
         runLoaderProcess(conversion);
     });
 
+    // Sends a message to current data loader process, which contains configuration info and a metadata of next data-chunk.
     loaderProcess.send(new MessageToDataLoader(conversion._config, conversion._dataPool.pop()));
 }
 
@@ -123,7 +134,7 @@ function getDataLoaderOptions(conversion: Conversion): any {
 }
 
 /**
- * Returns an amount of logical CPU cores.
+ * Returns a number of logical CPU cores.
  */
 function getNumberOfCpus(): number {
     return os.cpus().length;
