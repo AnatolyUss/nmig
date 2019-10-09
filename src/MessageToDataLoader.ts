@@ -25,16 +25,16 @@ export default class MessageToDataLoader {
     public readonly config: any;
 
     /**
-     * An array of data chunks.
+     * Data chunk.
      */
-    public readonly chunks: any[];
+    public readonly chunk: any;
 
     /**
      * Representation of a message of the master process to DataLoader process.
-     * Contains migration's configuration and an array of "data-chunks".
+     * Contains migration's configuration and a chunk of data.
      */
-    public constructor(config: any, chunks: any[]) {
+    public constructor(config: any, chunk: any) {
         this.config = config;
-        this.chunks = chunks;
+        this.chunk = chunk;
     }
 }

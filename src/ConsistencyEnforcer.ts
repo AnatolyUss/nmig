@@ -22,7 +22,6 @@ import DBAccessQueryResult from './DBAccessQueryResult';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
-import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
  * Updates consistency state.
@@ -37,10 +36,10 @@ async function updateConsistencyState(conversion: Conversion, dataPoolId: number
 }
 
 /**
- * Retrieves the `is_started` value of current chunk.
+ * Retrieves the `is_started` value of current data chunk.
  */
-async function getIsStarted(conversion: Conversion, dataPoolId: number): Promise<boolean> {
-    const logTitle: string = 'ConsistencyEnforcer::getIsStarted';
+async function dataMayBeLoaded(conversion: Conversion, dataPoolId: number): Promise<boolean> {
+    const logTitle: string = 'ConsistencyEnforcer::dataMayBeLoaded';
     const sql: string = `SELECT is_started AS is_started 
         FROM "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }" 
         WHERE id = ${ dataPoolId };`;
@@ -51,59 +50,21 @@ async function getIsStarted(conversion: Conversion, dataPoolId: number): Promise
 }
 
 /**
- * Current data chunk runs after a disaster recovery.
- * Must determine if current chunk has already been loaded.
- * This is in order to prevent possible data duplications.
- */
-async function hasCurrentChunkLoaded(conversion: Conversion, chunk: any): Promise<boolean> {
-    const logTitle: string = 'ConsistencyEnforcer::hasCurrentChunkLoaded';
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, chunk._tableName, true);
-    const sql: string = `SELECT EXISTS(SELECT 1 FROM "${ conversion._schema }"."${ chunk._tableName }" 
-        WHERE "${ conversion._schema }_${ originalTableName }_data_chunk_id_temp" = ${ chunk._id });`;
-
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
-    return result.error ? true : !!result.data.rows[0].exists;
-}
-
-/**
- * Determines consistency state.
- */
-async function getConsistencyState(conversion: Conversion, chunk: any): Promise<boolean> {
-    const isStarted: boolean = await getIsStarted(conversion, chunk._id);
-
-    // "isStarted" is false in normal migration flow.
-    return isStarted ? hasCurrentChunkLoaded(conversion, chunk) : false;
-}
-
-/**
  * Enforces consistency before processing a chunk of data.
  * Ensures there are no any data duplications.
  * In case of normal execution - it is a good practice.
  * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
 export async function enforceConsistency(conversion: Conversion, chunk: any): Promise<boolean> {
-    const hasAlreadyBeenLoaded: boolean = await getConsistencyState(conversion, chunk);
+    const hasAlreadyBeenLoaded: boolean = await dataMayBeLoaded(conversion, chunk._id);
 
     if (hasAlreadyBeenLoaded) {
         // Current data chunk runs after a disaster recovery.
-        // It has already been loaded.
+        // It may already been loaded.
         return false;
     }
 
     // Normal migration flow.
     await updateConsistencyState(conversion, chunk._id);
     return true;
-}
-
-/**
- * Drops the {conversion._schema + '_' + originalTableName + '_data_chunk_id_temp'} column from current table.
- */
-export async function dropDataChunkIdColumn(conversion: Conversion, tableName: string): Promise<void> {
-    const logTitle: string = 'ConsistencyEnforcer::dropDataChunkIdColumn';
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const columnToDrop: string = `${ conversion._schema }_${ originalTableName }_data_chunk_id_temp`;
-    const sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" DROP COLUMN "${ columnToDrop }";`;
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
 }

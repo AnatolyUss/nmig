@@ -41,11 +41,6 @@ export default class Conversion {
     public readonly _targetConString: any;
 
     /**
-     * During migration each table's data will be split into chunks not larger than data_chunk_size (in MB).
-     */
-    public _dataChunkSize: number;
-
-    /**
      * V8 memory limit of the loader process.
      */
     public _loaderMaxOldSpaceSize: number | string;
@@ -162,11 +157,6 @@ export default class Conversion {
     public readonly _mySqlDbName: string;
 
     /**
-     * A number of already processed data chunks.
-     */
-    public _processedChunks: number;
-
-    /**
      * A dictionary of table names, and corresponding metadata.
      */
     public readonly _dicTables: any;
@@ -205,31 +195,28 @@ export default class Conversion {
      * Constructor.
      */
     public constructor(config: any) {
-        this._config                  = config;
-        this._sourceConString         = this._config.source;
-        this._targetConString         = this._config.target;
-        this._logsDirPath             = this._config.logsDirPath;
-        this._dataTypesMapAddr        = this._config.dataTypesMapAddr;
-        this._allLogsPath             = path.join(this._logsDirPath, 'all.log');
-        this._errorLogsPath           = path.join(this._logsDirPath, 'errors-only.log');
-        this._notCreatedViewsPath     = path.join(this._logsDirPath, 'not_created_views');
-        this._noVacuum                = this._config.no_vacuum === undefined ? [] : this._config.no_vacuum;
-        this._excludeTables           = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
-        this._includeTables           = this._config.include_tables === undefined ? [] : this._config.include_tables;
-        this._timeBegin               = new Date();
-        this._encoding                = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
-        this._dataChunkSize           = this._config.data_chunk_size === undefined ? 1 : Math.ceil(+this._config.data_chunk_size);
-        this._dataChunkSize           = this._dataChunkSize <= 0 ? 1 : this._dataChunkSize;
-        this._0777                    = '0777';
-        this._mysqlVersion            = '5.6.21'; // Simply a default value.
-        this._extraConfig             = this._config.extraConfig === undefined ? false : this._config.extraConfig;
-        this._tablesToMigrate         = [];
-        this._viewsToMigrate          = [];
-        this._processedChunks         = 0;
-        this._dataPool                = [];
-        this._dicTables               = Object.create(null);
-        this._mySqlDbName             = this._sourceConString.database;
-        this._schema                  = this._config.schema === undefined || this._config.schema === ''
+        this._config = config;
+        this._sourceConString = this._config.source;
+        this._targetConString = this._config.target;
+        this._logsDirPath = this._config.logsDirPath;
+        this._dataTypesMapAddr = this._config.dataTypesMapAddr;
+        this._allLogsPath = path.join(this._logsDirPath, 'all.log');
+        this._errorLogsPath = path.join(this._logsDirPath, 'errors-only.log');
+        this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
+        this._noVacuum = this._config.no_vacuum === undefined ? [] : this._config.no_vacuum;
+        this._excludeTables = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
+        this._includeTables = this._config.include_tables === undefined ? [] : this._config.include_tables;
+        this._timeBegin = new Date();
+        this._encoding = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
+        this._0777 = '0777';
+        this._mysqlVersion = '5.6.21'; // Simply a default value.
+        this._extraConfig = this._config.extraConfig === undefined ? false : this._config.extraConfig;
+        this._tablesToMigrate = [];
+        this._viewsToMigrate = [];
+        this._dataPool = [];
+        this._dicTables = Object.create(null);
+        this._mySqlDbName = this._sourceConString.database;
+        this._schema = this._config.schema === undefined || this._config.schema === ''
             ? this._mySqlDbName
             : this._config.schema;
 
@@ -237,15 +224,15 @@ export default class Conversion {
             ? +this._config.max_db_connection_pool_size
             : 10;
 
-        this._runsInTestMode          = false;
-        this._eventEmitter            = null;
+        this._runsInTestMode = false;
+        this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
-        this._removeTestResources     = this._config.remove_test_resources === undefined ? true : this._config.remove_test_resources;
+        this._removeTestResources = this._config.remove_test_resources === undefined ? true : this._config.remove_test_resources;
         this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
-        this._loaderMaxOldSpaceSize   = this._config.loader_max_old_space_size;
-        this._loaderMaxOldSpaceSize   = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
-        this._migrateOnlyData         = this._config.migrate_only_data === undefined ? [] : this._config.migrate_only_data;
-        this._delimiter               = this._config.delimiter !== undefined && this._config.delimiter.length === 1
+        this._loaderMaxOldSpaceSize = this._config.loader_max_old_space_size;
+        this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
+        this._migrateOnlyData = this._config.migrate_only_data === undefined ? [] : this._config.migrate_only_data;
+        this._delimiter = this._config.delimiter !== undefined && this._config.delimiter.length === 1
             ? this._config.delimiter
             : ',';
     }

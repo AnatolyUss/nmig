@@ -19,12 +19,126 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import { ChildProcess, fork } from 'child_process';
+import { EventEmitter } from 'events';
 import * as path from 'path';
+import * as os from 'os';
 import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import MessageToDataLoader from './MessageToDataLoader';
+import MessageToMaster from './MessageToMaster';
 import processConstraints from './ConstraintsProcessor';
 import decodeBinaryData from './BinaryDataDecoder';
+
+/**
+ * A number of currently running loader processes.
+ */
+let loaderProcessesCount: number = 0;
+
+/**
+ * "dataPoolEmpty" event.
+ */
+const dataPoolEmptyEvent: string = 'dataPoolEmpty';
+
+/**
+ * An EventEmitter instance.
+ */
+const eventEmitter: EventEmitter = new EventEmitter();
+
+/**
+ * Runs the data pipe.
+ */
+export default async function(conversion: Conversion): Promise<void> {
+    if (dataPoolProcessed(conversion)) {
+        await continueConversionProcess(conversion);
+        return;
+    }
+
+    // Register a listener for the "dataPoolEmpty" event.
+    eventEmitter.on(dataPoolEmptyEvent, async () => {
+        if (loaderProcessesCount === 0) {
+            // On the event of "dataPoolEmpty" check a number of active loader processes.
+            // If no active loader processes found, then all the data is transferred, so Nmig can proceed to the next step.
+            await continueConversionProcess(conversion);
+        }
+    });
+
+    // Determine a number of simultaneously running loader processes.
+    // In most cases it will be a number of logical CPU cores on the machine running Nmig;
+    // unless a number of tables in the source database is smaller.
+    const numberOfSimultaneouslyRunningLoaderProcesses: number = Math.min(conversion._dataPool.length, getNumberOfCpus());
+
+    for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
+        runLoaderProcess(conversion);
+    }
+}
+
+/**
+ * Continues the conversion process upon data transfer completion.
+ */
+async function continueConversionProcess(conversion: Conversion): Promise<void> {
+    await decodeBinaryData(conversion);
+    await processConstraints(conversion);
+}
+
+/**
+ * Runs the loader process.
+ */
+function runLoaderProcess(conversion: Conversion): void {
+    if (dataPoolProcessed(conversion)) {
+        // Emit the "dataPoolEmpty" event if there are no more data to transfer.
+        eventEmitter.emit(dataPoolEmptyEvent);
+        return;
+    }
+
+    // Start a new data loader process.
+    const loaderProcess: ChildProcess = fork(getDataLoaderPath(), getDataLoaderOptions(conversion));
+    loaderProcessesCount++;
+
+    loaderProcess.on('message', async (signal: MessageToMaster) => {
+        // Following actions are performed when a message from the loader process is accepted:
+        // 1. Log an info regarding the just-populated table.
+        // 2. Kill the loader process to release unused RAM as quick as possible.
+        // 3. Call the "runLoaderProcess" function recursively to transfer next data-chunk.
+        const msg: string = `\t--[pipeData]  For now inserted: ${ signal.totalRowsToInsert } rows,`
+            + `Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
+
+        log(conversion, msg);
+        await killProcess(loaderProcess.pid, conversion);
+        loaderProcessesCount--;
+        runLoaderProcess(conversion);
+    });
+
+    // Sends a message to current data loader process, which contains configuration info and a metadata of next data-chunk.
+    loaderProcess.send(new MessageToDataLoader(conversion._config, conversion._dataPool.pop()));
+}
+
+/**
+ * Returns a path to the DataLoader.js file.
+ * !!!Note, in runtime it points to ../dist/src/DataLoader.js and not DataLoader.ts
+ */
+function getDataLoaderPath(): string {
+    return path.join(__dirname, 'DataLoader.js');
+}
+
+/**
+ * Returns the options object, which intended to be used upon creation of the data loader process.
+ */
+function getDataLoaderOptions(conversion: Conversion): any {
+    const options: any = Object.create(null);
+
+    if (conversion._loaderMaxOldSpaceSize !== 'DEFAULT') {
+        options.execArgv = [`--max-old-space-size=${ conversion._loaderMaxOldSpaceSize }`];
+    }
+
+    return options;
+}
+
+/**
+ * Returns a number of logical CPU cores.
+ */
+function getNumberOfCpus(): number {
+    return os.cpus().length;
+}
 
 /**
  * Kills a process specified by the pid.
@@ -41,137 +155,5 @@ async function killProcess(pid: number, conversion: Conversion): Promise<void> {
  * Checks if all data chunks were processed.
  */
 function dataPoolProcessed(conversion: Conversion): boolean {
-    return conversion._processedChunks === conversion._dataPool.length;
-}
-
-/**
- * Gets a size (in MB) of the smallest, non processed data chunk.
- * If all data chunks are processed then returns 0.
- */
-function getSmallestDataChunkSizeInMb(conversion: Conversion): number {
-    for (let i: number = conversion._dataPool.length - 1; i >= 0; --i) {
-        if (conversion._dataPool[i]._processed === false) {
-            return conversion._dataPool[i]._size_in_mb;
-        }
-    }
-
-    return 0;
-}
-
-/**
- * Creates an array of indexes, that point to data chunks, that will be processed during current COPY operation.
- */
-async function fillBandwidth(conversion: Conversion): Promise<number[]> {
-    const dataChunkIndexes: number[] = [];
-
-    // Loop through the data pool from the beginning to the end.
-    // Note, the data pool is created with predefined order, the order by data chunk size descending.
-    // Note, the "bandwidth" variable represents an actual amount of data, that will be loaded during current COPY operation.
-    for (let i: number = 0, bandwidth = 0; i < conversion._dataPool.length; ++i) {
-        // Check if current chunk has already been marked as "processed".
-        // If yes, then continue to the next iteration.
-        if (conversion._dataPool[i]._processed === false) {
-            // Sum a size of data chunks, that are yet to be processed.
-            bandwidth += conversion._dataPool[i]._size_in_mb;
-
-            if (conversion._dataChunkSize - bandwidth >= getSmallestDataChunkSizeInMb(conversion)) {
-                // Currently, the bandwidth is smaller than "data_chunk_size",
-                // and the difference between "data_chunk_size" and the bandwidth
-                // is larger or equal to currently-smallest data chunk.
-                // This means, that more data chunks can be processed during current COPY operation.
-                dataChunkIndexes.push(i);
-                conversion._dataPool[i]._processed = true;
-                continue;
-            }
-
-            if (conversion._dataChunkSize >= bandwidth) {
-                // Currently, the "data_chunk_size" is greater or equal to the bandwidth.
-                // This means, that no more data chunks can be processed during current COPY operation.
-                // Current COPY operation will be performed with maximal possible bandwidth capacity.
-                dataChunkIndexes.push(i);
-                conversion._dataPool[i]._processed = true;
-                break;
-            }
-
-            // This data chunk will not be processed during current COPY operation, because when it is added
-            // to the bandwidth, the bandwidth's size may become larger than "data_chunk_size".
-            // The bandwidth's value should be decreased prior the next iteration.
-            bandwidth -= conversion._dataPool[i]._size_in_mb;
-        }
-    }
-
-    if (dataChunkIndexes.length === 0 && conversion._dataPool.length !== 0) {
-        // This is the case where there are chunks, larger than "conversion._dataChunkSize".
-        // It may happen with maximum one chunk per table.
-        // See calculations from DataChunksProcessor.ts for the reference.
-        //
-        // Each call to "fillBandwidth()" will return an index of one (and only one!!!) such chunk.
-        // Eventually, all of the chunks, including the "bigger" ones, will be processed.
-        const firstUnprocessedChunkIndex: number = conversion
-            ._dataPool
-            .findIndex((item: any) => item._processed === false);
-
-        if (firstUnprocessedChunkIndex === -1) {
-            const msg: string = 'Something went wrong with DataPipeManager.';
-            await generateError(conversion, msg);
-            process.exit();
-        }
-
-        dataChunkIndexes.push(firstUnprocessedChunkIndex);
-        conversion._dataPool[firstUnprocessedChunkIndex]._processed = true;
-    }
-
-    return dataChunkIndexes;
-}
-
-/**
- * Instructs DataLoader which data chunks should be loaded.
- * No need to check the state-log.
- * If dataPool's length is zero, then nmig will proceed to the next step.
- */
-async function pipeData(conversion: Conversion, dataLoaderPath: string, options: any): Promise<void> {
-    if (dataPoolProcessed(conversion)) {
-        conversion = await decodeBinaryData(conversion);
-        return processConstraints(conversion);
-    }
-
-    const chunksIndexes: number[] = await fillBandwidth(conversion);
-    const chunksToLoad: any[] = chunksIndexes.map((index: number) => conversion._dataPool[index]);
-    const loaderProcess: ChildProcess = fork(dataLoaderPath, options);
-
-    loaderProcess.on('message', async (signal: any) => {
-        if (typeof signal === 'object') {
-            conversion._dicTables[signal.tableName].totalRowsInserted += signal.rowsInserted;
-            const msg: string = `\t--[pipeData]  For now inserted: ${ conversion._dicTables[signal.tableName].totalRowsInserted } rows, 
-                Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
-
-            log(conversion, msg);
-            return;
-        }
-
-        await killProcess(loaderProcess.pid, conversion);
-        conversion._processedChunks += chunksToLoad.length;
-        return pipeData(conversion, dataLoaderPath, options);
-    });
-
-    loaderProcess.send(new MessageToDataLoader(conversion._config, chunksToLoad));
-}
-
-/**
- * Manages the DataPipe.
- */
-export default async function(conversion: Conversion): Promise<void> {
-    if (dataPoolProcessed(conversion)) {
-        conversion = await decodeBinaryData(conversion);
-        return processConstraints(conversion);
-    }
-
-    // In runtime it points to ../dist/src/DataLoader.js and not DataLoader.ts
-    const dataLoaderPath: string = path.join(__dirname, 'DataLoader.js');
-
-    const options: any = conversion._loaderMaxOldSpaceSize === 'DEFAULT'
-        ? Object.create(null)
-        : { execArgv: [`--max-old-space-size=${ conversion._loaderMaxOldSpaceSize }`] };
-
-    return pipeData(conversion, dataLoaderPath, options);
+    return conversion._dataPool.length === 0;
 }

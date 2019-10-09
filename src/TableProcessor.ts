@@ -88,30 +88,18 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
     conversion._dicTables[tableName].arrTableColumns = columns.data;
 
     if (conversion.shouldMigrateOnlyDataFor(tableName)) {
-        // Although the schema is preset, the data chunk id column must be added.
-        // This is due to the need to enforce data consistency in case of failures.
-        const sqlAddDataChunkIdColumn: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
-            ADD COLUMN "${ conversion._schema }_${ originalTableName }_data_chunk_id_temp" BIGINT;`;
-
-        const result: DBAccessQueryResult = await dbAccess.query(logTitle, sqlAddDataChunkIdColumn, DBVendors.PG, false, false);
-
-        if (result.error) {
-            await generateError(conversion, `\t--[${ logTitle }] ${ result.error }`, sqlAddDataChunkIdColumn);
-        }
-
         return;
     }
 
-    let sqlCreateTable: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(`;
+    const columnsDefinition: string = columns.data
+        .map((column: any) => {
+            const colName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
+            const colType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
+            return `"${ colName }" ${ colType }`;
+        })
+        .join(',');
 
-    columns.data.forEach((column: any) => {
-        const colName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
-        const colType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
-        sqlCreateTable += `"${ colName }" ${ colType },`;
-    });
-
-    sqlCreateTable += `"${ conversion._schema }_${ originalTableName }_data_chunk_id_temp" BIGINT);`;
-
+    const sqlCreateTable: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(${ columnsDefinition });`;
     const createTableResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateTable, DBVendors.PG, false, false);
 
     if (!createTableResult.error) {

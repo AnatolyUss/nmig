@@ -30,9 +30,7 @@ import Conversion from './Conversion';
 export async function createDataPoolTable(conversion: Conversion): Promise<Conversion> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
-    const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }
-        ("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN, "size_in_mb" DOUBLE PRECISION);`;
-
+    const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN);`;
     await dbAccess.query('DataPoolManager::createDataPoolTable', sql, DBVendors.PG, true, false);
     log(conversion, `\t--[DataPoolManager.createDataPoolTable] table ${ table } is created...`);
     return conversion;
@@ -55,13 +53,12 @@ export async function dropDataPoolTable(conversion: Conversion): Promise<void> {
 export async function readDataPool(conversion: Conversion): Promise<Conversion> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
-    const sql: string = `SELECT id AS id, json AS json, size_in_mb AS size_in_mb FROM ${ table } ORDER BY size_in_mb DESC;`;
+    const sql: string = `SELECT id AS id, json AS json FROM ${ table };`;
     const result: DBAccessQueryResult = await dbAccess.query('DataPoolManager::dropDataPoolTable', sql, DBVendors.PG, true, false);
 
     result.data.rows.forEach((row: any) => {
         const obj: any = JSON.parse(row.json);
         obj._id =  row.id;
-        obj._size_in_mb = +row.size_in_mb;
         obj._processed = false;
         conversion._dataPool.push(obj);
     });
