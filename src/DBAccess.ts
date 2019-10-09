@@ -23,7 +23,6 @@ import { MysqlError, Pool as MySQLPool, PoolConnection } from 'mysql';
 import { Pool as PgPool, PoolClient, QueryResult } from 'pg';
 import { generateError } from './FsOps';
 import Conversion from './Conversion';
-import generateReport from './ReportGenerator';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 
@@ -76,7 +75,6 @@ export default class DBAccess {
             this._conversion._pg.on('error', async (error: Error) => {
                 const message: string = `Cannot connect to PostgreSQL server...\n' ${ error.message }\n${ error.stack }`;
                 await generateError(this._conversion, message);
-                generateReport(this._conversion, message);
             });
         }
     }
