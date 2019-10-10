@@ -30,7 +30,7 @@ import Conversion from './Conversion';
 export async function createDataPoolTable(conversion: Conversion): Promise<Conversion> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
-    const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "json" TEXT, "is_started" BOOLEAN);`;
+    const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
     await dbAccess.query('DataPoolManager::createDataPoolTable', sql, DBVendors.PG, true, false);
     log(conversion, `\t--[DataPoolManager.createDataPoolTable] table ${ table } is created...`);
     return conversion;
@@ -53,13 +53,12 @@ export async function dropDataPoolTable(conversion: Conversion): Promise<void> {
 export async function readDataPool(conversion: Conversion): Promise<Conversion> {
     const dbAccess: DBAccess = new DBAccess(conversion);
     const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
-    const sql: string = `SELECT id AS id, json AS json FROM ${ table };`;
+    const sql: string = `SELECT id AS id, metadata AS metadata FROM ${ table };`;
     const result: DBAccessQueryResult = await dbAccess.query('DataPoolManager::dropDataPoolTable', sql, DBVendors.PG, true, false);
 
     result.data.rows.forEach((row: any) => {
-        const obj: any = JSON.parse(row.json);
+        const obj: any = JSON.parse(row.metadata);
         obj._id =  row.id;
-        obj._processed = false;
         conversion._dataPool.push(obj);
     });
 

@@ -24,47 +24,37 @@ import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 
 /**
- * Updates consistency state.
- */
-async function updateConsistencyState(conversion: Conversion, dataPoolId: number): Promise<void> {
-    const logTitle: string = 'ConsistencyEnforcer::updateConsistencyState';
-    const sql: string = `UPDATE "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }" 
-        SET is_started = TRUE WHERE id = ${ dataPoolId };`;
-
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
-}
-
-/**
- * Retrieves the `is_started` value of current data chunk.
- */
-async function dataMayBeLoaded(conversion: Conversion, dataPoolId: number): Promise<boolean> {
-    const logTitle: string = 'ConsistencyEnforcer::dataMayBeLoaded';
-    const sql: string = `SELECT is_started AS is_started 
-        FROM "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }" 
-        WHERE id = ${ dataPoolId };`;
-
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
-    return result.error ? false : !!result.data.rows[0].is_started;
-}
-
-/**
  * Enforces consistency before processing a chunk of data.
  * Ensures there are no any data duplications.
  * In case of normal execution - it is a good practice.
  * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
-export async function enforceConsistency(conversion: Conversion, chunk: any): Promise<boolean> {
-    const hasAlreadyBeenLoaded: boolean = await dataMayBeLoaded(conversion, chunk._id);
+export async function dataTransferred(conversion: Conversion, dataPoolId: number): Promise<boolean> {
+    const logTitle: string = 'ConsistencyEnforcer::dataTransferred';
+    const dataPoolTable: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    const sqlGetMetadata: string = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
+    const dbAccess: DBAccess = new DBAccess(conversion);
 
-    if (hasAlreadyBeenLoaded) {
-        // Current data chunk runs after a disaster recovery.
-        // It may already been loaded.
-        return false;
-    }
+    const result: DBAccessQueryResult = await dbAccess.query(
+        logTitle,
+        sqlGetMetadata,
+        DBVendors.PG,
+        true,
+        true
+    );
 
-    // Normal migration flow.
-    await updateConsistencyState(conversion, chunk._id);
-    return true;
+    const metadata: any = JSON.parse(result.data.rows[0].metadata);
+    const targetTableName: string = `"${ conversion._schema }"."${ metadata._tableName }"`;
+    const sqlGetFirstRow: string = `SELECT * FROM ${ targetTableName } LIMIT 1 OFFSET 0;`;
+
+    const probe: DBAccessQueryResult = await dbAccess.query(
+        logTitle,
+        sqlGetFirstRow,
+        DBVendors.PG,
+        true,
+        false,
+        result.client
+    );
+
+    return probe.data.rows.length !== 0;
 }

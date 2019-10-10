@@ -43,16 +43,15 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
         logTitle,
         sqlRowsCnt,
         DBVendors.MYSQL,
-        true,
+        false,
         false
     );
 
     const rowsCnt: number = countResult.data[0].rows_count;
     const msg: string = `\t--[prepareDataChunks] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
-    const strJson: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }","_rowsCnt":${ rowsCnt }}`;
-    const sql: string = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`
-        + `("is_started", "json") VALUES (FALSE, $1);`;
+    const metadata: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }","_rowsCnt":${ rowsCnt }}`;
+    const sql: string = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"("metadata") VALUES ($1);`;
 
     await dbAccess.query(
         logTitle,
@@ -61,6 +60,6 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
         false,
         false,
         undefined,
-        [strJson]
+        [metadata]
     );
 }

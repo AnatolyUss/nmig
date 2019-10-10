@@ -25,7 +25,7 @@ import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 import MessageToMaster from './MessageToMaster';
 import MessageToDataLoader from './MessageToDataLoader';
-import { enforceConsistency } from './ConsistencyEnforcer';
+import { dataTransferred } from './ConsistencyEnforcer';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import * as path from 'path';
 import { PoolClient, QueryResult } from 'pg';
@@ -36,11 +36,11 @@ const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration 
 process.on('message', async (signal: MessageToDataLoader) => {
     const { config, chunk } = signal;
     const conv: Conversion = new Conversion(config);
-    log(conv, '\t--[loadData] Loading the data...');
+    log(conv, `\t--[loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
 
-    const isNormalFlow: boolean = await enforceConsistency(conv, chunk);
+    const isRecoveryMode: boolean = await dataTransferred(conv, chunk._id);
 
-    if (isNormalFlow) {
+    if (!isRecoveryMode) {
         await populateTableWorker(conv, chunk._tableName, chunk._selectFieldList, chunk._rowsCnt, chunk._id);
         return;
     }
