@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { log, generateError } from './FsOps';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
@@ -100,7 +100,7 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
         .join(',');
 
     const sqlCreateTable: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(${ columnsDefinition });`;
-    const createTableResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateTable, DBVendors.PG, false, false);
+    const createTableResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateTable, DBVendors.PG, true, false);
 
     if (!createTableResult.error) {
         log(conversion, `\t--[${ logTitle }] Table "${ conversion._schema }"."${ tableName }" is created...`, conversion._dicTables[tableName].tableLogPath);
