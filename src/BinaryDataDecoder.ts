@@ -43,7 +43,7 @@ export default async function (conversion: Conversion): Promise<Conversion> {
 
     if (result.error) {
         // No need to continue if no 'bytea' or 'geometry' columns found.
-        dbAccess.releaseDbClient(<PoolClient>result.client);
+        await dbAccess.releaseDbClient(<PoolClient>result.client);
         return conversion;
     }
 

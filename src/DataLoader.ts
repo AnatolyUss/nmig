@@ -18,38 +18,36 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as csvStringify from './CsvStringifyModified';
 import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 import MessageToMaster from './MessageToMaster';
-import { enforceConsistency } from './ConsistencyEnforcer';
+import MessageToDataLoader from './MessageToDataLoader';
+import { dataTransferred } from './ConsistencyEnforcer';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import BufferStream from './BufferStream';
 import * as path from 'path';
 import { PoolClient, QueryResult } from 'pg';
+import { PoolConnection } from 'mysql';
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
+const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
 
-process.on('message', async (signal: any) => {
-    const conv: Conversion = new Conversion(signal.config);
-    log(conv, '\t--[loadData] Loading the data...');
+process.on('message', async (signal: MessageToDataLoader) => {
+    const { config, chunk } = signal;
+    const conv: Conversion = new Conversion(config);
+    log(conv, `\t--[loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
 
-    const promises: Promise<void>[] = signal.chunks.map(async (chunk: any) => {
-        const isNormalFlow: boolean = await enforceConsistency(conv, chunk);
+    const isRecoveryMode: boolean = await dataTransferred(conv, chunk._id);
 
-        if (isNormalFlow) {
-            return populateTableWorker(conv, chunk._tableName, chunk._selectFieldList, chunk._offset, chunk._rowsInChunk, chunk._rowsCnt, chunk._id);
-        }
+    if (!isRecoveryMode) {
+        await populateTableWorker(conv, chunk._tableName, chunk._selectFieldList, chunk._rowsCnt, chunk._id);
+        return;
+    }
 
-        const dbAccess: DBAccess = new DBAccess(conv);
-        const client: PoolClient = await dbAccess.getPgClient();
-        return deleteChunk(conv, chunk._id, client);
-    });
-
-    await Promise.all(promises);
-    processSend('processed');
+    const dbAccess: DBAccess = new DBAccess(conv);
+    const client: PoolClient = await dbAccess.getPgClient();
+    return deleteChunk(conv, chunk._id, client);
 });
 
 /**
@@ -65,32 +63,25 @@ function processSend(x: any): void {
  * Deletes given record from the data-pool.
  */
 async function deleteChunk(
-    conv: Conversion,
+    conversion: Conversion,
     dataPoolId: number,
     client: PoolClient,
     originalSessionReplicationRole: string | null = null
 ): Promise<void> {
-    const sql: string = `DELETE FROM "${ conv._schema }"."data_pool_${ conv._schema }${ conv._mySqlDbName }" WHERE id = ${ dataPoolId };`;
-    const dbAccess: DBAccess = new DBAccess(conv);
+    const sql: string = `DELETE FROM "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }" WHERE id = ${ dataPoolId };`;
+    const dbAccess: DBAccess = new DBAccess(conversion);
 
     try {
         await client.query(sql);
 
         if (originalSessionReplicationRole) {
-            await enableTriggers(conv, client, <string>originalSessionReplicationRole);
+            await enableTriggers(conversion, client, <string>originalSessionReplicationRole);
         }
     } catch (error) {
-        await generateError(conv, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
+        await generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
-        dbAccess.releaseDbClient(client);
+        await dbAccess.releaseDbClient(client);
     }
-}
-
-/**
- * Builds a MySQL query to retrieve the chunk of data.
- */
-function buildChunkQuery(tableName: string, selectFieldList: string, offset: number, rowsInChunk: number): string {
-    return `SELECT ${ selectFieldList } FROM \`${ tableName }\` LIMIT ${ offset },${ rowsInChunk };`;
 }
 
 /**
@@ -109,7 +100,8 @@ async function processDataError(
     await generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
     const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
     log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
-    return deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
+    await deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
+    processSend(new MessageToMaster(tableName, 0));
 }
 
 /**
@@ -119,64 +111,115 @@ async function populateTableWorker(
     conv: Conversion,
     tableName: string,
     strSelectFieldList: string,
-    offset: number,
-    rowsInChunk: number,
     rowsCnt: number,
     dataPoolId: number
 ): Promise<void> {
-    return new Promise<void>(async resolvePopulateTableWorker => {
-        const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
-        const sql: string = buildChunkQuery(originalTableName, strSelectFieldList, offset, rowsInChunk);
-        const dbAccess: DBAccess = new DBAccess(conv);
-        const logTitle: string = 'DataLoader::populateTableWorker';
-        const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, false, false);
+    const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
+    const sql: string = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
+    const dbAccess: DBAccess = new DBAccess(conv);
+    const mysqlClient: PoolConnection = await dbAccess.getMysqlClient();
+    const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN DELIMITER '${ conv._delimiter }' CSV;`;
+    const client: PoolClient = await dbAccess.getPgClient();
+    let originalSessionReplicationRole: string | null = null;
 
-        if (result.error) {
-            return resolvePopulateTableWorker();
-        }
+    if (conv.shouldMigrateOnlyDataFor(tableName)) {
+        originalSessionReplicationRole = await disableTriggers(conv, client);
+    }
 
-        rowsInChunk = result.data.length;
-        result.data[0][`${ conv._schema }_${ originalTableName }_data_chunk_id_temp`] = dataPoolId;
+    const copyStream: any = getCopyStream(
+        conv,
+        client,
+        sqlCopy,
+        sql,
+        tableName,
+        rowsCnt,
+        dataPoolId,
+        originalSessionReplicationRole
+    );
 
-        csvStringify(result.data, async (csvError: any, csvString: string) => {
-            if (csvError) {
-                await generateError(conv, `\t--[${ logTitle }] ${ csvError }`);
-                return resolvePopulateTableWorker();
-            }
+    const streamsHighWaterMark: number = 16384; // Commonly used as the default, but may vary across different machines.
+    const json2csvStream = await getJson2csvStream(conv, dbAccess, originalTableName, streamsHighWaterMark, dataPoolId, client, originalSessionReplicationRole);
+    const mysqlClientErrorHandler = async (err: string) => {
+        await processDataError(conv, err, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
+    };
 
-            const buffer: Buffer = Buffer.from(csvString, conv._encoding);
-            const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN DELIMITER '${ conv._delimiter }' CSV;`;
-            const client: PoolClient = await dbAccess.getPgClient();
-            let originalSessionReplicationRole: string | null = null;
+    mysqlClient
+        .query(sql)
+        .on('error', mysqlClientErrorHandler)
+        .stream({ highWaterMark: streamsHighWaterMark })
+        .pipe(json2csvStream)
+        .pipe(copyStream);
+}
 
-            if (conv.shouldMigrateOnlyDataFor(tableName)) {
-                originalSessionReplicationRole = await disableTriggers(conv, client);
-            }
+/**
+ * Returns new PostgreSQL copy stream object.
+ */
+function getCopyStream(
+    conv: Conversion,
+    client: PoolClient,
+    sqlCopy: string,
+    sql: string,
+    tableName: string,
+    rowsCnt: number,
+    dataPoolId: number,
+    originalSessionReplicationRole: string | null
+): any {
+    const copyStream: any = client.query(from(sqlCopy));
 
-            const copyStream: any = client.query(from(sqlCopy));
-            const bufferStream: BufferStream = new BufferStream(buffer);
+    copyStream
+        .on('end', async () => {
+            // COPY FROM STDIN does not return the number of rows inserted.
+            // But the transactional behavior still applies, meaning no records inserted if at least one failed.
+            // That is why in case of 'on end' the rowsCnt value is actually the number of records inserted.
+            processSend(new MessageToMaster(tableName, rowsCnt));
+            await deleteChunk(conv, dataPoolId, client);
+        })
+        .on('error', async (copyStreamError: string) => {
+            await processDataError(conv, copyStreamError, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
+        });
 
-            copyStream.on('end', () => {
-                // COPY FROM STDIN does not return the number of rows inserted.
-                // But the transactional behavior still applies (no records inserted if at least one failed).
-                // That is why in case of 'on end' the rowsInChunk value is actually the number of records inserted.
-                processSend(new MessageToMaster(tableName, rowsInChunk, rowsCnt));
-                return deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole).then(() => resolvePopulateTableWorker());
-            });
+    return copyStream;
+}
 
-            copyStream.on('error', (copyStreamError: string) => {
-                return processDataError(conv, copyStreamError, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole)
-                    .then(() => resolvePopulateTableWorker());
-            });
+/**
+ * Returns new json-to-csv stream-transform object.
+ */
+async function getJson2csvStream(
+    conversion: Conversion,
+    dbAccess: DBAccess,
+    originalTableName: string,
+    streamsHighWaterMark: number,
+    dataPoolId: number,
+    client: PoolClient,
+    originalSessionReplicationRole: string | null
+): Promise<any> {
+    const tableColumnsResult: DBAccessQueryResult = await dbAccess.query(
+        'DataLoader::populateTableWorker',
+        `SHOW COLUMNS FROM \`${ originalTableName }\`;`,
+        DBVendors.MYSQL,
+        true,
+        false
+    );
 
-            bufferStream.on('error', (bufferStreamError: string) => {
-                return processDataError(conv, bufferStreamError, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole)
-                    .then(() => resolvePopulateTableWorker());
-            });
+    const options: any = {
+        delimiter: conversion._delimiter,
+        header: false,
+        fields: tableColumnsResult.data.map((column: any) => column.Field)
+    };
 
-            bufferStream.setEncoding(conv._encoding).pipe(copyStream);
-        }, conv._encoding);
+    const transformOptions: any = {
+        highWaterMark: streamsHighWaterMark,
+        objectMode: true,
+        encoding: conversion._encoding
+    };
+
+    const json2CsvTransformStream = new Json2CsvTransform(options, transformOptions);
+
+    json2CsvTransformStream.on('error', async (transformError: string) => {
+        await processDataError(conversion, transformError, '', '', originalTableName, dataPoolId, client, originalSessionReplicationRole);
     });
+
+    return json2CsvTransformStream;
 }
 
 /**

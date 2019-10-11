@@ -11,10 +11,8 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
    indexes, primary and foreign keys exactly as they were before migration.</li>
 
 <li>Ability to rename tables and columns during migration.</li>
-<li>Ability to recover migration process if disaster took place (without restarting from the beginning).</li>
-<li>Ability to migrate big databases - in order to eliminate "process out of memory" issues NMIG will split each table's data into several chunks.<br>Each group of chunks will be loaded via separate worker process.</li>
-
-<li> Speed of data transfer - in order to migrate data fast NMIG uses PostgreSQL COPY protocol.</li>
+<li>Ability to recover migration process if disaster took place without restarting from the beginning.</li>
+<li>Ability to migrate big databases fast - in order to migrate data NMIG utilizes PostgreSQL COPY protocol.</li>
 <li>Ease of monitoring - NMIG will provide detailed output about every step, it takes during the execution.</li>
 <li>
  Ease of configuration - all the parameters required for migration should be put in one single JSON document.
@@ -89,7 +87,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 <b>Note:</b> "logs_directory" will be created during script execution.</p>
 
 <h3>VERSION</h3>
-<p>Current version is 4.0.2<br />
+<p>Current version is 5.0.0<br />
 (major version . improvements . bug fixes)</p>
 
 <h3>KNOWN ISSUES</h3>
