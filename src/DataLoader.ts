@@ -195,7 +195,7 @@ async function getJson2csvStream(
 ): Promise<any> {
     const tableColumnsResult: DBAccessQueryResult = await dbAccess.query(
         'DataLoader::populateTableWorker',
-        `SHOW COLUMNS FROM ${ originalTableName };`,
+        `SHOW COLUMNS FROM \`${ originalTableName }\`;`,
         DBVendors.MYSQL,
         true,
         false
