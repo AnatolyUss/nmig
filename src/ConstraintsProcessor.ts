@@ -37,10 +37,11 @@ import Conversion from './Conversion';
  */
 export default async function(conversion: Conversion): Promise<void> {
     const isTableConstraintsLoaded: boolean = await migrationStateManager.get(conversion, 'per_table_constraints_loaded');
+    const migrateOnlyData: boolean = conversion.shouldMigrateOnlyData();
 
     const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
         if (!isTableConstraintsLoaded) {
-            if (conversion.shouldMigrateOnlyDataFor(tableName)) {
+            if (migrateOnlyData) {
                 return sequencesProcessor.setSequenceValue(conversion, tableName);
             }
 
@@ -54,13 +55,21 @@ export default async function(conversion: Conversion): Promise<void> {
     });
 
     await Promise.all(promises);
-    await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
-    await processForeignKey(conversion);
-    await migrationStateManager.set(conversion, 'foreign_keys_loaded');
+
+    if (migrateOnlyData) {
+        await migrationStateManager.set(conversion, 'per_table_constraints_loaded', 'foreign_keys_loaded', 'views_loaded');
+    } else {
+        await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
+        await processForeignKey(conversion);
+        await migrationStateManager.set(conversion, 'foreign_keys_loaded');
+        await processViews(conversion);
+        await migrationStateManager.set(conversion, 'views_loaded');
+    }
+
+    await runVacuumFullAndAnalyze(conversion); // Reclaim storage occupied by dead tuples.
+
+    // !!!Note, dropping of data-pool and state-logs tables MUST be the last step of migration process.
     await dataPoolManager.dropDataPoolTable(conversion);
-    await processViews(conversion);
-    await migrationStateManager.set(conversion, 'views_loaded');
-    await runVacuumFullAndAnalyze(conversion);
     await migrationStateManager.dropStateLogsTable(conversion);
     generateReport(conversion, 'NMIG migration is accomplished.');
 }
