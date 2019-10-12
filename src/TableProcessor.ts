@@ -87,7 +87,7 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
 
     conversion._dicTables[tableName].arrTableColumns = columns.data;
 
-    if (conversion.shouldMigrateOnlyDataFor(tableName)) {
+    if (conversion.shouldMigrateOnlyData()) {
         return;
     }
 

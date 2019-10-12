@@ -37,9 +37,10 @@ export async function get(conversion: Conversion, param: string): Promise<boolea
 /**
  * Updates the state-log.
  */
-export async function set(conversion: Conversion, param: string): Promise<void> {
+export async function set(conversion: Conversion, ...states: string[]): Promise<void> {
+    const statesSql: string = states.map((state: string) => `${ state } = TRUE`).join(',');
+    const sql: string = `UPDATE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" SET ${ statesSql };`;
     const dbAccess: DBAccess = new DBAccess(conversion);
-    const sql: string = `UPDATE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" SET ${ param } = TRUE;`;
     await dbAccess.query('MigrationStateManager::set', sql, DBVendors.PG, true, false);
 }
 
@@ -57,7 +58,7 @@ export async function createStateLogsTable(conversion: Conversion): Promise<Conv
 
     if (+result.data.rows[0].cnt === 0) {
         sql = `INSERT INTO "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" VALUES (FALSE, FALSE, FALSE, FALSE);`;
-        await await dbAccess.query('MigrationStateManager::createStateLogsTable', sql, DBVendors.PG, true, false, result.client);
+        await dbAccess.query('MigrationStateManager::createStateLogsTable', sql, DBVendors.PG, true, false, result.client);
         return conversion;
     }
 

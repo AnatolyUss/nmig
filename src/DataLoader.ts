@@ -69,7 +69,6 @@ async function deleteChunk(
     originalSessionReplicationRole: string | null = null
 ): Promise<void> {
     const sql: string = `DELETE FROM "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }" WHERE id = ${ dataPoolId };`;
-    const dbAccess: DBAccess = new DBAccess(conversion);
 
     try {
         await client.query(sql);
@@ -80,6 +79,7 @@ async function deleteChunk(
     } catch (error) {
         await generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
+        const dbAccess: DBAccess = new DBAccess(conversion);
         await dbAccess.releaseDbClient(client);
     }
 }
@@ -122,7 +122,7 @@ async function populateTableWorker(
     const client: PoolClient = await dbAccess.getPgClient();
     let originalSessionReplicationRole: string | null = null;
 
-    if (conv.shouldMigrateOnlyDataFor(tableName)) {
+    if (conv.shouldMigrateOnlyData()) {
         originalSessionReplicationRole = await disableTriggers(conv, client);
     }
 
