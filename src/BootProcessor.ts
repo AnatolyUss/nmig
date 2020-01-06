@@ -22,19 +22,27 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 
 /**
  * Checks correctness of connection details of both MySQL and PostgreSQL.
  */
-export async function checkConnection(conversion: Conversion, dbAccess: DBAccess): Promise<string> {
-    const logTitle: string = 'BootProcessor::checkConnection';
+export async function checkConnection(conversion: Conversion): Promise<string> {
     let resultMessage: string = '';
-    const sql: string = 'SELECT 1;';
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'BootProcessor::checkConnection',
+        sql: 'SELECT 1;',
+        vendor: DBVendors.MYSQL,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
 
-    const mySqlResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, false, false);
+    const mySqlResult: DBAccessQueryResult = await DBAccess.query(params);
     resultMessage += mySqlResult.error ? `\tMySQL connection error: ${ JSON.stringify(mySqlResult.error) }\n` : '';
 
-    const pgResult: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
+    params.vendor = DBVendors.PG;
+    const pgResult: DBAccessQueryResult = await DBAccess.query(params);
     resultMessage += pgResult.error ? `\tPostgreSQL connection error: ${ JSON.stringify(pgResult.error) }` : '';
     return resultMessage;
 }
@@ -58,8 +66,7 @@ export function getLogo(): string {
  */
 export function boot(conversion: Conversion): Promise<Conversion> {
     return new Promise<Conversion>(async resolve => {
-        const dbAccess: DBAccess = new DBAccess(conversion);
-        const connectionErrorMessage = await checkConnection(conversion, dbAccess);
+        const connectionErrorMessage = await checkConnection(conversion);
         const logo: string = getLogo();
 
         if (connectionErrorMessage) {
@@ -71,7 +78,16 @@ export function boot(conversion: Conversion): Promise<Conversion> {
         WHERE table_schema = '${ conversion._schema }'
             AND table_name = 'state_logs_${ conversion._schema }${ conversion._mySqlDbName }');`;
 
-        const result: DBAccessQueryResult = await dbAccess.query('Boot', sql, DBVendors.PG, true, false);
+        const params: IDBAccessQueryParams = {
+            conversion: conversion,
+            caller: 'BootProcessor::boot',
+            sql: sql,
+            vendor: DBVendors.PG,
+            processExitOnError: true,
+            shouldReturnClient: false
+        };
+
+        const result: DBAccessQueryResult = await DBAccess.query(params);
         const isExists: boolean = !!result.data.rows[0].exists;
         const message: string = `${ (isExists
             ? '\n\t--[boot] NMIG is ready to restart after some failure.\n\t--[boot] Consider checking log files at the end of migration.'

@@ -23,23 +23,26 @@ import TestSchemaProcessor from './TestSchemaProcessor';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
+import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
 import { Test } from 'tape';
 
 /**
  * Retrieves a data from `table_a`.
  */
 async function retrieveData(testSchemaProcessor: TestSchemaProcessor): Promise<any> {
-    const logTitle: string = 'DataContentTest::retrieveData';
     const sql: string = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
         FROM ${ (<Conversion>testSchemaProcessor.conversion)._schema }.table_a AS table_a;`;
 
-    const result: DBAccessQueryResult = await (<DBAccess>testSchemaProcessor.dbAccess).query(
-        logTitle,
-        sql,
-        DBVendors.PG,
-        false,
-        false
-    );
+    const params: IDBAccessQueryParams = {
+        conversion: <Conversion>testSchemaProcessor.conversion,
+        caller: 'DataContentTest::retrieveData',
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (result.error) {
         await testSchemaProcessor.processFatalError(result.error);

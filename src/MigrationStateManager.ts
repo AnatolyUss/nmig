@@ -20,6 +20,7 @@
  */
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import DBVendors from './DBVendors';
 import { log } from './FsOps';
 import Conversion from './Conversion';
@@ -28,9 +29,16 @@ import Conversion from './Conversion';
  * Retrieves state-log.
  */
 export async function get(conversion: Conversion, param: string): Promise<boolean> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const sql: string = `SELECT ${ param } FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`;
-    const result: DBAccessQueryResult = await dbAccess.query('MigrationStateManager::get', sql, DBVendors.PG, true, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'MigrationStateManager::get',
+        sql: `SELECT ${ param } FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
     return result.data.rows[0][param];
 }
 
@@ -39,31 +47,51 @@ export async function get(conversion: Conversion, param: string): Promise<boolea
  */
 export async function set(conversion: Conversion, ...states: string[]): Promise<void> {
     const statesSql: string = states.map((state: string) => `${ state } = TRUE`).join(',');
-    const sql: string = `UPDATE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" SET ${ statesSql };`;
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    await dbAccess.query('MigrationStateManager::set', sql, DBVendors.PG, true, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'MigrationStateManager::set',
+        sql: `UPDATE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" SET ${ statesSql };`,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: false
+    };
+
+    await DBAccess.query(params);
 }
 
 /**
  * Creates the "{schema}"."state_logs_{self._schema + self._mySqlDbName}" temporary table.
  */
 export async function createStateLogsTable(conversion: Conversion): Promise<Conversion> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    let sql: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }"(
+    const logTitle: string = 'MigrationStateManager::createStateLogsTable';
+    const sql: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }"(
         "tables_loaded" BOOLEAN, "per_table_constraints_loaded" BOOLEAN, "foreign_keys_loaded" BOOLEAN, "views_loaded" BOOLEAN);`;
 
-    let result: DBAccessQueryResult = await dbAccess.query('MigrationStateManager::createStateLogsTable', sql, DBVendors.PG, true, true);
-    sql = `SELECT COUNT(1) AS cnt FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`;
-    result = await dbAccess.query('MigrationStateManager::createStateLogsTable', sql, DBVendors.PG, true, true, result.client);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: true
+    };
+
+    let result: DBAccessQueryResult = await DBAccess.query(params);
+
+    params.sql = `SELECT COUNT(1) AS cnt FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`;
+    params.client = result.client;
+    result = await DBAccess.query(params);
 
     if (+result.data.rows[0].cnt === 0) {
-        sql = `INSERT INTO "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" VALUES (FALSE, FALSE, FALSE, FALSE);`;
-        await dbAccess.query('MigrationStateManager::createStateLogsTable', sql, DBVendors.PG, true, false, result.client);
+        params.sql = `INSERT INTO "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" VALUES (FALSE, FALSE, FALSE, FALSE);`;
+        params.client = result.client; // !!!Notice, this line is not a mistake.
+        params.shouldReturnClient = false;
+        await DBAccess.query(params);
         return conversion;
     }
 
-    const msg: string = '\t--[MigrationStateManager::createStateLogsTable] table ' +
-        '"${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" is created...';
+    const msg: string = `\t--[${ logTitle }] table ` +
+        `"${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" is created...`;
 
     log(conversion, msg);
     return conversion;
@@ -73,7 +101,14 @@ export async function createStateLogsTable(conversion: Conversion): Promise<Conv
  * Drop the "{schema}"."state_logs_{self._schema + self._mySqlDbName}" temporary table.
  */
 export async function dropStateLogsTable(conversion: Conversion): Promise<void> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const sql: string = `DROP TABLE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`;
-    await dbAccess.query('MigrationStateManager::dropStateLogsTable', sql, DBVendors.PG, false, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'MigrationStateManager::dropStateLogsTable',
+        sql: `DROP TABLE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    await DBAccess.query(params);
 }

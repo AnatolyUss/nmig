@@ -26,6 +26,7 @@ import DBVendors from './DBVendors';
 import MessageToMaster from './MessageToMaster';
 import MessageToDataLoader from './MessageToDataLoader';
 import { dataTransferred } from './ConsistencyEnforcer';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import * as path from 'path';
 import { PoolClient, QueryResult } from 'pg';
@@ -45,8 +46,7 @@ process.on('message', async (signal: MessageToDataLoader) => {
         return;
     }
 
-    const dbAccess: DBAccess = new DBAccess(conv);
-    const client: PoolClient = await dbAccess.getPgClient();
+    const client: PoolClient = await DBAccess.getPgClient(conv);
     return deleteChunk(conv, chunk._id, client);
 });
 
@@ -79,8 +79,7 @@ async function deleteChunk(
     } catch (error) {
         await generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
-        const dbAccess: DBAccess = new DBAccess(conversion);
-        await dbAccess.releaseDbClient(client);
+        await DBAccess.releaseDbClient(conversion, client);
     }
 }
 
@@ -116,10 +115,9 @@ async function populateTableWorker(
 ): Promise<void> {
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
     const sql: string = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
-    const dbAccess: DBAccess = new DBAccess(conv);
-    const mysqlClient: PoolConnection = await dbAccess.getMysqlClient();
+    const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
     const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN DELIMITER '${ conv._delimiter }' CSV;`;
-    const client: PoolClient = await dbAccess.getPgClient();
+    const client: PoolClient = await DBAccess.getPgClient(conv);
     let originalSessionReplicationRole: string | null = null;
 
     if (conv.shouldMigrateOnlyData()) {
@@ -138,7 +136,7 @@ async function populateTableWorker(
     );
 
     const streamsHighWaterMark: number = 16384; // Commonly used as the default, but may vary across different machines.
-    const json2csvStream = await getJson2csvStream(conv, dbAccess, originalTableName, streamsHighWaterMark, dataPoolId, client, originalSessionReplicationRole);
+    const json2csvStream = await getJson2csvStream(conv, originalTableName, streamsHighWaterMark, dataPoolId, client, originalSessionReplicationRole);
     const mysqlClientErrorHandler = async (err: string) => {
         await processDataError(conv, err, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
     };
@@ -186,20 +184,22 @@ function getCopyStream(
  */
 async function getJson2csvStream(
     conversion: Conversion,
-    dbAccess: DBAccess,
     originalTableName: string,
     streamsHighWaterMark: number,
     dataPoolId: number,
     client: PoolClient,
     originalSessionReplicationRole: string | null
 ): Promise<any> {
-    const tableColumnsResult: DBAccessQueryResult = await dbAccess.query(
-        'DataLoader::populateTableWorker',
-        `SHOW COLUMNS FROM \`${ originalTableName }\`;`,
-        DBVendors.MYSQL,
-        true,
-        false
-    );
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'DataLoader::populateTableWorker',
+        sql: `SHOW COLUMNS FROM \`${ originalTableName }\`;`,
+        vendor: DBVendors.MYSQL,
+        processExitOnError: true,
+        shouldReturnClient: false
+    };
+
+    const tableColumnsResult: DBAccessQueryResult = await DBAccess.query(params);
 
     const options: any = {
         delimiter: conversion._delimiter,

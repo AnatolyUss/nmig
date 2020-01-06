@@ -25,6 +25,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 
 /**
  * Prepares an array of tables metadata.
@@ -36,30 +37,27 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
 
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const logTitle: string = 'DataChunksProcessor::default';
-    const dbAccess: DBAccess = new DBAccess(conversion);
     const strSelectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
     const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
-    const countResult: DBAccessQueryResult = await dbAccess.query(
-        logTitle,
-        sqlRowsCnt,
-        DBVendors.MYSQL,
-        false,
-        false
-    );
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'DataChunksProcessor::default',
+        sql: sqlRowsCnt,
+        vendor: DBVendors.MYSQL,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
 
+    const countResult: DBAccessQueryResult = await DBAccess.query(params);
     const rowsCnt: number = countResult.data[0].rows_count;
-    const msg: string = `\t--[prepareDataChunks] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
+    const msg: string = `\t--[${ logTitle }] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const metadata: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }","_rowsCnt":${ rowsCnt }}`;
-    const sql: string = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"("metadata") VALUES ($1);`;
 
-    await dbAccess.query(
-        logTitle,
-        sql,
-        DBVendors.PG,
-        false,
-        false,
-        undefined,
-        [metadata]
-    );
+    params.sql = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"("metadata") VALUES ($1);`;
+    params.vendor = DBVendors.PG;
+    params.client = undefined;
+    params.bindings = [metadata];
+
+    await DBAccess.query(params);
 }
