@@ -152,7 +152,7 @@ export default class DBAccess {
             } catch (error) {
                 // An error occurred when tried to obtain a client from one of pools.
                 await generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-                return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
+                return processExitOnError ? process.exit() : new DBAccessQueryResult(client, undefined, error);
             }
         }
 
@@ -182,10 +182,10 @@ export default class DBAccess {
 
                 if (error) {
                     await generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-                    return processExitOnError ? process.exit() : reject({ client: client, data: undefined, error: error });
+                    return processExitOnError ? process.exit() : reject(new DBAccessQueryResult(client, undefined, error));
                 }
 
-                return resolve({ client: client, data: data, error: undefined });
+                return resolve(new DBAccessQueryResult(client, data, undefined));
             });
         });
     }
@@ -204,11 +204,11 @@ export default class DBAccess {
         try {
             const data: any = Array.isArray(bindings) ? await (<PoolClient>client).query(sql, bindings) : await (<PoolClient>client).query(sql);
             await this._releaseDbClientIfNecessary((<PoolClient>client), shouldReturnClient); // Sets the client undefined.
-            return { client: client, data: data, error: undefined };
+            return new DBAccessQueryResult(client, data, undefined);
         } catch (error) {
             await this._releaseDbClientIfNecessary((<PoolClient>client), shouldReturnClient); // Sets the client undefined.
             await generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-            return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
+            return processExitOnError ? process.exit() : new DBAccessQueryResult(client, undefined, error);
         }
     }
 }

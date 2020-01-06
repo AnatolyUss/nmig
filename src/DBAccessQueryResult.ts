@@ -21,22 +21,31 @@
 import { PoolClient } from 'pg';
 import { PoolConnection } from 'mysql';
 
-export default interface DBAccessQueryResult {
+export default class DBAccessQueryResult {
     /**
      * MySQL's or PostgreSQL's client instance.
      * The client may be undefined.
      */
-    client?: PoolConnection | PoolClient;
+    public readonly client?: PoolConnection | PoolClient;
 
     /**
      * Query result.
      * The data may be undefined.
      */
-    data?: any;
+    public readonly data?: any;
 
     /**
      * Query error.
      * The data may be undefined.
      */
-    error?: any;
+    public readonly error?: any;
+
+    /**
+     * Constructor.
+     */
+    public constructor(client?: PoolConnection | PoolClient, data?: any, error?: any) {
+        this.client = client;
+        this.data = data;
+        this.error = error;
+    }
 }
