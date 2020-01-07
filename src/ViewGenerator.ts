@@ -102,6 +102,8 @@ export default async function(conversion: Conversion): Promise<void> {
         const createPgViewResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (createPgViewResult.error) {
+            // TODO: unfortunately logs always one of views to each file.
+            // TODO: must fix.
             return logNotCreatedView(conversion, view, params.sql);
         }
 
