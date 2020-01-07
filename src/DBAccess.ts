@@ -20,7 +20,7 @@
  */
 import * as mysql from 'mysql';
 import { MysqlError, Pool as MySQLPool, PoolConnection } from 'mysql';
-import { Pool as PgPool, PoolClient, QueryResult } from 'pg';
+import { Pool as PgPool, PoolClient } from 'pg';
 import { generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBVendors from './DBVendors';

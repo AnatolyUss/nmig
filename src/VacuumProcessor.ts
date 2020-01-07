@@ -31,26 +31,26 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
  */
 export default async function(conversion: Conversion): Promise<void> {
     const logTitle: string = 'VacuumProcessor::default';
-    const params: IDBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: '',
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false
-    };
 
     const vacuumPromises: Promise<void>[] = conversion._tablesToMigrate.map(async (table: string) => {
         if (conversion._noVacuum.indexOf(extraConfigProcessor.getTableName(conversion, table, true)) === -1) {
-            const msg: string = `\t--[${ logTitle }] Running "VACUUM FULL and ANALYZE" query for table 
-                "${ conversion._schema }"."${ table }"...`;
+            const tableName = `"${ conversion._schema }"."${ table }"`;
+            const msg: string = `\t--[${ logTitle }] Running "VACUUM FULL and ANALYZE" query for table ${ tableName }...`;
 
             log(conversion, msg);
-            params.sql = `VACUUM (FULL, ANALYZE) "${ conversion._schema }"."${ table }";`;
+            const params: IDBAccessQueryParams = {
+                conversion: conversion,
+                caller: logTitle,
+                sql: `VACUUM (FULL, ANALYZE) ${ tableName };`,
+                vendor: DBVendors.PG,
+                processExitOnError: false,
+                shouldReturnClient: false
+            };
+
             const result: DBAccessQueryResult = await DBAccess.query(params);
 
             if (!result.error) {
-                const msgSuccess: string = `\t--[${ logTitle }] Table "${ conversion._schema }"."${ table }" is VACUUMed...`;
+                const msgSuccess: string = `\t--[${ logTitle }] Table ${ tableName } is VACUUMed...`;
                 log(conversion, msgSuccess);
             }
         }

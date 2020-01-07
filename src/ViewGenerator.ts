@@ -80,17 +80,17 @@ export default async function(conversion: Conversion): Promise<void> {
     }
 
     const logTitle: string = 'ViewGenerator::default';
-    const params: IDBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: '',
-        vendor: DBVendors.MYSQL,
-        processExitOnError: false,
-        shouldReturnClient: false
-    };
 
     const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(async (view: string) => {
-        params.sql = `SHOW CREATE VIEW \`${ view }\`;`;
+        const params: IDBAccessQueryParams = {
+            conversion: conversion,
+            caller: logTitle,
+            sql: `SHOW CREATE VIEW \`${ view }\`;`,
+            vendor: DBVendors.MYSQL,
+            processExitOnError: false,
+            shouldReturnClient: false
+        };
+
         const showCreateViewResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (showCreateViewResult.error) {
@@ -102,8 +102,6 @@ export default async function(conversion: Conversion): Promise<void> {
         const createPgViewResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (createPgViewResult.error) {
-            // TODO: unfortunately logs always one of views to each file.
-            // TODO: must fix.
             return logNotCreatedView(conversion, view, params.sql);
         }
 
