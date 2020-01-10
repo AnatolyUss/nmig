@@ -35,14 +35,6 @@ export default async function(conversion: Conversion, tableName: string): Promis
     const msg: string = `\t--[${ logTitle }] Defines "ENUMs" for table "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const params: IDBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: '',
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false
-    };
 
     const processEnumPromises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
         if (column.Type.indexOf('(') !== -1) {
@@ -56,7 +48,15 @@ export default async function(conversion: Conversion, tableName: string): Promis
                     false
                 );
 
-                params.sql = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ADD CHECK ("${ columnName }" IN (${ arrType[1] });`;
+                const params: IDBAccessQueryParams = {
+                    conversion: conversion,
+                    caller: logTitle,
+                    sql: `ALTER TABLE "${ conversion._schema }"."${ tableName }" ADD CHECK ("${ columnName }" IN (${ arrType[1] });`,
+                    vendor: DBVendors.PG,
+                    processExitOnError: false,
+                    shouldReturnClient: false
+                };
+
                 const result: DBAccessQueryResult = await DBAccess.query(params);
 
                 if (!result.error) {

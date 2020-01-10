@@ -39,7 +39,7 @@ export default class DBAccess {
 
             if (!pool) {
                 await generateError(conversion, '\t--[getMysqlConnection] Cannot connect to MySQL server...');
-                process.exit();
+                process.exit(1);
             }
 
             conversion._mysql = pool;
@@ -56,7 +56,7 @@ export default class DBAccess {
 
             if (!pool) {
                 await generateError(conversion, '\t--[getPgConnection] Cannot connect to PostgreSQL server...');
-                process.exit();
+                process.exit(1);
             }
 
             conversion._pg = pool;
@@ -130,7 +130,7 @@ export default class DBAccess {
             } catch (error) {
                 // An error occurred when tried to obtain a client from one of pools.
                 await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
-                return processExitOnError ? process.exit() : new DBAccessQueryResult(client, undefined, error);
+                return processExitOnError ? process.exit(1) : new DBAccessQueryResult(client, undefined, error);
             }
         }
 
@@ -161,7 +161,7 @@ export default class DBAccess {
 
                 if (error) {
                     await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
-                    return processExitOnError ? process.exit() : reject(new DBAccessQueryResult(client, undefined, error));
+                    return processExitOnError ? process.exit(1) : reject(new DBAccessQueryResult(client, undefined, error));
                 }
 
                 return resolve(new DBAccessQueryResult(client, data, undefined));
@@ -186,7 +186,7 @@ export default class DBAccess {
             return new DBAccessQueryResult(client, data, undefined);
         } catch (error) {
             await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
-            return processExitOnError ? process.exit() : new DBAccessQueryResult(client, undefined, error);
+            return processExitOnError ? process.exit(1) : new DBAccessQueryResult(client, undefined, error);
         } finally {
             await DBAccess._releaseDbClientIfNecessary(conversion, (<PoolClient>client), shouldReturnClient); // Sets the client undefined.
         }

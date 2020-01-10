@@ -33,7 +33,7 @@ function runTestSuites(testSchemaProcessor: TestSchemaProcessor): () => void {
     return () => {
         test.onFinish(async () => {
             await testSchemaProcessor.removeTestResources();
-            process.exit();
+            process.exit(0);
         });
 
         test('Test schema should be created', (tapeTestSchema: test.Test) => {

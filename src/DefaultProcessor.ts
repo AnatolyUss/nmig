@@ -53,15 +53,6 @@ export default async function(conversion: Conversion, tableName: string): Promis
         'UTC_TIMESTAMP': "(NOW() AT TIME ZONE 'UTC')"
     };
 
-    const params: IDBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: '',
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false
-    };
-
     const promises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
         const pgSqlDataType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
         const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
@@ -75,7 +66,15 @@ export default async function(conversion: Conversion, tableName: string): Promis
             sql += `${ column.Default };`;
         }
 
-        params.sql = sql;
+        const params: IDBAccessQueryParams = {
+            conversion: conversion,
+            caller: logTitle,
+            sql: sql,
+            vendor: DBVendors.PG,
+            processExitOnError: false,
+            shouldReturnClient: false
+        };
+
         const result: DBAccessQueryResult = await DBAccess.query(params);
 
         if (!result.error) {

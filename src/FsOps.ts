@@ -84,7 +84,7 @@ export function readConfig(baseDir: string, configFileName: string = 'config.jso
         fs.readFile(strPathToConfig, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
                 console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ strPathToConfig }`);
-                process.exit();
+                process.exit(1);
             }
 
             const config: any = JSON.parse(data.toString());
@@ -110,7 +110,7 @@ export function readExtraConfig(config: any, baseDir: string): Promise<any> {
         fs.readFile(strPathToExtraConfig, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
                 console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ strPathToExtraConfig }`);
-                process.exit();
+                process.exit(1);
             }
 
             config.extraConfig = JSON.parse(data.toString());
@@ -141,7 +141,7 @@ function createDirectory(conversion: Conversion, directoryPath: string, logTitle
                 fs.mkdir(directoryPath, conversion._0777, e => {
                     if (e) {
                         console.log(`\t--[${ logTitle }] Cannot perform a migration due to impossibility to create directory: ${ directoryPath }`);
-                        process.exit();
+                        process.exit(1);
                     } else {
                         log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } is created...`);
                         resolve();
@@ -149,7 +149,7 @@ function createDirectory(conversion: Conversion, directoryPath: string, logTitle
                 });
             } else if (!stat.isDirectory()) {
                 console.log(`\t--[${ logTitle }] Cannot perform a migration due to unexpected error`);
-                process.exit();
+                process.exit(1);
             } else {
                 log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
                 resolve();
@@ -168,7 +168,7 @@ export function readDataTypesMap(conversion: Conversion): Promise<Conversion> {
 
             if (error) {
                 console.log(`\t--[${ logTitle }] Cannot read "DataTypesMap" from ${conversion._dataTypesMapAddr}`);
-                process.exit();
+                process.exit(1);
             }
 
             conversion._dataTypesMap = JSON.parse(data.toString());

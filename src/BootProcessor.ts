@@ -71,7 +71,7 @@ export function boot(conversion: Conversion): Promise<Conversion> {
 
         if (connectionErrorMessage) {
             console.log(`${ logo } \n ${ connectionErrorMessage }`);
-            process.exit();
+            process.exit(1);
         }
 
         const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables 
@@ -104,7 +104,7 @@ export function boot(conversion: Conversion): Promise<Conversion> {
 
                 if (trimedStdin === 'n' || trimedStdin === 'N') {
                     console.log('\t--[boot] Migration aborted.\n');
-                    process.exit();
+                    process.exit(0);
                 }
 
                 if (trimedStdin === 'y' || trimedStdin === 'Y') {

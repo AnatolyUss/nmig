@@ -20,7 +20,7 @@
  */
 import * as path from 'path';
 import * as fs from 'fs';
-import {EventEmitter} from 'events';
+import { EventEmitter } from 'events';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
@@ -29,10 +29,10 @@ import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 import createSchema from '../../src/SchemaProcessor';
 import loadStructureToMigrate from '../../src/StructureLoader';
 import pipeData from '../../src/DataPipeManager';
-import {createStateLogsTable} from '../../src/MigrationStateManager';
-import {createDataPoolTable, readDataPool} from '../../src/DataPoolManager';
-import {checkConnection, getLogo} from '../../src/BootProcessor';
-import {createLogsDirectory, generateError, log, readConfig, readDataTypesMap, readExtraConfig} from '../../src/FsOps';
+import { createStateLogsTable } from '../../src/MigrationStateManager';
+import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
+import { checkConnection, getLogo } from '../../src/BootProcessor';
+import { createLogsDirectory, generateError, log, readConfig, readDataTypesMap, readExtraConfig } from '../../src/FsOps';
 import ErrnoException = NodeJS.ErrnoException;
 
 export default class TestSchemaProcessor {
@@ -54,7 +54,7 @@ export default class TestSchemaProcessor {
     public async processFatalError(error: string): Promise<void> {
         console.log(error);
         await generateError(<Conversion>this.conversion, error);
-        process.exit();
+        process.exit(1);
     }
 
     /**
@@ -125,7 +125,7 @@ export default class TestSchemaProcessor {
 
         if (msg) {
             log(<Conversion>this.conversion, msg);
-            process.exit();
+            process.exit(0);
         }
 
         return conversion;
@@ -167,7 +167,7 @@ export default class TestSchemaProcessor {
             fs.readFile(filePath, (error: ErrnoException | null, data: Buffer) => {
                 if (error) {
                     console.log(`\t--[_readFile] Cannot read file from ${ filePath }`);
-                    process.exit();
+                    process.exit(1);
                 }
 
                 resolve(data);
@@ -281,7 +281,7 @@ export default class TestSchemaProcessor {
 
         if (connectionErrorMessage) {
             console.log(connectionErrorMessage);
-            process.exit();
+            process.exit(1);
         }
 
         Promise.resolve(conversion)

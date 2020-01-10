@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import {log} from './FsOps';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
@@ -77,14 +77,6 @@ async function processTableComments(conversion: Conversion, tableName: string): 
 async function processColumnsComments(conversion: Conversion, tableName: string): Promise<void> {
     const logTitle: string = 'CommentsProcessor::processColumnsComments';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const params: IDBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: '', // Will be updated on each iteration below.
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false
-    };
 
     const commentPromises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
         if (column.Comment === '') {
@@ -93,7 +85,15 @@ async function processColumnsComments(conversion: Conversion, tableName: string)
 
         const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
         const comment = escapeQuotes(column.Comment);
-        params.sql = `COMMENT ON COLUMN "${ conversion._schema }"."${ tableName }"."${ columnName }" IS '${ comment }';`;
+        const params: IDBAccessQueryParams = {
+            conversion: conversion,
+            caller: logTitle,
+            sql: `COMMENT ON COLUMN "${ conversion._schema }"."${ tableName }"."${ columnName }" IS '${ comment }';`,
+            vendor: DBVendors.PG,
+            processExitOnError: false,
+            shouldReturnClient: false
+        };
+
         const createCommentResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (createCommentResult.error) {
