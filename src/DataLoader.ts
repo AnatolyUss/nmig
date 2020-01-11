@@ -77,7 +77,7 @@ async function deleteChunk(
             await enableTriggers(conversion, client, <string>originalSessionReplicationRole);
         }
     } catch (error) {
-        generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
+        await generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
         await DBAccess.releaseDbClient(conversion, client);
     }
@@ -96,7 +96,7 @@ async function processDataError(
     client: PoolClient,
     originalSessionReplicationRole: string | null
 ): Promise<void> {
-    generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
+    await generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
     const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
     log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
     await deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
@@ -236,7 +236,7 @@ async function disableTriggers(conversion: Conversion, client: PoolClient): Prom
         sql = 'SET session_replication_role = replica;';
         await client.query(sql);
     } catch (error) {
-        generateError(conversion, `\t--[DataLoader::disableTriggers] ${ error }`, sql);
+        await generateError(conversion, `\t--[DataLoader::disableTriggers] ${ error }`, sql);
     }
 
     return originalSessionReplicationRole;
@@ -252,6 +252,6 @@ async function enableTriggers(conversion: Conversion, client: PoolClient, origin
     try {
         await client.query(sql);
     } catch (error) {
-        generateError(conversion, `\t--[DataLoader::enableTriggers] ${ error }`, sql);
+        await generateError(conversion, `\t--[DataLoader::enableTriggers] ${ error }`, sql);
     }
 }
