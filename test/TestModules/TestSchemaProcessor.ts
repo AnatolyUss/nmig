@@ -53,7 +53,7 @@ export default class TestSchemaProcessor {
      */
     public async processFatalError(error: string): Promise<void> {
         console.log(error);
-        await generateError(<Conversion>this.conversion, error);
+        generateError(<Conversion>this.conversion, error);
         process.exit(1);
     }
 

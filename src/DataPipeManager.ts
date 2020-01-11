@@ -94,7 +94,7 @@ function runLoaderProcess(conversion: Conversion): void {
     const loaderProcess: ChildProcess = fork(getDataLoaderPath(), getDataLoaderOptions(conversion));
     loaderProcessesCount++;
 
-    loaderProcess.on('message', async (signal: MessageToMaster) => {
+    loaderProcess.on('message', (signal: MessageToMaster) => {
         // Following actions are performed when a message from the loader process is accepted:
         // 1. Log an info regarding the just-populated table.
         // 2. Kill the loader process to release unused RAM as quick as possible.
@@ -103,7 +103,7 @@ function runLoaderProcess(conversion: Conversion): void {
             + `Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
         log(conversion, msg);
-        await killProcess(loaderProcess.pid, conversion);
+        killProcess(loaderProcess.pid, conversion);
         loaderProcessesCount--;
         runLoaderProcess(conversion);
     });
@@ -143,11 +143,11 @@ function getNumberOfCpus(): number {
 /**
  * Kills a process specified by the pid.
  */
-async function killProcess(pid: number, conversion: Conversion): Promise<void> {
+function killProcess(pid: number, conversion: Conversion): void {
     try {
         process.kill(pid);
     } catch (killError) {
-        await generateError(conversion, `\t--[killProcess] ${ killError }`);
+        generateError(conversion, `\t--[killProcess] ${ killError }`);
     }
 }
 

@@ -24,24 +24,22 @@ import Conversion from './Conversion';
 import ErrnoException = NodeJS.ErrnoException;
 
 /**
+ * Writes given buffer to an appropriate log file.
+ */
+function _writeLog(conversion: Conversion, logFilePath: string, bufferedLog: Buffer): void {
+    const fd: number = fs.openSync(logFilePath, 'a', conversion._0777);
+    fs.writeSync(fd, bufferedLog, 0, bufferedLog.length, null);
+    fs.closeSync(fd);
+}
+
+/**
  * Writes a detailed error message to the "/errors-only.log" file.
  */
-export function generateError(conversion: Conversion, message: string, sql: string = ''): Promise<void> {
-    return new Promise<void>(resolve => {
-        message += `\n\n\tSQL: ${sql}\n\n`;
-        const buffer: Buffer = Buffer.from(message, conversion._encoding);
-        log(conversion, message, undefined);
-
-        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
-            if (error) {
-                return resolve();
-            }
-
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                fs.close(fd, () => resolve());
-            });
-        });
-    });
+export function generateError(conversion: Conversion, message: string, sql: string = ''): void {
+    message += `\n\n\tSQL: ${sql}\n\n`;
+    const buffer: Buffer = Buffer.from(message, conversion._encoding);
+    log(conversion, message, undefined);
+    _writeLog(conversion, conversion._errorLogsPath, buffer);
 }
 
 /**
@@ -50,28 +48,12 @@ export function generateError(conversion: Conversion, message: string, sql: stri
  * If necessary, writes given log to the "/{tableName}.log" file.
  */
 export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string): void {
-    console.log(log);
     const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
+    _writeLog(conversion, conversion._allLogsPath, buffer);
 
-    fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
-        if (!error) {
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                fs.close(fd, () => {
-                    if (tableLogPath) {
-                        fs.open(tableLogPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
-                            if (!error) {
-                                fs.write(fd, buffer, 0, buffer.length, null, () => {
-                                    fs.close(fd, () => {
-                                        // Each async function MUST have a callback (according to Node.js >= 7).
-                                    });
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-        }
-    });
+    if (tableLogPath) {
+        _writeLog(conversion, tableLogPath, buffer);
+    }
 }
 
 /**
