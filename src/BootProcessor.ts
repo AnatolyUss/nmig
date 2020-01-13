@@ -23,6 +23,7 @@ import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { getStateLogsTableName } from './MigrationStateManager';
 
 /**
  * Checks correctness of connection details of both MySQL and PostgreSQL.
@@ -74,9 +75,8 @@ export function boot(conversion: Conversion): Promise<Conversion> {
             process.exit(1);
         }
 
-        const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables 
-        WHERE table_schema = '${ conversion._schema }'
-            AND table_name = 'state_logs_${ conversion._schema }${ conversion._mySqlDbName }');`;
+        const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables`
+            + `WHERE table_schema = '${ conversion._schema }' AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
 
         const params: IDBAccessQueryParams = {
             conversion: conversion,

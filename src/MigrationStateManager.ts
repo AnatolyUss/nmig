@@ -26,13 +26,21 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 
 /**
+ * Returns the state logs table name.
+ */
+export function getStateLogsTableName(conversion: Conversion, getRowName: boolean = false): string {
+    const rowName: string = `state_logs_${ conversion._schema }${ conversion._mySqlDbName }`;
+    return getRowName ? rowName : `"${ conversion._schema }"."${ rowName }"`;
+}
+
+/**
  * Retrieves state-log.
  */
 export async function get(conversion: Conversion, param: string): Promise<boolean> {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::get',
-        sql: `SELECT ${ param } FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`,
+        sql: `SELECT ${ param } FROM ${ getStateLogsTableName(conversion) };`,
         vendor: DBVendors.PG,
         processExitOnError: true,
         shouldReturnClient: false
@@ -50,7 +58,7 @@ export async function set(conversion: Conversion, ...states: string[]): Promise<
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::set',
-        sql: `UPDATE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" SET ${ statesSql };`,
+        sql: `UPDATE ${ getStateLogsTableName(conversion) } SET ${ statesSql };`,
         vendor: DBVendors.PG,
         processExitOnError: true,
         shouldReturnClient: false
@@ -64,7 +72,7 @@ export async function set(conversion: Conversion, ...states: string[]): Promise<
  */
 export async function createStateLogsTable(conversion: Conversion): Promise<Conversion> {
     const logTitle: string = 'MigrationStateManager::createStateLogsTable';
-    const sql: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }"(
+    const sql: string = `CREATE TABLE IF NOT EXISTS ${ getStateLogsTableName(conversion) }(
         "tables_loaded" BOOLEAN, "per_table_constraints_loaded" BOOLEAN, "foreign_keys_loaded" BOOLEAN, "views_loaded" BOOLEAN);`;
 
     const params: IDBAccessQueryParams = {
@@ -78,21 +86,19 @@ export async function createStateLogsTable(conversion: Conversion): Promise<Conv
 
     let result: DBAccessQueryResult = await DBAccess.query(params);
 
-    params.sql = `SELECT COUNT(1) AS cnt FROM "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`;
+    params.sql = `SELECT COUNT(1) AS cnt FROM ${ getStateLogsTableName(conversion) };`;
     params.client = result.client;
     result = await DBAccess.query(params);
 
     if (+result.data.rows[0].cnt === 0) {
-        params.sql = `INSERT INTO "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" VALUES (FALSE, FALSE, FALSE, FALSE);`;
+        params.sql = `INSERT INTO ${ getStateLogsTableName(conversion) } VALUES (FALSE, FALSE, FALSE, FALSE);`;
         params.client = result.client; // !!!Notice, this line is not a mistake.
         params.shouldReturnClient = false;
         await DBAccess.query(params);
         return conversion;
     }
 
-    const msg: string = `\t--[${ logTitle }] table ` +
-        `"${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }" is created...`;
-
+    const msg: string = `\t--[${ logTitle }] table ${ getStateLogsTableName(conversion) } is created...`;
     log(conversion, msg);
     return conversion;
 }
@@ -104,7 +110,7 @@ export async function dropStateLogsTable(conversion: Conversion): Promise<void> 
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::dropStateLogsTable',
-        sql: `DROP TABLE "${ conversion._schema }"."state_logs_${ conversion._schema }${ conversion._mySqlDbName }";`,
+        sql: `DROP TABLE ${ getStateLogsTableName(conversion) };`,
         vendor: DBVendors.PG,
         processExitOnError: false,
         shouldReturnClient: false
