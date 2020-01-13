@@ -23,6 +23,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { getDataPoolTableName } from './DataPoolManager';
 
 /**
  * Enforces consistency before processing a chunk of data.
@@ -31,7 +32,7 @@ import IDBAccessQueryParams from './IDBAccessQueryParams';
  * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
 export async function dataTransferred(conversion: Conversion, dataPoolId: number): Promise<boolean> {
-    const dataPoolTable: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    const dataPoolTable: string = getDataPoolTableName(conversion);
     const sqlGetMetadata: string = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
     const params: IDBAccessQueryParams = {
         conversion: conversion,

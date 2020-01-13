@@ -28,6 +28,7 @@ import MessageToDataLoader from './MessageToDataLoader';
 import { dataTransferred } from './ConsistencyEnforcer';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import { getDataPoolTableName } from './DataPoolManager';
 import * as path from 'path';
 import { PoolClient, QueryResult } from 'pg';
 import { PoolConnection } from 'mysql';
@@ -68,7 +69,7 @@ async function deleteChunk(
     client: PoolClient,
     originalSessionReplicationRole: string | null = null
 ): Promise<void> {
-    const sql: string = `DELETE FROM "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }" WHERE id = ${ dataPoolId };`;
+    const sql: string = `DELETE FROM ${ getDataPoolTableName(conversion) } WHERE id = ${ dataPoolId };`;
 
     try {
         await client.query(sql);

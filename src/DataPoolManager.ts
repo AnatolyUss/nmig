@@ -26,11 +26,18 @@ import Conversion from './Conversion';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 
 /**
+ * Returns the data pool table name.
+ */
+export function getDataPoolTableName(conversion: Conversion): string {
+    return `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+}
+
+/**
  * Creates the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
 export async function createDataPoolTable(conversion: Conversion): Promise<Conversion> {
     const logTitle: string = 'DataPoolManager::createDataPoolTable';
-    const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    const table: string = getDataPoolTableName(conversion);
     const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
     const params: IDBAccessQueryParams = {
         conversion: conversion,
@@ -51,7 +58,7 @@ export async function createDataPoolTable(conversion: Conversion): Promise<Conve
  */
 export async function dropDataPoolTable(conversion: Conversion): Promise<void> {
     const logTitle: string = 'DataPoolManager::dropDataPoolTable';
-    const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    const table: string = getDataPoolTableName(conversion);
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
@@ -70,7 +77,7 @@ export async function dropDataPoolTable(conversion: Conversion): Promise<void> {
  */
 export async function readDataPool(conversion: Conversion): Promise<Conversion> {
     const logTitle: string = 'DataPoolManager::readDataPool';
-    const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    const table: string = getDataPoolTableName(conversion);
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,

@@ -26,6 +26,7 @@ import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { getDataPoolTableName } from './DataPoolManager';
 
 /**
  * Prepares an array of tables metadata.
@@ -54,7 +55,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const metadata: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }","_rowsCnt":${ rowsCnt }}`;
 
-    params.sql = `INSERT INTO "${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"("metadata") VALUES ($1);`;
+    params.sql = `INSERT INTO ${ getDataPoolTableName(conversion) }("metadata") VALUES ($1);`;
     params.vendor = DBVendors.PG;
     params.client = undefined;
     params.bindings = [metadata];
