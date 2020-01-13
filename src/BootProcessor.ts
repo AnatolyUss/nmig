@@ -76,7 +76,7 @@ export function boot(conversion: Conversion): Promise<Conversion> {
         }
 
         const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables`
-            + `WHERE table_schema = '${ conversion._schema }' AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
+            + ` WHERE table_schema = '${ conversion._schema }' AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
 
         const params: IDBAccessQueryParams = {
             conversion: conversion,
