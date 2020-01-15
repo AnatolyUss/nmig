@@ -97,7 +97,7 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     tape.equal(data.year, 1984);
 
     tape.comment('Test bigint column value');
-    tape.equal(data.bigint, '1234567890123456800');
+    tape.equal(data.bigint, '9223372036854775807');
 
     tape.comment('Test float column value');
     tape.equal(data.float, 12345.5);
@@ -109,7 +109,7 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     tape.equal(data.numeric, '1234567890');
 
     tape.comment('Test decimal column value');
-    tape.equal(data.decimal, '1234567890');
+    tape.equal(data.decimal, '99999999999999999223372036854775807.121111111111111345334523423220');
 
     tape.comment('Test char_5 column value');
     tape.equal(data.char_5, 'fghij');

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `table_a`(
     `double` DOUBLE,
     `double_precision` DOUBLE PRECISION,
     `numeric` NUMERIC,
-    `decimal` DECIMAL,
+    `decimal` DECIMAL(65,30),
     `decimal_19_2` DECIMAL(19,2),
     `char_5` CHAR(5),
     `varchar_5` VARCHAR(5),
