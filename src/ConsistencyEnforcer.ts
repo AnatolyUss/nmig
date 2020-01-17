@@ -22,6 +22,8 @@ import DBAccessQueryResult from './DBAccessQueryResult';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { getDataPoolTableName } from './DataPoolManager';
 
 /**
  * Enforces consistency before processing a chunk of data.
@@ -30,31 +32,25 @@ import DBVendors from './DBVendors';
  * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
 export async function dataTransferred(conversion: Conversion, dataPoolId: number): Promise<boolean> {
-    const logTitle: string = 'ConsistencyEnforcer::dataTransferred';
-    const dataPoolTable: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    const dataPoolTable: string = getDataPoolTableName(conversion);
     const sqlGetMetadata: string = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
-    const dbAccess: DBAccess = new DBAccess(conversion);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'ConsistencyEnforcer::dataTransferred',
+        sql: sqlGetMetadata,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: true
+    };
 
-    const result: DBAccessQueryResult = await dbAccess.query(
-        logTitle,
-        sqlGetMetadata,
-        DBVendors.PG,
-        true,
-        true
-    );
-
+    const result: DBAccessQueryResult = await DBAccess.query(params);
     const metadata: any = JSON.parse(result.data.rows[0].metadata);
     const targetTableName: string = `"${ conversion._schema }"."${ metadata._tableName }"`;
-    const sqlGetFirstRow: string = `SELECT * FROM ${ targetTableName } LIMIT 1 OFFSET 0;`;
 
-    const probe: DBAccessQueryResult = await dbAccess.query(
-        logTitle,
-        sqlGetFirstRow,
-        DBVendors.PG,
-        true,
-        false,
-        result.client
-    );
+    params.sql = `SELECT * FROM ${ targetTableName } LIMIT 1 OFFSET 0;`;
+    params.shouldReturnClient = false;
+    params.client = result.client;
 
+    const probe: DBAccessQueryResult = await DBAccess.query(params);
     return probe.data.rows.length !== 0;
 }

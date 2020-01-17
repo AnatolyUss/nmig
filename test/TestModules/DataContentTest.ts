@@ -23,23 +23,26 @@ import TestSchemaProcessor from './TestSchemaProcessor';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
+import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
 import { Test } from 'tape';
 
 /**
  * Retrieves a data from `table_a`.
  */
 async function retrieveData(testSchemaProcessor: TestSchemaProcessor): Promise<any> {
-    const logTitle: string = 'DataContentTest::retrieveData';
     const sql: string = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
         FROM ${ (<Conversion>testSchemaProcessor.conversion)._schema }.table_a AS table_a;`;
 
-    const result: DBAccessQueryResult = await (<DBAccess>testSchemaProcessor.dbAccess).query(
-        logTitle,
-        sql,
-        DBVendors.PG,
-        false,
-        false
-    );
+    const params: IDBAccessQueryParams = {
+        conversion: <Conversion>testSchemaProcessor.conversion,
+        caller: 'DataContentTest::retrieveData',
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (result.error) {
         await testSchemaProcessor.processFatalError(result.error);
@@ -94,7 +97,7 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     tape.equal(data.year, 1984);
 
     tape.comment('Test bigint column value');
-    tape.equal(data.bigint, '1234567890123456800');
+    tape.equal(data.bigint, '9223372036854775807');
 
     tape.comment('Test float column value');
     tape.equal(data.float, 12345.5);
@@ -106,7 +109,7 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     tape.equal(data.numeric, '1234567890');
 
     tape.comment('Test decimal column value');
-    tape.equal(data.decimal, '1234567890');
+    tape.equal(data.decimal, '99999999999999999223372036854775807.121111111111111345334523423220');
 
     tape.comment('Test char_5 column value');
     tape.equal(data.char_5, 'fghij');

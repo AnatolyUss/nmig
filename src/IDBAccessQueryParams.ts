@@ -18,34 +18,49 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { PoolClient } from 'pg';
+import Conversion from './Conversion';
+import DBVendors from './DBVendors';
 import { PoolConnection } from 'mysql';
+import { PoolClient } from 'pg';
 
-export default class DBAccessQueryResult {
+export default interface IDBAccessQueryParams {
     /**
-     * MySQL's or PostgreSQL's client instance.
-     * The client may be undefined.
+     * Conversion, Nmig's configuration.
      */
-    public readonly client?: PoolConnection | PoolClient;
-
-    /**
-     * Query result.
-     * The data may be undefined.
-     */
-    public readonly data?: any;
+    conversion: Conversion;
 
     /**
-     * Query error.
-     * The data may be undefined.
+     * Function, that has sent current SQL query for execution.
      */
-    public readonly error?: any;
+    caller: string;
 
     /**
-     * Constructor.
+     * SQL query, that was sent for execution.
      */
-    public constructor(client?: PoolConnection | PoolClient, data?: any, error?: any) {
-        this.client = client;
-        this.data = data;
-        this.error = error;
-    }
+    sql: string;
+
+    /**
+     * Type of a database, to which current SQL query was sent.
+     */
+    vendor: DBVendors;
+
+    /**
+     * Flag, indicating whether to abort Nmig execution on error.
+     */
+    processExitOnError: boolean;
+
+    /**
+     * Flag, indicating whether a database client should be returned as a part of DBAccessQueryResult object.
+     */
+    shouldReturnClient: boolean;
+
+    /**
+     * A database client.
+     */
+    client?: PoolConnection | PoolClient;
+
+    /**
+     * SQL query bindings.
+     */
+    bindings?: any[];
 }

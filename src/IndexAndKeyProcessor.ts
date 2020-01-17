@@ -23,17 +23,25 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
  * Creates primary key and indices.
  */
 export default async function(conversion: Conversion, tableName: string): Promise<void> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const logTitle: string = 'IndexAndKeyProcessor'
+    const logTitle: string = 'IndexAndKeyProcessor::default';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const sqlShowIndex: string = `SHOW INDEX FROM \`${ originalTableName }\`;`;
-    const showIndexResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlShowIndex, DBVendors.MYSQL, false, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: `SHOW INDEX FROM \`${ originalTableName }\`;`,
+        vendor: DBVendors.MYSQL,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const showIndexResult: DBAccessQueryResult = await DBAccess.query(params);
 
     if (showIndexResult.error) {
         return;
@@ -74,7 +82,9 @@ export default async function(conversion: Conversion, tableName: string): Promis
             ${ objPgIndices[index].Index_type } (${ objPgIndices[index].column_name.join(',') });`;
         }
 
-        await dbAccess.query(logTitle, sqlAddIndex, DBVendors.PG, false, false);
+        params.vendor = DBVendors.PG;
+        params.sql = sqlAddIndex;
+        await DBAccess.query(params);
     });
 
     await Promise.all(addIndexPromises);

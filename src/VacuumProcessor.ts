@@ -23,25 +23,34 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
  * Runs "vacuum full" and "analyze".
  */
 export default async function(conversion: Conversion): Promise<void> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
+    const logTitle: string = 'VacuumProcessor::default';
 
     const vacuumPromises: Promise<void>[] = conversion._tablesToMigrate.map(async (table: string) => {
         if (conversion._noVacuum.indexOf(extraConfigProcessor.getTableName(conversion, table, true)) === -1) {
-            const msg: string = `\t--[runVacuumFullAndAnalyze] Running "VACUUM FULL and ANALYZE" query for table 
-                "${ conversion._schema }"."${ table }"...`;
+            const tableName = `"${ conversion._schema }"."${ table }"`;
+            const msg: string = `\t--[${ logTitle }] Running "VACUUM FULL and ANALYZE" query for table ${ tableName }...`;
 
             log(conversion, msg);
-            const sql: string = `VACUUM (FULL, ANALYZE) "${ conversion._schema }"."${ table }";`;
-            const result: DBAccessQueryResult = await dbAccess.query('runVacuumFullAndAnalyze', sql, DBVendors.PG, false, false);
+            const params: IDBAccessQueryParams = {
+                conversion: conversion,
+                caller: logTitle,
+                sql: `VACUUM (FULL, ANALYZE) ${ tableName };`,
+                vendor: DBVendors.PG,
+                processExitOnError: false,
+                shouldReturnClient: false
+            };
+
+            const result: DBAccessQueryResult = await DBAccess.query(params);
 
             if (!result.error) {
-                const msgSuccess: string = `\t--[runVacuumFullAndAnalyze] Table "${ conversion._schema }"."${ table }" is VACUUMed...`;
+                const msgSuccess: string = `\t--[${ logTitle }] Table ${ tableName } is VACUUMed...`;
                 log(conversion, msgSuccess);
             }
         }
