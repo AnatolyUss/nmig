@@ -20,61 +20,50 @@
  */
 import * as mysql from 'mysql';
 import { MysqlError, Pool as MySQLPool, PoolConnection } from 'mysql';
-import { Pool as PgPool, PoolClient, QueryResult } from 'pg';
+import { Pool as PgPool, PoolClient } from 'pg';
 import { generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 
 export default class DBAccess {
     /**
-     * Conversion instance.
-     */
-    private readonly _conversion: Conversion;
-
-    /**
-     * DBAccess constructor.
-     */
-    public constructor(conversion: Conversion) {
-        this._conversion = conversion;
-    }
-
-    /**
      * Ensures MySQL connection pool existence.
      */
-    private async _getMysqlConnection(): Promise<void> {
-        if (!this._conversion._mysql) {
-            this._conversion._sourceConString.connectionLimit = this._conversion._maxDbConnectionPoolSize;
-            this._conversion._sourceConString.multipleStatements = true;
-            const pool: MySQLPool = mysql.createPool(this._conversion._sourceConString);
+    private static async _getMysqlConnection(conversion: Conversion): Promise<void> {
+        if (!conversion._mysql) {
+            conversion._sourceConString.connectionLimit = conversion._maxDbConnectionPoolSize;
+            conversion._sourceConString.multipleStatements = true;
+            const pool: MySQLPool = mysql.createPool(conversion._sourceConString);
 
             if (!pool) {
-                await generateError(this._conversion, '\t--[getMysqlConnection] Cannot connect to MySQL server...');
-                process.exit();
+                await generateError(conversion, '\t--[getMysqlConnection] Cannot connect to MySQL server...');
+                process.exit(1);
             }
 
-            this._conversion._mysql = pool;
+            conversion._mysql = pool;
         }
     }
 
     /**
      * Ensures PostgreSQL connection pool existence.
      */
-    private async _getPgConnection(): Promise<void> {
-        if (!this._conversion._pg) {
-            this._conversion._targetConString.max = this._conversion._maxDbConnectionPoolSize;
-            const pool: PgPool = new PgPool(this._conversion._targetConString);
+    private static async _getPgConnection(conversion: Conversion): Promise<void> {
+        if (!conversion._pg) {
+            conversion._targetConString.max = conversion._maxDbConnectionPoolSize;
+            const pool: PgPool = new PgPool(conversion._targetConString);
 
             if (!pool) {
-                await generateError(this._conversion, '\t--[getPgConnection] Cannot connect to PostgreSQL server...');
-                process.exit();
+                await generateError(conversion, '\t--[getPgConnection] Cannot connect to PostgreSQL server...');
+                process.exit(1);
             }
 
-            this._conversion._pg = pool;
+            conversion._pg = pool;
 
-            this._conversion._pg.on('error', async (error: Error) => {
+            conversion._pg.on('error', async (error: Error) => {
                 const message: string = `Cannot connect to PostgreSQL server...\n' ${ error.message }\n${ error.stack }`;
-                await generateError(this._conversion, message);
+                await generateError(conversion, message);
             });
         }
     }
@@ -82,10 +71,10 @@ export default class DBAccess {
     /**
      * Obtains PoolConnection instance.
      */
-    public getMysqlClient(): Promise<PoolConnection> {
+    public static getMysqlClient(conversion: Conversion): Promise<PoolConnection> {
         return new Promise<PoolConnection>(async (resolve, reject) => {
-            await this._getMysqlConnection();
-            (<MySQLPool>this._conversion._mysql).getConnection((err: MysqlError | null, connection: PoolConnection) => {
+            await DBAccess._getMysqlConnection(conversion);
+            (<MySQLPool>conversion._mysql).getConnection((err: MysqlError | null, connection: PoolConnection) => {
                 return err ? reject(err) : resolve(connection);
             });
         });
@@ -94,29 +83,20 @@ export default class DBAccess {
     /**
      * Obtains PoolClient instance.
      */
-    public async getPgClient(): Promise<PoolClient> {
-        await this._getPgConnection();
-        return (<PgPool>this._conversion._pg).connect();
-    }
-
-    /**
-     * Runs a query on the first available idle client and returns its result.
-     * Note, the pool does the acquiring and releasing of the client internally.
-     */
-    public async runPgPoolQuery(sql: string): Promise<QueryResult> {
-        await this._getPgConnection();
-        return (<PgPool>this._conversion._pg).query(sql);
+    public static async getPgClient(conversion: Conversion): Promise<PoolClient> {
+        await DBAccess._getPgConnection(conversion);
+        return (<PgPool>conversion._pg).connect();
     }
 
     /**
      * Releases MySQL or PostgreSQL connection back to appropriate pool.
      */
-    public async releaseDbClient(dbClient?: PoolConnection | PoolClient): Promise<void> {
+    public static async releaseDbClient(conversion: Conversion, dbClient?: PoolConnection | PoolClient): Promise<void> {
         try {
             (<PoolConnection | PoolClient>dbClient).release();
             dbClient = undefined;
         } catch (error) {
-            await generateError(this._conversion, `\t--[DBAccess::releaseDbClient] ${ error }`);
+            await generateError(conversion, `\t--[DBAccess::releaseDbClient] ${ error }`);
         }
     }
 
@@ -124,9 +104,13 @@ export default class DBAccess {
      * Checks if there are no more queries to be sent using current client.
      * In such case the client should be released.
      */
-    private async _releaseDbClientIfNecessary(client: PoolConnection | PoolClient, shouldHoldClient: boolean): Promise<void> {
+    private static async _releaseDbClientIfNecessary(
+        conversion: Conversion,
+        client: PoolConnection | PoolClient,
+        shouldHoldClient: boolean
+    ): Promise<void> {
         if (!shouldHoldClient) {
-            await this.releaseDbClient(client);
+            await this.releaseDbClient(conversion, client);
         }
     }
 
@@ -134,37 +118,32 @@ export default class DBAccess {
      * Sends given SQL query to specified DB.
      * Performs appropriate actions (requesting/releasing client) against target connections pool.
      */
-    public async query(
-        caller: string,
-        sql: string,
-        vendor: DBVendors,
-        processExitOnError: boolean,
-        shouldReturnClient: boolean,
-        client?: PoolConnection | PoolClient,
-        bindings?: any[]
-    ): Promise<DBAccessQueryResult> {
+    public static async query(queryParams: IDBAccessQueryParams): Promise<DBAccessQueryResult> {
+        let { conversion, caller, sql, vendor, processExitOnError, shouldReturnClient, client, bindings } = queryParams;
+
         // Checks if there is an available client.
         if (!client) {
             try {
                 // Client is undefined.
                 // It must be requested from the connections pool.
-                client = vendor === DBVendors.PG ? await this.getPgClient() : await this.getMysqlClient();
+                client = vendor === DBVendors.PG ? await DBAccess.getPgClient(conversion) : await DBAccess.getMysqlClient(conversion);
             } catch (error) {
                 // An error occurred when tried to obtain a client from one of pools.
-                await generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-                return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
+                await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
+                return processExitOnError ? process.exit(1) : new DBAccessQueryResult(client, undefined, error);
             }
         }
 
         return vendor === DBVendors.PG
-            ? this._queryPG(caller, sql, processExitOnError, shouldReturnClient, (<PoolClient>client), bindings)
-            : this._queryMySQL(caller, sql, processExitOnError, shouldReturnClient, (<PoolConnection>client), bindings);
+            ? DBAccess._queryPG(conversion, caller, sql, processExitOnError, shouldReturnClient, (<PoolClient>client), bindings)
+            : DBAccess._queryMySQL(conversion, caller, sql, processExitOnError, shouldReturnClient, (<PoolConnection>client), bindings);
     }
 
     /**
      * Sends given SQL query to MySQL.
      */
-    private _queryMySQL(
+    private static _queryMySQL(
+        conversion: Conversion,
         caller: string,
         sql: string,
         processExitOnError: boolean,
@@ -178,14 +157,14 @@ export default class DBAccess {
             }
 
             (<PoolConnection>client).query(sql, async (error: MysqlError | null, data: any) => {
-                await this._releaseDbClientIfNecessary((<PoolConnection>client), shouldReturnClient);
+                await DBAccess._releaseDbClientIfNecessary(conversion, (<PoolConnection>client), shouldReturnClient);
 
                 if (error) {
-                    await generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-                    return processExitOnError ? process.exit() : reject({ client: client, data: undefined, error: error });
+                    await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
+                    return processExitOnError ? process.exit(1) : reject(new DBAccessQueryResult(client, undefined, error));
                 }
 
-                return resolve({ client: client, data: data, error: undefined });
+                return resolve(new DBAccessQueryResult(client, data, undefined));
             });
         });
     }
@@ -193,7 +172,8 @@ export default class DBAccess {
     /**
      * Sends given SQL query to PostgreSQL.
      */
-    private async _queryPG(
+    private static async _queryPG(
+        conversion: Conversion,
         caller: string,
         sql: string,
         processExitOnError: boolean,
@@ -203,12 +183,12 @@ export default class DBAccess {
     ): Promise<DBAccessQueryResult> {
         try {
             const data: any = Array.isArray(bindings) ? await (<PoolClient>client).query(sql, bindings) : await (<PoolClient>client).query(sql);
-            await this._releaseDbClientIfNecessary((<PoolClient>client), shouldReturnClient); // Sets the client undefined.
-            return { client: client, data: data, error: undefined };
+            return new DBAccessQueryResult(client, data, undefined);
         } catch (error) {
-            await this._releaseDbClientIfNecessary((<PoolClient>client), shouldReturnClient); // Sets the client undefined.
-            await generateError(this._conversion, `\t--[${ caller }] ${ error }`, sql);
-            return processExitOnError ? process.exit() : { client: client, data: undefined, error: error };
+            await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
+            return processExitOnError ? process.exit(1) : new DBAccessQueryResult(client, undefined, error);
+        } finally {
+            await DBAccess._releaseDbClientIfNecessary(conversion, (<PoolClient>client), shouldReturnClient); // Sets the client undefined.
         }
     }
 }

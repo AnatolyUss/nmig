@@ -23,16 +23,33 @@ import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 import { log } from './FsOps';
 import Conversion from './Conversion';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
+
+/**
+ * Returns the data pool table name.
+ */
+export function getDataPoolTableName(conversion: Conversion): string {
+    return `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+}
 
 /**
  * Creates the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
 export async function createDataPoolTable(conversion: Conversion): Promise<Conversion> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    const logTitle: string = 'DataPoolManager::createDataPoolTable';
+    const table: string = getDataPoolTableName(conversion);
     const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
-    await dbAccess.query('DataPoolManager::createDataPoolTable', sql, DBVendors.PG, true, false);
-    log(conversion, `\t--[DataPoolManager.createDataPoolTable] table ${ table } is created...`);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: false
+    };
+
+    await DBAccess.query(params);
+    log(conversion, `\t--[${ logTitle }] table ${ table } is created...`);
     return conversion;
 }
 
@@ -40,21 +57,37 @@ export async function createDataPoolTable(conversion: Conversion): Promise<Conve
  * Drops the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
 export async function dropDataPoolTable(conversion: Conversion): Promise<void> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
-    const sql: string = `DROP TABLE ${ table };`;
-    await dbAccess.query('DataPoolManager::dropDataPoolTable', sql, DBVendors.PG, false, false);
-    log(conversion, `\t--[DataPoolManager.dropDataPoolTable] table ${ table } is dropped...`);
+    const logTitle: string = 'DataPoolManager::dropDataPoolTable';
+    const table: string = getDataPoolTableName(conversion);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: `DROP TABLE ${ table };`,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    await DBAccess.query(params);
+    log(conversion, `\t--[${ logTitle }] table ${ table } is dropped...`);
 }
 
 /**
  * Reads temporary table, and generates Data-pool.
  */
 export async function readDataPool(conversion: Conversion): Promise<Conversion> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const table: string = `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
-    const sql: string = `SELECT id AS id, metadata AS metadata FROM ${ table };`;
-    const result: DBAccessQueryResult = await dbAccess.query('DataPoolManager::dropDataPoolTable', sql, DBVendors.PG, true, false);
+    const logTitle: string = 'DataPoolManager::readDataPool';
+    const table: string = getDataPoolTableName(conversion);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: `SELECT id AS id, metadata AS metadata FROM ${ table };`,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
     result.data.rows.forEach((row: any) => {
         const obj: any = JSON.parse(row.metadata);
@@ -62,6 +95,6 @@ export async function readDataPool(conversion: Conversion): Promise<Conversion> 
         conversion._dataPool.push(obj);
     });
 
-    log(conversion, '\t--[DataPoolManager.readDataPool] Data-Pool is loaded...');
+    log(conversion, `\t--[${logTitle}] Data-Pool is loaded...`);
     return conversion;
 }

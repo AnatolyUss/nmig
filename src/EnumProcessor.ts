@@ -24,14 +24,15 @@ import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 
 /**
  * Defines which columns of the given table are of type "enum".
  * Sets an appropriate constraint, if need.
  */
 export default async function(conversion: Conversion, tableName: string): Promise<void> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const msg: string = `\t--[EnumProcessor] Defines "ENUMs" for table "${ conversion._schema }"."${ tableName }"`;
+    const logTitle: string = 'EnumProcessor::default';
+    const msg: string = `\t--[${ logTitle }] Defines "ENUMs" for table "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 
@@ -47,11 +48,19 @@ export default async function(conversion: Conversion, tableName: string): Promis
                     false
                 );
 
-                const sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ADD CHECK ("${ columnName }" IN (${ arrType[1] });`;
-                const result: DBAccessQueryResult = await dbAccess.query('EnumProcessor', sql, DBVendors.PG, false, false);
+                const params: IDBAccessQueryParams = {
+                    conversion: conversion,
+                    caller: logTitle,
+                    sql: `ALTER TABLE "${ conversion._schema }"."${ tableName }" ADD CHECK ("${ columnName }" IN (${ arrType[1] });`,
+                    vendor: DBVendors.PG,
+                    processExitOnError: false,
+                    shouldReturnClient: false
+                };
+
+                const result: DBAccessQueryResult = await DBAccess.query(params);
 
                 if (!result.error) {
-                    const successMsg: string = `\t--[EnumProcessor] Set "ENUM" for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
+                    const successMsg: string = `\t--[${ logTitle }] Set "ENUM" for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
                     log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
                 }
             }

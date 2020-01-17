@@ -23,6 +23,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
@@ -30,19 +31,27 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
  * Sets an appropriate constraint, if need.
  */
 export default async function(conversion: Conversion, tableName: string): Promise<void> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const msg: string = `\t--[NullConstraintsProcessor] Defines "NOT NULLs" for table: "${ conversion._schema }"."${ tableName }"`;
+    const logTitle: string = 'NullProcessor::default';
+    const msg: string = `\t--[${ logTitle }] Defines "NOT NULLs" for table: "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 
     const promises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
         if (column.Null.toLowerCase() === 'no') {
             const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
-            const sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ALTER COLUMN "${ columnName }" SET NOT NULL;`;
-            const result: DBAccessQueryResult = await dbAccess.query('NullConstraintsProcessor', sql, DBVendors.PG, false, false);
+            const params: IDBAccessQueryParams = {
+                conversion: conversion,
+                caller: logTitle,
+                sql: `ALTER TABLE "${ conversion._schema }"."${ tableName }" ALTER COLUMN "${ columnName }" SET NOT NULL;`,
+                vendor: DBVendors.PG,
+                processExitOnError: false,
+                shouldReturnClient: false
+            };
+
+            const result: DBAccessQueryResult = await DBAccess.query(params);
 
             if (!result.error) {
-                const successMsg: string = `\t--[NullConstraintsProcessor] Set NOT NULL for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
+                const successMsg: string = `\t--[${ logTitle }] Set NOT NULL for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
                 log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
             }
         }

@@ -20,12 +20,13 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { log } from './FsOps';
+import {log} from './FsOps';
 import Conversion from './Conversion';
 import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import ErrnoException = NodeJS.ErrnoException;
 
 /**
@@ -78,21 +79,30 @@ export default async function(conversion: Conversion): Promise<void> {
         return;
     }
 
+    const logTitle: string = 'ViewGenerator::default';
+
     const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(async (view: string) => {
-        const sqlShowCreateView: string = `SHOW CREATE VIEW \`${ view }\`;`;
-        const logTitle: string = 'ViewGenerator';
-        const dbAccess: DBAccess = new DBAccess(conversion);
-        const showCreateViewResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlShowCreateView, DBVendors.MYSQL, false, false);
+        const params: IDBAccessQueryParams = {
+            conversion: conversion,
+            caller: logTitle,
+            sql: `SHOW CREATE VIEW \`${ view }\`;`,
+            vendor: DBVendors.MYSQL,
+            processExitOnError: false,
+            shouldReturnClient: false
+        };
+
+        const showCreateViewResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (showCreateViewResult.error) {
             return;
         }
 
-        const sqlCreatePgView: string = generateView(conversion._schema, view, showCreateViewResult.data[0]['Create View']);
-        const createPgViewResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreatePgView, DBVendors.PG, false, false);
+        params.sql = generateView(conversion._schema, view, showCreateViewResult.data[0]['Create View']);
+        params.vendor = DBVendors.PG;
+        const createPgViewResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (createPgViewResult.error) {
-            return logNotCreatedView(conversion, view, sqlCreatePgView);
+            return logNotCreatedView(conversion, view, params.sql);
         }
 
         log(conversion, `\t--[${ logTitle }] View "${ conversion._schema }"."${ view }" is created...`);

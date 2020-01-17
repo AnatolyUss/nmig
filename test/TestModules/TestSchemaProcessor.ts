@@ -23,23 +23,17 @@ import * as fs from 'fs';
 import { EventEmitter } from 'events';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
+import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 import createSchema from '../../src/SchemaProcessor';
 import loadStructureToMigrate from '../../src/StructureLoader';
 import pipeData from '../../src/DataPipeManager';
-import ErrnoException = NodeJS.ErrnoException;
 import { createStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import { checkConnection, getLogo } from '../../src/BootProcessor';
-import {
-    readConfig,
-    readExtraConfig,
-    createLogsDirectory,
-    readDataTypesMap,
-    log,
-    generateError
-} from '../../src/FsOps';
+import { createLogsDirectory, generateError, log, readConfig, readDataTypesMap, readExtraConfig } from '../../src/FsOps';
+import ErrnoException = NodeJS.ErrnoException;
 
 export default class TestSchemaProcessor {
     /**
@@ -48,16 +42,10 @@ export default class TestSchemaProcessor {
     public conversion?: Conversion;
 
     /**
-     * Instance of class DBAccess.
-     */
-    public dbAccess?: DBAccess;
-
-    /**
      * TestSchemaProcessor constructor.
      */
     public constructor() {
         this.conversion = undefined;
-        this.dbAccess = undefined;
     }
 
     /**
@@ -66,7 +54,7 @@ export default class TestSchemaProcessor {
     public async processFatalError(error: string): Promise<void> {
         console.log(error);
         await generateError(<Conversion>this.conversion, error);
-        process.exit();
+        process.exit(1);
     }
 
     /**
@@ -77,23 +65,22 @@ export default class TestSchemaProcessor {
             return;
         }
 
+        const logTitle: string = 'TestSchemaProcessor::removeTestResources';
         const sqlDropMySqlDatabase: string = `DROP DATABASE ${ (<Conversion>this.conversion)._mySqlDbName };`;
-        await (<DBAccess>this.dbAccess).query(
-            'removeTestResources',
-            sqlDropMySqlDatabase,
-            DBVendors.MYSQL,
-            true,
-            false
-        );
+        const params: IDBAccessQueryParams = {
+            conversion: <Conversion>this.conversion,
+            caller: logTitle,
+            sql: sqlDropMySqlDatabase,
+            vendor: DBVendors.MYSQL,
+            processExitOnError: true,
+            shouldReturnClient: false
+        };
 
-        const sqlDropPgDatabase: string = `DROP SCHEMA ${ (<Conversion>this.conversion)._schema } CASCADE;`;
-        await (<DBAccess>this.dbAccess).query(
-            'removeTestResources',
-            sqlDropPgDatabase,
-            DBVendors.PG,
-            true,
-            false
-        );
+        await DBAccess.query(params);
+
+        params.sql = `DROP SCHEMA ${ (<Conversion>this.conversion)._schema } CASCADE;`;
+        params.vendor = DBVendors.PG;
+        await DBAccess.query(params);
     }
 
     /**
@@ -105,26 +92,24 @@ export default class TestSchemaProcessor {
         const sqlIsMySqlDbExist: string = `SELECT EXISTS (SELECT schema_name FROM information_schema.schemata 
             WHERE schema_name = '${ (<Conversion>this.conversion)._mySqlDbName }') AS \`exists\`;`;
 
-        const mySqlResult: DBAccessQueryResult = await (<DBAccess>this.dbAccess).query(
-            logTitle,
-            sqlIsMySqlDbExist,
-            DBVendors.MYSQL,
-            true,
-            false
-        );
+        const params: IDBAccessQueryParams = {
+            conversion: <Conversion>this.conversion,
+            caller: logTitle,
+            sql: sqlIsMySqlDbExist,
+            vendor: DBVendors.MYSQL,
+            processExitOnError: true,
+            shouldReturnClient: false
+        };
+
+        const mySqlResult: DBAccessQueryResult = await DBAccess.query(params);
 
         const mySqlExists: boolean = !!mySqlResult.data[0].exists;
 
-        const sqlIsPgDbExist: string = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
+        params.vendor = DBVendors.PG;
+        params.sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
             WHERE schema_name = '${ (<Conversion>this.conversion)._schema }');`;
 
-        const pgResult: DBAccessQueryResult = await (<DBAccess>this.dbAccess).query(
-            logTitle,
-            sqlIsPgDbExist,
-            DBVendors.PG,
-            true,
-            false
-        );
+        const pgResult: DBAccessQueryResult = await DBAccess.query(params);
 
         const pgExists: boolean = !!pgResult.data.rows[0].exists;
         let msg: string = '';
@@ -140,7 +125,7 @@ export default class TestSchemaProcessor {
 
         if (msg) {
             log(<Conversion>this.conversion, msg);
-            process.exit();
+            process.exit(0);
         }
 
         return conversion;
@@ -150,8 +135,16 @@ export default class TestSchemaProcessor {
      * Creates test source database.
      */
     private async _createTestSourceDb(conversion: Conversion): Promise<Conversion> {
-        const sql: string = `CREATE DATABASE IF NOT EXISTS ${ (<Conversion>this.conversion)._mySqlDbName };`;
-        await (<DBAccess>this.dbAccess).query('_createTestSourceDb', sql, DBVendors.MYSQL, true, false);
+        const params: IDBAccessQueryParams = {
+            conversion: <Conversion>this.conversion,
+            caller: 'TestSchemaProcessor::_createTestSourceDb',
+            sql: `CREATE DATABASE IF NOT EXISTS ${ (<Conversion>this.conversion)._mySqlDbName };`,
+            vendor: DBVendors.MYSQL,
+            processExitOnError: true,
+            shouldReturnClient: false
+        };
+
+        await DBAccess.query(params);
         return conversion;
     }
 
@@ -174,7 +167,7 @@ export default class TestSchemaProcessor {
             fs.readFile(filePath, (error: ErrnoException | null, data: Buffer) => {
                 if (error) {
                     console.log(`\t--[_readFile] Cannot read file from ${ filePath }`);
-                    process.exit();
+                    process.exit(1);
                 }
 
                 resolve(data);
@@ -195,14 +188,16 @@ export default class TestSchemaProcessor {
      */
     private async _loadTestSchema(conversion: Conversion): Promise<Conversion> {
         const sqlBuffer: Buffer = await this._readTestSchema();
-        await (<DBAccess>this.dbAccess).query(
-            '_loadTestSchema',
-            sqlBuffer.toString(),
-            DBVendors.MYSQL,
-            true,
-            false
-        );
+        const params: IDBAccessQueryParams = {
+            conversion: <Conversion>this.conversion,
+            caller: 'TestSchemaProcessor::_loadTestSchema',
+            sql: sqlBuffer.toString(),
+            vendor: DBVendors.MYSQL,
+            processExitOnError: true,
+            shouldReturnClient: false
+        };
 
+        await DBAccess.query(params);
         return conversion;
     }
 
@@ -228,11 +223,11 @@ export default class TestSchemaProcessor {
             json_test_comment: '{"prop1":"First","prop2":2}',
             bit: 1,
             year: 1984,
-            bigint: '1234567890123456800',
+            bigint: '9223372036854775807',
             float: 12345.5,
             double: 123456789.23,
             numeric: '1234567890',
-            decimal: '1234567890',
+            decimal: '99999999999999999223372036854775807.121111111111111345334523423220',
             char_5: 'fghij',
             varchar_5: 'abcde',
             date: '1984-11-30',
@@ -246,17 +241,18 @@ export default class TestSchemaProcessor {
 
         const insertParamsKeys: string[] = Object.keys(insertParams).map((k: string) => `\`${ k }\``);
         const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
+        const params: IDBAccessQueryParams = {
+            conversion: <Conversion>this.conversion,
+            caller: 'TestSchemaProcessor::_loadTestData',
+            sql: sql,
+            vendor: DBVendors.MYSQL,
+            processExitOnError: true,
+            shouldReturnClient: false,
+            client: undefined,
+            bindings: Object.values(insertParams)
+        };
 
-        await (<DBAccess>this.dbAccess).query(
-            'TestSchemaProcessor::_loadTestData',
-            sql,
-            DBVendors.MYSQL,
-            true,
-            false,
-            undefined,
-            Object.values(insertParams)
-        );
-
+        await DBAccess.query(params);
         return conversion;
     }
 
@@ -270,7 +266,6 @@ export default class TestSchemaProcessor {
         this.conversion = await Conversion.initializeConversion(fullConfig);
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();
-        this.dbAccess = new DBAccess(this.conversion);
         const logo: string = getLogo();
         console.log(logo);
         delete this.conversion._sourceConString.database;
@@ -282,11 +277,11 @@ export default class TestSchemaProcessor {
      * "migrationCompleted" event will fire on completion.
      */
     public async arrangeTestMigration(conversion: Conversion): Promise<void> {
-        const connectionErrorMessage = await checkConnection(conversion, <DBAccess>this.dbAccess);
+        const connectionErrorMessage = await checkConnection(conversion);
 
         if (connectionErrorMessage) {
             console.log(connectionErrorMessage);
-            process.exit();
+            process.exit(1);
         }
 
         Promise.resolve(conversion)

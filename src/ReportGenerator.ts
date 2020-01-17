@@ -45,5 +45,5 @@ export default (conversion: Conversion, endMsg: string): void => {
         return;
     }
 
-    process.exit();
+    process.exit(0);
 }

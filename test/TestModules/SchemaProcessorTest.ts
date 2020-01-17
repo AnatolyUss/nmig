@@ -23,23 +23,26 @@ import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
+import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
 import { Test } from 'tape';
 
 /**
  * Checks if the schema exists.
  */
 async function hasSchemaCreated(testSchemaProcessor: TestSchemaProcessor): Promise<boolean> {
-    const logTitle: string = 'SchemaProcessorTest::hasSchemaCreated';
     const sql: string = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
          WHERE schema_name = '${ (<Conversion>testSchemaProcessor.conversion)._schema }');`;
 
-    const result: DBAccessQueryResult = await (<DBAccess>testSchemaProcessor.dbAccess).query(
-        logTitle,
-        sql,
-        DBVendors.PG,
-        false,
-        false
-    );
+    const params: IDBAccessQueryParams = {
+        conversion: <Conversion>testSchemaProcessor.conversion,
+        caller: 'SchemaProcessorTest::hasSchemaCreated',
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (result.error) {
         await testSchemaProcessor.processFatalError(result.error);

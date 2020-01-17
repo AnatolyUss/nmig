@@ -21,20 +21,29 @@
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import DBVendors from './DBVendors';
 
 /**
  * Creates a new PostgreSQL schema if it does not exist yet.
  */
 export default async function(conversion: Conversion): Promise<Conversion> {
-    const logTitle: string = 'SchemaProcessor::createSchema';
-    let sql: string = `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ conversion._schema }';`;
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, true, true);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'SchemaProcessor::createSchema',
+        sql: `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${ conversion._schema }';`,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: true
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (result.data.rows.length === 0) {
-        sql = `CREATE SCHEMA "${ conversion._schema }";`;
-        await dbAccess.query(logTitle, sql, DBVendors.PG, true, false, result.client);
+        params.sql = `CREATE SCHEMA "${ conversion._schema }";`;
+        params.shouldReturnClient = false;
+        params.client = result.client;
+        await DBAccess.query(params);
     }
 
     return conversion;

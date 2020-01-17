@@ -22,6 +22,7 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
@@ -76,10 +77,17 @@ export function mapDataTypes(objDataTypesMap: any, mySqlDataType: string): strin
 export async function createTable(conversion: Conversion, tableName: string): Promise<void> {
     const logTitle: string = 'TableProcessor::createTable';
     log(conversion, `\t--[${ logTitle }] Currently creating table: \`${ tableName }\``, conversion._dicTables[tableName].tableLogPath);
-    const dbAccess: DBAccess = new DBAccess(conversion);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const sqlShowColumns: string = `SHOW FULL COLUMNS FROM \`${ originalTableName }\`;`;
-    const columns: DBAccessQueryResult = await dbAccess.query(logTitle, sqlShowColumns, DBVendors.MYSQL, false, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: `SHOW FULL COLUMNS FROM \`${ originalTableName }\`;`,
+        vendor: DBVendors.MYSQL,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const columns: DBAccessQueryResult = await DBAccess.query(params);
 
     if (columns.error) {
         return;
@@ -99,8 +107,10 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
         })
         .join(',');
 
-    const sqlCreateTable: string = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(${ columnsDefinition });`;
-    const createTableResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateTable, DBVendors.PG, true, false);
+    params.sql = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(${ columnsDefinition });`;
+    params.processExitOnError = true;
+    params.vendor = DBVendors.PG;
+    const createTableResult: DBAccessQueryResult = await DBAccess.query(params);
 
     if (!createTableResult.error) {
         log(conversion, `\t--[${ logTitle }] Table "${ conversion._schema }"."${ tableName }" is created...`, conversion._dicTables[tableName].tableLogPath);

@@ -20,6 +20,7 @@
  */
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import DBVendors from './DBVendors';
 import { log } from './FsOps';
 import Conversion from './Conversion';
@@ -41,9 +42,16 @@ async function processTableBeforeDataLoading(conversion: Conversion, tableName: 
  * Retrieves the source db (MySQL) version.
  */
 async function getMySqlVersion(conversion: Conversion): Promise<void> {
-    const dbAccess: DBAccess = new DBAccess(conversion);
-    const sql: string = 'SELECT VERSION() AS mysql_version;';
-    const result: DBAccessQueryResult = await dbAccess.query('StructureLoader::getMySqlVersion', sql, DBVendors.MYSQL, false, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'StructureLoader::getMySqlVersion',
+        sql: 'SELECT VERSION() AS mysql_version;',
+        vendor: DBVendors.MYSQL,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (result.error) {
         return;
@@ -59,8 +67,8 @@ async function getMySqlVersion(conversion: Conversion): Promise<void> {
  * Loads source tables and views, that need to be migrated.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
+    const logTitle: string = 'StructureLoader::default';
     await getMySqlVersion(conversion);
-    const dbAccess: DBAccess = new DBAccess(conversion);
     const haveTablesLoaded: boolean = await migrationStateManager.get(conversion, 'tables_loaded');
     let sql: string = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\` WHERE 1 = 1`;
 
@@ -72,8 +80,16 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         sql += ` AND Tables_in_${ conversion._mySqlDbName } NOT IN(${ conversion._excludeTables.map((table: string) => `"${table}"`).join(',') })`;
     }
 
-    sql += ';';
-    const result: DBAccessQueryResult = await dbAccess.query('StructureLoader::default', sql, DBVendors.MYSQL, true, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: `${ sql };`,
+        vendor: DBVendors.MYSQL,
+        processExitOnError: true,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
     let tablesCnt: number = 0;
     let viewsCnt: number = 0;
     const processTablePromises: Promise<void>[] = [];
@@ -93,9 +109,9 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         }
     });
 
-    const message: string = `\t--[loadStructureToMigrate] Source DB structure is loaded...\n
-        \t--[loadStructureToMigrate] Tables to migrate: ${ tablesCnt }\n
-        \t--[loadStructureToMigrate] Views to migrate: ${ viewsCnt }`;
+    const message: string = `\t--[${ logTitle }] Source DB structure is loaded...\n
+        \t--[${ logTitle }] Tables to migrate: ${ tablesCnt }\n
+        \t--[${ logTitle }] Views to migrate: ${ viewsCnt }`;
 
     log(conversion, message);
     await Promise.all(processTablePromises);

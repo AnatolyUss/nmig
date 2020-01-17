@@ -25,14 +25,14 @@ import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { mapDataTypes } from './TableProcessor';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 
 /**
  * Defines which columns of the given table have default value.
  * Sets default values, if need.
  */
 export default async function(conversion: Conversion, tableName: string): Promise<void> {
-    const logTitle: string = 'DefaultValuesProcessor';
-    const dbAccess: DBAccess = new DBAccess(conversion);
+    const logTitle: string = 'DefaultProcessor::default';
     const msg: string = `\t--[${ logTitle }] Defines default values for table: "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
@@ -66,7 +66,16 @@ export default async function(conversion: Conversion, tableName: string): Promis
             sql += `${ column.Default };`;
         }
 
-        const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
+        const params: IDBAccessQueryParams = {
+            conversion: conversion,
+            caller: logTitle,
+            sql: sql,
+            vendor: DBVendors.PG,
+            processExitOnError: false,
+            shouldReturnClient: false
+        };
+
+        const result: DBAccessQueryResult = await DBAccess.query(params);
 
         if (!result.error) {
             const successMsg: string = `\t--[${ logTitle }] Set default value for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;

@@ -24,6 +24,7 @@ import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 
 /**
  * Escapes quotes inside given string.
@@ -38,20 +39,29 @@ function escapeQuotes(str: string): string {
  */
 async function processTableComments(conversion: Conversion, tableName: string): Promise<void> {
     const logTitle: string = 'CommentsProcessor::processTableComments';
-    const dbAccess: DBAccess = new DBAccess(conversion);
     const sqlSelectComment: string = `SELECT table_comment AS table_comment FROM information_schema.tables 
         WHERE table_schema = '${ conversion._mySqlDbName }' 
         AND table_name = '${ extraConfigProcessor.getTableName(conversion, tableName, true) }';`;
 
-    const resultSelectComment: DBAccessQueryResult = await dbAccess.query(logTitle, sqlSelectComment, DBVendors.MYSQL, false, false);
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: sqlSelectComment,
+        vendor: DBVendors.MYSQL,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const resultSelectComment: DBAccessQueryResult = await DBAccess.query(params);
 
     if (resultSelectComment.error) {
         return;
     }
 
     const comment: string = escapeQuotes(resultSelectComment.data[0].table_comment);
-    const sqlCreateComment: string = `COMMENT ON TABLE "${ conversion._schema }"."${ tableName }" IS '${ comment }';`;
-    const createCommentResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateComment, DBVendors.PG, false, false);
+    params.sql = `COMMENT ON TABLE "${ conversion._schema }"."${ tableName }" IS '${ comment }';`;
+    params.vendor = DBVendors.PG;
+    const createCommentResult: DBAccessQueryResult = await DBAccess.query(params);
 
     if (createCommentResult.error) {
         return;
@@ -67,7 +77,7 @@ async function processTableComments(conversion: Conversion, tableName: string): 
 async function processColumnsComments(conversion: Conversion, tableName: string): Promise<void> {
     const logTitle: string = 'CommentsProcessor::processColumnsComments';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const dbAccess: DBAccess = new DBAccess(conversion);
+
     const commentPromises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
         if (column.Comment === '') {
             return;
@@ -75,8 +85,16 @@ async function processColumnsComments(conversion: Conversion, tableName: string)
 
         const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
         const comment = escapeQuotes(column.Comment);
-        const sqlCreateComment: string = `COMMENT ON COLUMN "${ conversion._schema }"."${ tableName }"."${ columnName }" IS '${ comment }';`;
-        const createCommentResult: DBAccessQueryResult = await dbAccess.query(logTitle, sqlCreateComment, DBVendors.PG, false, false);
+        const params: IDBAccessQueryParams = {
+            conversion: conversion,
+            caller: logTitle,
+            sql: `COMMENT ON COLUMN "${ conversion._schema }"."${ tableName }"."${ columnName }" IS '${ comment }';`,
+            vendor: DBVendors.PG,
+            processExitOnError: false,
+            shouldReturnClient: false
+        };
+
+        const createCommentResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (createCommentResult.error) {
             return;

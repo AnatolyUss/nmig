@@ -23,26 +23,29 @@ import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
+import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
 import { Test } from 'tape';
 
 /**
  * Returns `table_a` column types.
  */
 async function getColumnTypes(testSchemaProcessor: TestSchemaProcessor): Promise<any[]> {
-    const logTitle: string = 'ColumnTypesTest::getColumnTypes';
     const sql: string = `SELECT column_name, data_type  
                  FROM information_schema.columns
                  WHERE table_catalog = '${ (<Conversion>testSchemaProcessor.conversion)._targetConString.database }' 
                    AND table_schema = '${ (<Conversion>testSchemaProcessor.conversion)._schema }' 
                    AND table_name = 'table_a';`;
 
-    const result: DBAccessQueryResult = await (<DBAccess>testSchemaProcessor.dbAccess).query(
-        logTitle,
-        sql,
-        DBVendors.PG,
-        false,
-        false
-    );
+    const params: IDBAccessQueryParams = {
+        conversion: <Conversion>testSchemaProcessor.conversion,
+        caller: 'ColumnTypesTest::getColumnTypes',
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (result.error) {
         await testSchemaProcessor.processFatalError(result.error);

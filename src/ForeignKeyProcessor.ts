@@ -24,15 +24,16 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
+import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**
  * Creates foreign keys for given table.
  */
-async function processForeignKeyWorker(conversion: Conversion, dbAccess: DBAccess, tableName: string, rows: any[]): Promise<void> {
+async function processForeignKeyWorker(conversion: Conversion, tableName: string, rows: any[]): Promise<void> {
     const objConstraints: any = Object.create(null);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const logTitle: string = 'processForeignKeyWorker';
+    const logTitle: string = 'ForeignKeyProcessor::processForeignKeyWorker';
 
     rows.forEach((row: any) => {
         const currentColumnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, row.COLUMN_NAME, false);
@@ -59,15 +60,24 @@ async function processForeignKeyWorker(conversion: Conversion, dbAccess: DBAcces
         objConstraints[row.CONSTRAINT_NAME].delete_rule = row.DELETE_RULE;
     });
 
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: '',
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
     const constraintsPromises: Promise<void>[] = Object.keys(objConstraints).map(async (attr: string) => {
-        const sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
+        params.sql = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
             ADD FOREIGN KEY (${ objConstraints[attr].column_name.join(',') }) 
             REFERENCES "${ conversion._schema }"."${ objConstraints[attr].referenced_table_name }" 
             (${ objConstraints[attr].referenced_column_name.join(',') }) 
             ON UPDATE ${ objConstraints[attr].update_rule } 
             ON DELETE ${ objConstraints[attr].delete_rule };`;
 
-        await dbAccess.query(logTitle, sql, DBVendors.PG, false, false);
+        await DBAccess.query(params);
     });
 
     await Promise.all(constraintsPromises);
@@ -77,16 +87,25 @@ async function processForeignKeyWorker(conversion: Conversion, dbAccess: DBAcces
  * Starts a process of foreign keys creation.
  */
 export default async function(conversion: Conversion): Promise<void> {
-    const logTitle: string = 'processForeignKey';
+    const logTitle: string = 'ForeignKeyProcessor::default';
     const isForeignKeysProcessed: boolean = await migrationStateManager.get(conversion, 'foreign_keys_loaded');
 
     if (isForeignKeysProcessed) {
         return;
     }
 
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: '',
+        vendor: DBVendors.MYSQL,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
     const fkPromises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
         log(conversion, `\t--[${ logTitle }] Search foreign keys for table "${ conversion._schema }"."${ tableName }"...`);
-        const sql: string = `SELECT cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME,
+        params.sql = `SELECT cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME,
             cRefs.UPDATE_RULE, cRefs.DELETE_RULE, cRefs.CONSTRAINT_NAME 
             FROM INFORMATION_SCHEMA.\`COLUMNS\` AS cols 
             INNER JOIN INFORMATION_SCHEMA.\`KEY_COLUMN_USAGE\` AS refs 
@@ -108,8 +127,7 @@ export default async function(conversion: Conversion): Promise<void> {
             WHERE cols.TABLE_SCHEMA = '${ conversion._mySqlDbName }' 
             AND cols.TABLE_NAME = '${ extraConfigProcessor.getTableName(conversion, tableName, true) }';`;
 
-        const dbAccess: DBAccess = new DBAccess(conversion);
-        const result: DBAccessQueryResult = await dbAccess.query(logTitle, sql, DBVendors.MYSQL, false, false);
+        const result: DBAccessQueryResult = await DBAccess.query(params);
 
         if (result.error) {
             return;
@@ -117,7 +135,7 @@ export default async function(conversion: Conversion): Promise<void> {
 
         const extraRows: any[] = extraConfigProcessor.parseForeignKeys(conversion, tableName);
         const fullRows: any[] = (result.data || []).concat(extraRows); // Prevent failure if "result.data" is undefined.
-        await processForeignKeyWorker(conversion, dbAccess, tableName, fullRows);
+        await processForeignKeyWorker(conversion, tableName, fullRows);
         log(conversion, `\t--[${ logTitle }] Foreign keys for table "${ conversion._schema }"."${ tableName }" are set...`);
     });
 
