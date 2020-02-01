@@ -136,8 +136,7 @@ async function populateTableWorker(
         originalSessionReplicationRole
     );
 
-    const streamsHighWaterMark: number = 16384; // Commonly used as the default, but may vary across different machines.
-    const json2csvStream = await getJson2csvStream(conv, originalTableName, streamsHighWaterMark, dataPoolId, client, originalSessionReplicationRole);
+    const json2csvStream = await getJson2csvStream(conv, originalTableName, dataPoolId, client, originalSessionReplicationRole);
     const mysqlClientErrorHandler = async (err: string) => {
         await processDataError(conv, err, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
     };
@@ -145,7 +144,7 @@ async function populateTableWorker(
     mysqlClient
         .query(sql)
         .on('error', mysqlClientErrorHandler)
-        .stream({ highWaterMark: streamsHighWaterMark })
+        .stream({ highWaterMark: conv._streamsHighWaterMark })
         .pipe(json2csvStream)
         .pipe(copyStream);
 }
@@ -186,7 +185,6 @@ function getCopyStream(
 async function getJson2csvStream(
     conversion: Conversion,
     originalTableName: string,
-    streamsHighWaterMark: number,
     dataPoolId: number,
     client: PoolClient,
     originalSessionReplicationRole: string | null
@@ -208,13 +206,13 @@ async function getJson2csvStream(
         fields: tableColumnsResult.data.map((column: any) => column.Field)
     };
 
-    const transformOptions: any = {
-        highWaterMark: streamsHighWaterMark,
+    const streamTransformOptions: any = {
+        highWaterMark: conversion._streamsHighWaterMark,
         objectMode: true,
         encoding: conversion._encoding
     };
 
-    const json2CsvTransformStream = new Json2CsvTransform(options, transformOptions);
+    const json2CsvTransformStream = new Json2CsvTransform(options, streamTransformOptions);
 
     json2CsvTransformStream.on('error', async (transformError: string) => {
         await processDataError(conversion, transformError, '', '', originalTableName, dataPoolId, client, originalSessionReplicationRole);

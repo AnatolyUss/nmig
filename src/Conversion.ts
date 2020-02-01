@@ -191,6 +191,12 @@ export default class Conversion {
     public _dataTypesMap: any;
 
     /**
+     * Buffer level when stream.write() starts returning false.
+     * This number is a number of JavaScript objects.
+     */
+    public readonly _streamsHighWaterMark: number;
+
+    /**
      * Constructor.
      */
     public constructor(config: any) {
@@ -215,6 +221,8 @@ export default class Conversion {
         this._dataPool = [];
         this._dicTables = Object.create(null);
         this._mySqlDbName = this._sourceConString.database;
+        this._streamsHighWaterMark = this._config.streams_high_water_mark === undefined ? 16384 : +this._config.streams_high_water_mark;
+
         this._schema = this._config.schema === undefined || this._config.schema === ''
             ? this._mySqlDbName
             : this._config.schema;
