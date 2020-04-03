@@ -21,7 +21,7 @@
 import * as mysql from 'mysql';
 import { MysqlError, Pool as MySQLPool, PoolConnection } from 'mysql';
 import { Pool as PgPool, PoolClient } from 'pg';
-import { generateError } from './FsOps';
+import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
@@ -66,6 +66,41 @@ export default class DBAccess {
                 await generateError(conversion, message);
             });
         }
+    }
+
+    /**
+     * Closes both connection-pools.
+     */
+    public static async closeConnectionPools(conversion: Conversion): Promise<Conversion> {
+        const closeMySqlConnections = () => {
+            return new Promise(resolve => {
+                if (conversion._mysql) {
+                    conversion._mysql.end(async error => {
+                        if (error) {
+                            await generateError(conversion, `\t--[DBAccess::closeConnectionPools] ${ error }`);
+                        }
+
+                        return resolve();
+                    });
+                }
+
+                resolve();
+            });
+        };
+
+        const closePgConnections = async () => {
+            if (conversion._pg) {
+                try {
+                    await conversion._pg.end();
+                } catch (error) {
+                    await generateError(conversion, `\t--[DBAccess::closeConnectionPools] ${ error }`);
+                }
+            }
+        };
+
+        await Promise.all([closeMySqlConnections, closePgConnections]);
+        log(conversion, `\t--[DBAccess::closeConnectionPools] Closed all DB connections.`);
+        return conversion;
     }
 
     /**

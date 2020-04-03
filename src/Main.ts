@@ -26,6 +26,7 @@ import pipeData from './DataPipeManager';
 import decodeBinaryData from './BinaryDataDecoder';
 import processConstraints from './ConstraintsProcessor';
 import generateReport from './ReportGenerator';
+import DBAccess from './DBAccess';
 import { dropDataPoolTable } from './DataPoolManager';
 import { boot } from './BootProcessor';
 import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
@@ -50,4 +51,5 @@ readConfig(baseDir)
     .then(processConstraints)
     .then(dropDataPoolTable)
     .then(dropStateLogsTable)
+    .then(DBAccess.closeConnectionPools)
     .then(generateReport);
