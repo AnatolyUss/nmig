@@ -26,8 +26,6 @@ import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import MessageToDataLoader from './MessageToDataLoader';
 import MessageToMaster from './MessageToMaster';
-import processConstraints from './ConstraintsProcessor';
-import decodeBinaryData from './BinaryDataDecoder';
 
 /**
  * A number of currently running loader processes.
@@ -47,37 +45,35 @@ const eventEmitter: EventEmitter = new EventEmitter();
 /**
  * Runs the data pipe.
  */
-export default async function(conversion: Conversion): Promise<void> {
-    if (dataPoolProcessed(conversion)) {
-        await continueConversionProcess(conversion);
-        return;
-    }
+export default async function(conversion: Conversion): Promise<Conversion> {
+    return new Promise<Conversion>(resolve => {
+        if (dataPoolProcessed(conversion)) {
+            return resolve(conversion);
+        }
 
-    // Register a listener for the "dataPoolEmpty" event.
-    eventEmitter.on(dataPoolEmptyEvent, async () => {
-        if (loaderProcessesCount === 0) {
-            // On the event of "dataPoolEmpty" check a number of active loader processes.
-            // If no active loader processes found, then all the data is transferred, so Nmig can proceed to the next step.
-            await continueConversionProcess(conversion);
+        // Register a listener for the "dataPoolEmpty" event.
+        eventEmitter.on(dataPoolEmptyEvent, async () => {
+            if (loaderProcessesCount === 0) {
+                // Check a number of active loader processes on the event of "dataPoolEmpty".
+                // If no active loader processes found, then all the data is transferred,
+                // hence Nmig can proceed to the next step.
+                return resolve(conversion);
+            }
+        });
+
+        // Determine a number of simultaneously running loader processes.
+        // In most cases it will be a number of logical CPU cores on the machine running Nmig;
+        // unless a number of tables in the source database or the maximal number of DB connections is smaller.
+        const numberOfSimultaneouslyRunningLoaderProcesses: number = Math.min(
+            conversion._dataPool.length,
+            conversion._maxEachDbConnectionPoolSize,
+            getNumberOfCpus()
+        );
+
+        for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
+            runLoaderProcess(conversion);
         }
     });
-
-    // Determine a number of simultaneously running loader processes.
-    // In most cases it will be a number of logical CPU cores on the machine running Nmig;
-    // unless a number of tables in the source database is smaller.
-    const numberOfSimultaneouslyRunningLoaderProcesses: number = Math.min(conversion._dataPool.length, getNumberOfCpus());
-
-    for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
-        runLoaderProcess(conversion);
-    }
-}
-
-/**
- * Continues the conversion process upon data transfer completion.
- */
-async function continueConversionProcess(conversion: Conversion): Promise<void> {
-    await decodeBinaryData(conversion);
-    await processConstraints(conversion);
 }
 
 /**

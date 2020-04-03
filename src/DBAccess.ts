@@ -33,7 +33,7 @@ export default class DBAccess {
      */
     private static async _getMysqlConnection(conversion: Conversion): Promise<void> {
         if (!conversion._mysql) {
-            conversion._sourceConString.connectionLimit = conversion._maxDbConnectionPoolSize;
+            conversion._sourceConString.connectionLimit = conversion._maxEachDbConnectionPoolSize;
             conversion._sourceConString.multipleStatements = true;
             const pool: MySQLPool = mysql.createPool(conversion._sourceConString);
 
@@ -51,7 +51,7 @@ export default class DBAccess {
      */
     private static async _getPgConnection(conversion: Conversion): Promise<void> {
         if (!conversion._pg) {
-            conversion._targetConString.max = conversion._maxDbConnectionPoolSize;
+            conversion._targetConString.max = conversion._maxEachDbConnectionPoolSize;
             const pool: PgPool = new PgPool(conversion._targetConString);
 
             if (!pool) {

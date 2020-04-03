@@ -46,9 +46,9 @@ export default class Conversion {
     public _loaderMaxOldSpaceSize: number | string;
 
     /**
-     * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers.
+     * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers each.
      */
-    public readonly _maxDbConnectionPoolSize: number;
+    public readonly _maxEachDbConnectionPoolSize: number;
 
     /**
      * JavaScript encoding type.
@@ -227,15 +227,15 @@ export default class Conversion {
             ? this._mySqlDbName
             : this._config.schema;
 
-        this._maxDbConnectionPoolSize = this._config.max_db_connection_pool_size !== undefined && Conversion._isIntNumeric(this._config.max_db_connection_pool_size)
-            ? +this._config.max_db_connection_pool_size
-            : 10;
+        this._maxEachDbConnectionPoolSize = this._config.max_each_db_connection_pool_size !== undefined && Conversion._isIntNumeric(this._config.max_each_db_connection_pool_size)
+            ? +this._config.max_each_db_connection_pool_size
+            : 20;
 
         this._runsInTestMode = false;
         this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
         this._removeTestResources = this._config.remove_test_resources === undefined ? true : this._config.remove_test_resources;
-        this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
+        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
         this._loaderMaxOldSpaceSize = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
         this._migrateOnlyData = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
