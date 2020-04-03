@@ -19,10 +19,8 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as sequencesProcessor from './SequencesProcessor';
-import * as dataPoolManager from './DataPoolManager';
 import runVacuumFullAndAnalyze from './VacuumProcessor';
 import * as migrationStateManager from './MigrationStateManager';
-import generateReport from './ReportGenerator';
 import processEnum from './EnumProcessor';
 import processNull from './NullProcessor';
 import processDefault from './DefaultProcessor';
@@ -35,7 +33,7 @@ import Conversion from './Conversion';
 /**
  * Continues migration process after data loading.
  */
-export default async function(conversion: Conversion): Promise<void> {
+export default async function(conversion: Conversion): Promise<Conversion> {
     const isTableConstraintsLoaded: boolean = await migrationStateManager.get(conversion, 'per_table_constraints_loaded');
     const migrateOnlyData: boolean = conversion.shouldMigrateOnlyData();
 
@@ -68,8 +66,5 @@ export default async function(conversion: Conversion): Promise<void> {
 
     await runVacuumFullAndAnalyze(conversion); // Reclaim storage occupied by dead tuples.
 
-    // !!!Note, dropping of data-pool and state-logs tables MUST be the last step of migration process.
-    await dataPoolManager.dropDataPoolTable(conversion);
-    await migrationStateManager.dropStateLogsTable(conversion);
-    generateReport(conversion, 'NMIG migration is accomplished.');
+    return conversion;
 }

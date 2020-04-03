@@ -56,7 +56,7 @@ export async function createDataPoolTable(conversion: Conversion): Promise<Conve
 /**
  * Drops the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
-export async function dropDataPoolTable(conversion: Conversion): Promise<void> {
+export async function dropDataPoolTable(conversion: Conversion): Promise<Conversion> {
     const logTitle: string = 'DataPoolManager::dropDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
     const params: IDBAccessQueryParams = {
@@ -70,6 +70,7 @@ export async function dropDataPoolTable(conversion: Conversion): Promise<void> {
 
     await DBAccess.query(params);
     log(conversion, `\t--[${ logTitle }] table ${ table } is dropped...`);
+    return conversion;
 }
 
 /**

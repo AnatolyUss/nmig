@@ -106,7 +106,7 @@ export async function createStateLogsTable(conversion: Conversion): Promise<Conv
 /**
  * Drop the "{schema}"."state_logs_{self._schema + self._mySqlDbName}" temporary table.
  */
-export async function dropStateLogsTable(conversion: Conversion): Promise<void> {
+export async function dropStateLogsTable(conversion: Conversion): Promise<Conversion> {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::dropStateLogsTable',
@@ -117,4 +117,5 @@ export async function dropStateLogsTable(conversion: Conversion): Promise<void> 
     };
 
     await DBAccess.query(params);
+    return conversion;
 }

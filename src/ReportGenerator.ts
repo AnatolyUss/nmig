@@ -25,7 +25,7 @@ import { EventEmitter } from 'events';
 /**
  * Generates a summary report.
  */
-export default (conversion: Conversion, endMsg: string): void => {
+export default (conversion: Conversion): void => {
     let differenceSec: number = ((new Date()).getTime() - conversion._timeBegin.getTime()) / 1000;
     const seconds: number = Math.floor(differenceSec % 60);
     differenceSec = differenceSec / 60;
@@ -34,6 +34,7 @@ export default (conversion: Conversion, endMsg: string): void => {
     const formattedHours: string = hours < 10 ? `0${ hours }` : `${ hours }`;
     const formattedMinutes: string = minutes < 10 ? `0${ minutes }` : `${ minutes }`;
     const formattedSeconds: string = seconds < 10 ? `0${ seconds }` : `${ seconds }`;
+    const endMsg: string = 'NMIG migration is accomplished.';
     const output: string = `\t--[generateReport] ${ endMsg }
         \n\t--[generateReport] Total time: ${ formattedHours }:${ formattedMinutes }:${ formattedSeconds }
         \n\t--[generateReport] (hours:minutes:seconds)`;

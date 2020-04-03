@@ -45,18 +45,18 @@ const eventEmitter: EventEmitter = new EventEmitter();
 /**
  * Runs the data pipe.
  */
-export default async function(conversion: Conversion): Promise<Conversion> {
+export default function(conversion: Conversion): Promise<Conversion> {
     return new Promise<Conversion>(resolve => {
         if (dataPoolProcessed(conversion)) {
             return resolve(conversion);
         }
 
         // Register a listener for the "dataPoolEmpty" event.
-        eventEmitter.on(dataPoolEmptyEvent, async () => {
+        eventEmitter.on(dataPoolEmptyEvent, () => {
+            // Check a number of active loader processes on the event of "dataPoolEmpty".
+            // If no active loader processes found, then all the data is transferred,
+            // hence Nmig can proceed to the next step.
             if (loaderProcessesCount === 0) {
-                // Check a number of active loader processes on the event of "dataPoolEmpty".
-                // If no active loader processes found, then all the data is transferred,
-                // hence Nmig can proceed to the next step.
                 return resolve(conversion);
             }
         });
