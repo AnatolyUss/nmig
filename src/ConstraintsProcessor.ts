@@ -33,26 +33,17 @@ import Conversion from './Conversion';
 /**
  * Continues migration process after data loading.
  */
-export default async function(conversion: Conversion): Promise<Conversion> {
+export async function processConstraints(conversion: Conversion): Promise<Conversion> {
     const isTableConstraintsLoaded: boolean = await migrationStateManager.get(conversion, 'per_table_constraints_loaded');
     const migrateOnlyData: boolean = conversion.shouldMigrateOnlyData();
 
-    const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
-        if (!isTableConstraintsLoaded) {
-            if (migrateOnlyData) {
-                return sequencesProcessor.setSequenceValue(conversion, tableName);
-            }
+    if (!isTableConstraintsLoaded) {
+        const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
+            await processConstraintsPerTable(conversion, tableName, migrateOnlyData);
+        });
 
-            await processEnum(conversion, tableName);
-            await processNull(conversion, tableName);
-            await processDefault(conversion, tableName);
-            await sequencesProcessor.createSequence(conversion, tableName);
-            await processIndexAndKey(conversion, tableName);
-            await processComments(conversion, tableName);
-        }
-    });
-
-    await Promise.all(promises);
+        await Promise.all(promises);
+    }
 
     if (migrateOnlyData) {
         await migrationStateManager.set(conversion, 'per_table_constraints_loaded', 'foreign_keys_loaded', 'views_loaded');
@@ -67,4 +58,24 @@ export default async function(conversion: Conversion): Promise<Conversion> {
     await runVacuumFullAndAnalyze(conversion); // Reclaim storage occupied by dead tuples.
 
     return conversion;
+}
+
+/**
+ * Processes given table's constraints.
+ */
+export async function processConstraintsPerTable(
+    conversion: Conversion,
+    tableName: string,
+    migrateOnlyData: boolean | null = null
+): Promise<void> {
+    if (migrateOnlyData === null) {
+        return sequencesProcessor.setSequenceValue(conversion, tableName);
+    }
+
+    await processEnum(conversion, tableName);
+    await processNull(conversion, tableName);
+    await processDefault(conversion, tableName);
+    await sequencesProcessor.createSequence(conversion, tableName);
+    await processIndexAndKey(conversion, tableName);
+    await processComments(conversion, tableName);
 }

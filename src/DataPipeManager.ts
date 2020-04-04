@@ -23,6 +23,7 @@ import { EventEmitter } from 'events';
 import * as path from 'path';
 import * as os from 'os';
 import { log, generateError } from './FsOps';
+import { processConstraintsPerTable } from './ConstraintsProcessor';
 import Conversion from './Conversion';
 import MessageToDataLoader from './MessageToDataLoader';
 import MessageToMaster from './MessageToMaster';
