@@ -95,24 +95,28 @@ export function boot(conversion: Conversion): Promise<Conversion> {
 
         console.log(logo + message);
 
-        process
-            .stdin
+        const _getUserInput = (input: string) => {
+            const trimedInput: string = input.trim();
+
+            if (trimedInput === 'n' || trimedInput === 'N') {
+                console.log('\t--[boot] Migration aborted.\n');
+                process.exit(0);
+            }
+
+            if (trimedInput === 'y' || trimedInput === 'Y') {
+                process.stdin.removeListener('data', _getUserInput);
+                return resolve(conversion);
+            }
+
+            const hint: string = `\t--[boot] Unexpected input ${ trimedInput }\n`
+                + `\t--[boot] Expected input is upper case Y\n\t--[boot] or lower case n\n${message}`;
+
+            console.log(hint);
+        };
+
+        process.stdin
             .resume()
             .setEncoding(conversion._encoding)
-            .on('data', (stdin: string) => {
-                const trimedStdin: string = stdin.trim();
-
-                if (trimedStdin === 'n' || trimedStdin === 'N') {
-                    console.log('\t--[boot] Migration aborted.\n');
-                    process.exit(0);
-                }
-
-                if (trimedStdin === 'y' || trimedStdin === 'Y') {
-                    return resolve(conversion);
-                }
-
-                const hint: string = `\t--[boot] Unexpected input ${ trimedStdin }\n\t--[boot] Expected input is upper case Y\n\t--[boot] or lower case n\n${ message }`;
-                console.log(hint);
-            });
+            .on('data', _getUserInput);
     });
 }
