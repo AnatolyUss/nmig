@@ -69,15 +69,6 @@
     ],
     "schema" : "public",
 
-    "no_vacuum_description" : [
-        "PostgreSQL VACUUM reclaims storage occupied by dead tuples.",
-        "VACUUM is a very time-consuming procedure.",
-        "By default, VACUUM will be performed automatically after migration (recommended)",
-        "This behavior can be disabled for tables, included into the list (Array) below.",
-        "Table names, included into the list below should be names, you use in your source database (MySQL)."
-    ],
-    "no_vacuum" : [],
-
     "exclude_tables_description": [
         "List (Array) of tables, that will not be migrated.",
         "By default, nmig will migrate all tables."

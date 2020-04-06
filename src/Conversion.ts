@@ -96,11 +96,6 @@ export default class Conversion {
     public readonly _notCreatedViewsPath: string;
 
     /**
-     * A list of tables, to which PostgreSQL's VACUUM will not be applied at the end of migration.
-     */
-    public readonly _noVacuum: string[];
-
-    /**
      * List of tables, that will not be migrated.
      */
     public readonly _excludeTables: string[];
@@ -208,7 +203,6 @@ export default class Conversion {
         this._allLogsPath = path.join(this._logsDirPath, 'all.log');
         this._errorLogsPath = path.join(this._logsDirPath, 'errors-only.log');
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
-        this._noVacuum = this._config.no_vacuum === undefined ? [] : this._config.no_vacuum;
         this._excludeTables = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
         this._includeTables = this._config.include_tables === undefined ? [] : this._config.include_tables;
         this._timeBegin = null;
