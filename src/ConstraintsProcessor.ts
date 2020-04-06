@@ -19,7 +19,6 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as sequencesProcessor from './SequencesProcessor';
-import runVacuumFullAndAnalyze from './VacuumProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import processEnum from './EnumProcessor';
 import processNull from './NullProcessor';
@@ -54,8 +53,6 @@ export async function processConstraints(conversion: Conversion): Promise<Conver
         await processViews(conversion);
         await migrationStateManager.set(conversion, 'views_loaded');
     }
-
-    await runVacuumFullAndAnalyze(conversion); // Reclaim storage occupied by dead tuples.
 
     return conversion;
 }
