@@ -105,6 +105,7 @@ export function boot(conversion: Conversion): Promise<Conversion> {
 
             if (trimedInput === 'y' || trimedInput === 'Y') {
                 process.stdin.removeListener('data', _getUserInput);
+                conversion._timeBegin = new Date();
                 return resolve(conversion);
             }
 

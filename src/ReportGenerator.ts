@@ -26,7 +26,7 @@ import { EventEmitter } from 'events';
  * Generates a summary report.
  */
 export default (conversion: Conversion): void => {
-    let differenceSec: number = ((new Date()).getTime() - conversion._timeBegin.getTime()) / 1000;
+    let differenceSec: number = ((new Date()).getTime() - (<Date>conversion._timeBegin).getTime()) / 1000;
     const seconds: number = Math.floor(differenceSec % 60);
     differenceSec = differenceSec / 60;
     const minutes: number = Math.floor(differenceSec % 60);
