@@ -18,9 +18,9 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import { EventEmitter } from 'events';
 import { log } from './FsOps';
 import Conversion from './Conversion';
-import { EventEmitter } from 'events';
 
 /**
  * Generates a summary report.
@@ -39,12 +39,12 @@ export default (conversion: Conversion): void => {
         \n\t--[generateReport] Total time: ${ formattedHours }:${ formattedMinutes }:${ formattedSeconds }
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
-    log(conversion, output);
+    log(conversion, output, undefined, () => {
+        if (conversion._runsInTestMode) {
+            (<EventEmitter>conversion._eventEmitter).emit(conversion._migrationCompletedEvent);
+            return;
+        }
 
-    if (conversion._runsInTestMode) {
-        (<EventEmitter>conversion._eventEmitter).emit(conversion._migrationCompletedEvent);
-        return;
-    }
-
-    process.exit(0);
+        process.exit(0);
+    });
 }
