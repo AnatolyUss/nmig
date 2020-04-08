@@ -23,8 +23,13 @@ import Conversion from './Conversion';
 import createSchema from './SchemaProcessor';
 import loadStructureToMigrate from './StructureLoader';
 import pipeData from './DataPipeManager';
+import decodeBinaryData from './BinaryDataDecoder';
+import generateReport from './ReportGenerator';
+import DBAccess from './DBAccess';
+import { dropDataPoolTable } from './DataPoolManager';
+import { processConstraints } from './ConstraintsProcessor';
 import { boot } from './BootProcessor';
-import { createStateLogsTable } from './MigrationStateManager';
+import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from './FsOps';
 
@@ -42,4 +47,9 @@ readConfig(baseDir)
     .then(loadStructureToMigrate)
     .then(readDataPool)
     .then(pipeData)
-    .catch(error => console.log(error));
+    .then(decodeBinaryData)
+    .then(processConstraints)
+    .then(dropDataPoolTable)
+    .then(dropStateLogsTable)
+    .then(DBAccess.closeConnectionPools)
+    .then(generateReport);

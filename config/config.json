@@ -35,13 +35,13 @@
         "password" : "0123456789"
     },
 
-    "max_db_connection_pool_size_description" : [
-        "Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers.",
-        "For example: 10 means, that nmig will create a pool of 10 connections to MySQL server",
-        "and 10 connections to PostgreSQL server.",
-        "20 connections to both servers."
+    "max_each_db_connection_pool_size_description" : [
+        "Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers each.",
+        "Example: 20 means, that Nmig will create a pool of 20 connections to the source MySQL server",
+        "and 20 connections to the target PostgreSQL server.",
+        "40 connections to both servers."
     ],
-    "max_db_connection_pool_size" : 10,
+    "max_each_db_connection_pool_size" : 20,
 
     "loader_max_old_space_size_description" : [
         "V8 memory limit of the loader process.",
@@ -68,15 +68,6 @@
         "If not supplied, then a new schema will be created automatically."
     ],
     "schema" : "public",
-
-    "no_vacuum_description" : [
-        "PostgreSQL VACUUM reclaims storage occupied by dead tuples.",
-        "VACUUM is a very time-consuming procedure.",
-        "By default, VACUUM will be performed automatically after migration (recommended)",
-        "This behavior can be disabled for tables, included into the list (Array) below.",
-        "Table names, included into the list below should be names, you use in your source database (MySQL)."
-    ],
-    "no_vacuum" : [],
 
     "exclude_tables_description": [
         "List (Array) of tables, that will not be migrated.",

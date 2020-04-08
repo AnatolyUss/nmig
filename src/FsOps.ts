@@ -49,7 +49,7 @@ export function generateError(conversion: Conversion, message: string, sql: stri
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/{tableName}.log" file.
  */
-export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string): void {
+export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, callback?: Function): void {
     console.log(log);
     const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
 
@@ -63,13 +63,22 @@ export function log(conversion: Conversion, log: string | NodeJS.ErrnoException,
                                 fs.write(fd, buffer, 0, buffer.length, null, () => {
                                     fs.close(fd, () => {
                                         // Each async function MUST have a callback (according to Node.js >= 7).
+                                        if (callback) {
+                                            callback();
+                                        }
                                     });
                                 });
+                            } else  if (callback) {
+                                callback(error);
                             }
                         });
+                    } else if (callback) {
+                        callback();
                     }
                 });
             });
+        } else if (callback) {
+            callback(error);
         }
     });
 }
