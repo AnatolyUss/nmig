@@ -26,6 +26,11 @@ import Conversion from './Conversion';
  * Generates a summary report.
  */
 export default (conversion: Conversion): void => {
+    if (conversion._runsInTestMode) {
+        (<EventEmitter>conversion._eventEmitter).emit(conversion._migrationCompletedEvent);
+        return;
+    }
+
     let differenceSec: number = ((new Date()).getTime() - (<Date>conversion._timeBegin).getTime()) / 1000;
     const seconds: number = Math.floor(differenceSec % 60);
     differenceSec = differenceSec / 60;
@@ -39,12 +44,5 @@ export default (conversion: Conversion): void => {
         \n\t--[generateReport] Total time: ${ formattedHours }:${ formattedMinutes }:${ formattedSeconds }
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
-    log(conversion, output, undefined, () => {
-        if (conversion._runsInTestMode) {
-            (<EventEmitter>conversion._eventEmitter).emit(conversion._migrationCompletedEvent);
-            return;
-        }
-
-        process.exit(0);
-    });
+    log(conversion, output, undefined, () => process.exit(0));
 }
