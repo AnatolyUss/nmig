@@ -63,7 +63,7 @@ export async function processConstraints(conversion: Conversion): Promise<Conver
 export async function processConstraintsPerTable(
     conversion: Conversion,
     tableName: string,
-    migrateOnlyData: boolean | null = null
+    migrateOnlyData: boolean
 ): Promise<void> {
     if (migrateOnlyData === null) {
         return sequencesProcessor.setSequenceValue(conversion, tableName);
