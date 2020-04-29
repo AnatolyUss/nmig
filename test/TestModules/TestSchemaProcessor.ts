@@ -35,7 +35,7 @@ import { dropDataPoolTable } from '../../src/DataPoolManager';
 import { processConstraints } from '../../src/ConstraintsProcessor';
 import { createStateLogsTable, dropStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
-import { checkConnection, getLogo } from '../../src/BootProcessor';
+import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/BootProcessor';
 import { createLogsDirectory, generateError, log, readConfig, readDataTypesMap, readExtraConfig } from '../../src/FsOps';
 import ErrnoException = NodeJS.ErrnoException;
 
@@ -264,9 +264,9 @@ export default class TestSchemaProcessor {
      * Initializes Conversion instance.
      */
     public async initializeConversion(): Promise<Conversion> {
-        const baseDir: string = path.join(__dirname, '..', '..', '..');
-        const config: any = await readConfig(baseDir, 'test_config.json');
-        const fullConfig: any = await readExtraConfig(config, baseDir);
+        const { confPath, logsPath } = getConfAndLogsPaths();
+        const config: any = await readConfig(confPath, logsPath, 'test_config.json');
+        const fullConfig: any = await readExtraConfig(config, confPath);
         this.conversion = await Conversion.initializeConversion(fullConfig);
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();
