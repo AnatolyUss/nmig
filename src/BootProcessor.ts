@@ -18,11 +18,13 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import * as path from 'path';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
+import IConfAndLogsPaths from './IConfAndLogsPaths';
 import { getStateLogsTableName } from './MigrationStateManager';
 
 /**
@@ -120,4 +122,25 @@ export function boot(conversion: Conversion): Promise<Conversion> {
             .setEncoding(conversion._encoding)
             .on('data', _getUserInput);
     });
+}
+
+/**
+ * Parses CLI input arguments, if given.
+ * Returns an object containing paths to configuration files and to logs directory.
+ *
+ * Sample:
+ * npm start -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
+ * npm test -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
+ */
+export function getConfAndLogsPaths(): IConfAndLogsPaths {
+    const baseDir: string = path.join(__dirname, '..', '..');
+    const _parseInputArguments = (paramName: string) => {
+        const _path: string | undefined = process.argv.find((arg: string) => arg.startsWith(paramName));
+        return _path ? _path.split('=')[1] : undefined;
+    };
+
+    return {
+        confPath: _parseInputArguments('--conf-dir') || path.join(baseDir, 'config'),
+        logsPath: _parseInputArguments('--logs-dir') || baseDir
+    };
 }

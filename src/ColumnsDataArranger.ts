@@ -76,4 +76,4 @@ export default (arrTableColumns: any[], mysqlVersion: string | number): string =
     });
 
     return strRetVal.slice(0, -1);
-}
+};

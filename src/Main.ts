@@ -18,7 +18,6 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as path from 'path';
 import Conversion from './Conversion';
 import createSchema from './SchemaProcessor';
 import loadStructureToMigrate from './StructureLoader';
@@ -28,15 +27,15 @@ import generateReport from './ReportGenerator';
 import DBAccess from './DBAccess';
 import { dropDataPoolTable } from './DataPoolManager';
 import { processConstraints } from './ConstraintsProcessor';
-import { boot } from './BootProcessor';
+import { getConfAndLogsPaths, boot } from './BootProcessor';
 import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from './FsOps';
 
-const baseDir: string = path.join(__dirname, '..', '..');
+const { confPath, logsPath } = getConfAndLogsPaths();
 
-readConfig(baseDir)
-    .then(config => readExtraConfig(config, baseDir))
+readConfig(confPath, logsPath)
+    .then(config => readExtraConfig(config, confPath))
     .then(Conversion.initializeConversion)
     .then(boot)
     .then(readDataTypesMap)
