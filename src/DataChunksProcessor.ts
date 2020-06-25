@@ -38,7 +38,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
 
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const logTitle: string = 'DataChunksProcessor::default';
-    const selectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
+    const selectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion, conversion._encoding);
     const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const params: IDBAccessQueryParams = {
         conversion: conversion,
