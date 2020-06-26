@@ -21,7 +21,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 
 <h3>SYSTEM REQUIREMENTS</h3>
 <ul>
-<li> <b>Node.js 8 or higher</b></li>
+<li> <b>Node.js 10 or higher</b></li>
 </ul>
 
 <h3>USAGE</h3>
@@ -87,7 +87,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 <b>Note:</b> "logs_directory" will be created during script execution.</p>
 
 <h3>VERSION</h3>
-<p>Current version is 5.2.0<br />
+<p>Current version is 5.3.0<br />
 (major version . improvements . bug fixes)</p>
 
 <h3>LICENSE</h3>
