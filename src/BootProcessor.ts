@@ -18,11 +18,13 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import * as path from 'path';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import DBVendors from './DBVendors';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
+import IConfAndLogsPaths from './IConfAndLogsPaths';
 import { getStateLogsTableName } from './MigrationStateManager';
 
 /**
@@ -95,24 +97,50 @@ export function boot(conversion: Conversion): Promise<Conversion> {
 
         console.log(logo + message);
 
-        process
-            .stdin
+        const _getUserInput = (input: string) => {
+            const trimedInput: string = input.trim();
+
+            if (trimedInput === 'n' || trimedInput === 'N') {
+                console.log('\t--[boot] Migration aborted.\n');
+                process.exit(0);
+            }
+
+            if (trimedInput === 'y' || trimedInput === 'Y') {
+                process.stdin.removeListener('data', _getUserInput);
+                conversion._timeBegin = new Date();
+                return resolve(conversion);
+            }
+
+            const hint: string = `\t--[boot] Unexpected input ${ trimedInput }\n`
+                + `\t--[boot] Expected input is upper case Y\n\t--[boot] or lower case n\n${message}`;
+
+            console.log(hint);
+        };
+
+        process.stdin
             .resume()
             .setEncoding(conversion._encoding)
-            .on('data', (stdin: string) => {
-                const trimedStdin: string = stdin.trim();
-
-                if (trimedStdin === 'n' || trimedStdin === 'N') {
-                    console.log('\t--[boot] Migration aborted.\n');
-                    process.exit(0);
-                }
-
-                if (trimedStdin === 'y' || trimedStdin === 'Y') {
-                    return resolve(conversion);
-                }
-
-                const hint: string = `\t--[boot] Unexpected input ${ trimedStdin }\n\t--[boot] Expected input is upper case Y\n\t--[boot] or lower case n\n${ message }`;
-                console.log(hint);
-            });
+            .on('data', _getUserInput);
     });
+}
+
+/**
+ * Parses CLI input arguments, if given.
+ * Returns an object containing paths to configuration files and to logs directory.
+ *
+ * Sample:
+ * npm start -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
+ * npm test -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
+ */
+export function getConfAndLogsPaths(): IConfAndLogsPaths {
+    const baseDir: string = path.join(__dirname, '..', '..');
+    const _parseInputArguments = (paramName: string) => {
+        const _path: string | undefined = process.argv.find((arg: string) => arg.startsWith(paramName));
+        return _path ? _path.split('=')[1] : undefined;
+    };
+
+    return {
+        confPath: _parseInputArguments('--conf-dir') || path.join(baseDir, 'config'),
+        logsPath: _parseInputArguments('--logs-dir') || baseDir
+    };
 }

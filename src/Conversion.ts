@@ -46,9 +46,9 @@ export default class Conversion {
     public _loaderMaxOldSpaceSize: number | string;
 
     /**
-     * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers.
+     * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers each.
      */
-    public readonly _maxDbConnectionPoolSize: number;
+    public readonly _maxEachDbConnectionPoolSize: number;
 
     /**
      * JavaScript encoding type.
@@ -96,11 +96,6 @@ export default class Conversion {
     public readonly _notCreatedViewsPath: string;
 
     /**
-     * A list of tables, to which PostgreSQL's VACUUM will not be applied at the end of migration.
-     */
-    public readonly _noVacuum: string[];
-
-    /**
      * List of tables, that will not be migrated.
      */
     public readonly _excludeTables: string[];
@@ -113,7 +108,7 @@ export default class Conversion {
     /**
      * The timestamp, at which the migration began.
      */
-    public readonly _timeBegin: Date;
+    public _timeBegin: Date | null;
 
     /**
      * Current version of source (MySQL) db.
@@ -208,10 +203,9 @@ export default class Conversion {
         this._allLogsPath = path.join(this._logsDirPath, 'all.log');
         this._errorLogsPath = path.join(this._logsDirPath, 'errors-only.log');
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
-        this._noVacuum = this._config.no_vacuum === undefined ? [] : this._config.no_vacuum;
         this._excludeTables = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
         this._includeTables = this._config.include_tables === undefined ? [] : this._config.include_tables;
-        this._timeBegin = new Date();
+        this._timeBegin = null;
         this._encoding = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._0777 = '0777';
         this._mysqlVersion = '5.6.21'; // Simply a default value.
@@ -227,15 +221,15 @@ export default class Conversion {
             ? this._mySqlDbName
             : this._config.schema;
 
-        this._maxDbConnectionPoolSize = this._config.max_db_connection_pool_size !== undefined && Conversion._isIntNumeric(this._config.max_db_connection_pool_size)
-            ? +this._config.max_db_connection_pool_size
-            : 10;
+        this._maxEachDbConnectionPoolSize = this._config.max_each_db_connection_pool_size !== undefined && Conversion._isIntNumeric(this._config.max_each_db_connection_pool_size)
+            ? +this._config.max_each_db_connection_pool_size
+            : 20;
 
         this._runsInTestMode = false;
         this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
         this._removeTestResources = this._config.remove_test_resources === undefined ? true : this._config.remove_test_resources;
-        this._maxDbConnectionPoolSize = this._maxDbConnectionPoolSize > 0 ? this._maxDbConnectionPoolSize : 10;
+        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
         this._loaderMaxOldSpaceSize = this._config.loader_max_old_space_size;
         this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
         this._migrateOnlyData = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;

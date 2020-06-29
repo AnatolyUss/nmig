@@ -38,7 +38,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
 
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const logTitle: string = 'DataChunksProcessor::default';
-    const strSelectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion);
+    const selectFieldList: string = arrangeColumnsData(conversion._dicTables[tableName].arrTableColumns, conversion._mysqlVersion, conversion._encoding);
     const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const params: IDBAccessQueryParams = {
         conversion: conversion,
@@ -53,7 +53,11 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     const rowsCnt: number = countResult.data[0].rows_count;
     const msg: string = `\t--[${ logTitle }] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
-    const metadata: string = `{"_tableName":"${ tableName }","_selectFieldList":"${ strSelectFieldList }","_rowsCnt":${ rowsCnt }}`;
+    const metadata: string = JSON.stringify({
+        _tableName: tableName,
+        _selectFieldList: selectFieldList,
+        _rowsCnt: rowsCnt,
+    });
 
     params.sql = `INSERT INTO ${ getDataPoolTableName(conversion) }("metadata") VALUES ($1);`;
     params.vendor = DBVendors.PG;

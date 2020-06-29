@@ -29,9 +29,13 @@ import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 import createSchema from '../../src/SchemaProcessor';
 import loadStructureToMigrate from '../../src/StructureLoader';
 import pipeData from '../../src/DataPipeManager';
-import { createStateLogsTable } from '../../src/MigrationStateManager';
+import decodeBinaryData from '../../src/BinaryDataDecoder';
+import generateReport from '../../src/ReportGenerator';
+import { dropDataPoolTable } from '../../src/DataPoolManager';
+import { processConstraints } from '../../src/ConstraintsProcessor';
+import { createStateLogsTable, dropStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
-import { checkConnection, getLogo } from '../../src/BootProcessor';
+import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/BootProcessor';
 import { createLogsDirectory, generateError, log, readConfig, readDataTypesMap, readExtraConfig } from '../../src/FsOps';
 import ErrnoException = NodeJS.ErrnoException;
 
@@ -240,7 +244,7 @@ export default class TestSchemaProcessor {
         };
 
         const insertParamsKeys: string[] = Object.keys(insertParams).map((k: string) => `\`${ k }\``);
-        const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ insertParamsKeys.map((k: string) => '?').join(',') });`;
+        const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ insertParamsKeys.map((_: string) => '?').join(',') });`;
         const params: IDBAccessQueryParams = {
             conversion: <Conversion>this.conversion,
             caller: 'TestSchemaProcessor::_loadTestData',
@@ -260,9 +264,9 @@ export default class TestSchemaProcessor {
      * Initializes Conversion instance.
      */
     public async initializeConversion(): Promise<Conversion> {
-        const baseDir: string = path.join(__dirname, '..', '..', '..');
-        const config: any = await readConfig(baseDir, 'test_config.json');
-        const fullConfig: any = await readExtraConfig(config, baseDir);
+        const { confPath, logsPath } = getConfAndLogsPaths();
+        const config: any = await readConfig(confPath, logsPath, 'test_config.json');
+        const fullConfig: any = await readExtraConfig(config, confPath);
         this.conversion = await Conversion.initializeConversion(fullConfig);
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();
@@ -298,6 +302,12 @@ export default class TestSchemaProcessor {
             .then(loadStructureToMigrate)
             .then(readDataPool)
             .then(pipeData)
+            .then(decodeBinaryData)
+            .then(processConstraints)
+            .then(dropDataPoolTable)
+            .then(dropStateLogsTable)
+            .then(DBAccess.closeConnectionPools)
+            .then(generateReport)
             .catch(error => console.log(error));
     }
 }

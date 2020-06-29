@@ -19,10 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as sequencesProcessor from './SequencesProcessor';
-import * as dataPoolManager from './DataPoolManager';
-import runVacuumFullAndAnalyze from './VacuumProcessor';
 import * as migrationStateManager from './MigrationStateManager';
-import generateReport from './ReportGenerator';
 import processEnum from './EnumProcessor';
 import processNull from './NullProcessor';
 import processDefault from './DefaultProcessor';
@@ -35,26 +32,17 @@ import Conversion from './Conversion';
 /**
  * Continues migration process after data loading.
  */
-export default async function(conversion: Conversion): Promise<void> {
+export async function processConstraints(conversion: Conversion): Promise<Conversion> {
     const isTableConstraintsLoaded: boolean = await migrationStateManager.get(conversion, 'per_table_constraints_loaded');
     const migrateOnlyData: boolean = conversion.shouldMigrateOnlyData();
 
-    const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
-        if (!isTableConstraintsLoaded) {
-            if (migrateOnlyData) {
-                return sequencesProcessor.setSequenceValue(conversion, tableName);
-            }
+    if (!isTableConstraintsLoaded) {
+        const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
+            await processConstraintsPerTable(conversion, tableName, migrateOnlyData);
+        });
 
-            await processEnum(conversion, tableName);
-            await processNull(conversion, tableName);
-            await processDefault(conversion, tableName);
-            await sequencesProcessor.createSequence(conversion, tableName);
-            await processIndexAndKey(conversion, tableName);
-            await processComments(conversion, tableName);
-        }
-    });
-
-    await Promise.all(promises);
+        await Promise.all(promises);
+    }
 
     if (migrateOnlyData) {
         await migrationStateManager.set(conversion, 'per_table_constraints_loaded', 'foreign_keys_loaded', 'views_loaded');
@@ -66,10 +54,25 @@ export default async function(conversion: Conversion): Promise<void> {
         await migrationStateManager.set(conversion, 'views_loaded');
     }
 
-    await runVacuumFullAndAnalyze(conversion); // Reclaim storage occupied by dead tuples.
+    return conversion;
+}
 
-    // !!!Note, dropping of data-pool and state-logs tables MUST be the last step of migration process.
-    await dataPoolManager.dropDataPoolTable(conversion);
-    await migrationStateManager.dropStateLogsTable(conversion);
-    generateReport(conversion, 'NMIG migration is accomplished.');
+/**
+ * Processes given table's constraints.
+ */
+export async function processConstraintsPerTable(
+    conversion: Conversion,
+    tableName: string,
+    migrateOnlyData: boolean
+): Promise<void> {
+    if (migrateOnlyData) {
+        return sequencesProcessor.setSequenceValue(conversion, tableName);
+    }
+
+    await processEnum(conversion, tableName);
+    await processNull(conversion, tableName);
+    await processDefault(conversion, tableName);
+    await sequencesProcessor.createSequence(conversion, tableName);
+    await processIndexAndKey(conversion, tableName);
+    await processComments(conversion, tableName);
 }

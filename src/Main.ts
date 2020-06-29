@@ -18,20 +18,24 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as path from 'path';
 import Conversion from './Conversion';
 import createSchema from './SchemaProcessor';
 import loadStructureToMigrate from './StructureLoader';
 import pipeData from './DataPipeManager';
-import { boot } from './BootProcessor';
-import { createStateLogsTable } from './MigrationStateManager';
+import decodeBinaryData from './BinaryDataDecoder';
+import generateReport from './ReportGenerator';
+import DBAccess from './DBAccess';
+import { dropDataPoolTable } from './DataPoolManager';
+import { processConstraints } from './ConstraintsProcessor';
+import { getConfAndLogsPaths, boot } from './BootProcessor';
+import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from './FsOps';
 
-const baseDir: string = path.join(__dirname, '..', '..');
+const { confPath, logsPath } = getConfAndLogsPaths();
 
-readConfig(baseDir)
-    .then(config => readExtraConfig(config, baseDir))
+readConfig(confPath, logsPath)
+    .then(config => readExtraConfig(config, confPath))
     .then(Conversion.initializeConversion)
     .then(boot)
     .then(readDataTypesMap)
@@ -42,4 +46,9 @@ readConfig(baseDir)
     .then(loadStructureToMigrate)
     .then(readDataPool)
     .then(pipeData)
-    .catch(error => console.log(error));
+    .then(decodeBinaryData)
+    .then(processConstraints)
+    .then(dropDataPoolTable)
+    .then(dropStateLogsTable)
+    .then(DBAccess.closeConnectionPools)
+    .then(generateReport);

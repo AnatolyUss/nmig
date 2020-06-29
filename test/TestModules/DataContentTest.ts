@@ -67,7 +67,7 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     tape.equal(data.blob_text, originalTestBlobText);
 
     tape.comment('Test bit column value');
-    tape.equal(data.bit, '1'); // BIT is actually a "bit string", for example: '1110' -> 14
+    tape.equal(data.bit, '1'); // BIT is actually a "bit string".
 
     tape.comment('Test id_test_unique_index column value');
     tape.equal(data.id_test_unique_index, 7384);

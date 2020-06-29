@@ -18,6 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import { Encoding } from './Encoding';
 
 /**
  * Defines if given type is one of MySQL spacial types.
@@ -51,9 +52,21 @@ const isDateTime = (type: string): boolean => {
 };
 
 /**
+ * Defines if given type is one of MySQL numeric types.
+ */
+const isNumeric = (type: string): boolean => {
+    return type.indexOf('decimal') !== -1
+        || type.indexOf('numeric') !== -1
+        || type.indexOf('double') !== -1
+        || type.indexOf('float') !== -1
+        || type.indexOf('int') !== -1
+        || type.indexOf('point') !== -1;
+};
+
+/**
  * Arranges columns data before loading.
  */
-export default (arrTableColumns: any[], mysqlVersion: string | number): string => {
+export default (arrTableColumns: any[], mysqlVersion: string | number, encoding: Encoding): string => {
     let strRetVal: string = '';
     const wkbFunc: string = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
@@ -70,10 +83,14 @@ export default (arrTableColumns: any[], mysqlVersion: string | number): string =
             strRetVal += `BIN(\`${ field }\`) AS \`${ field }\`,`;
         } else if (isDateTime(type)) {
             strRetVal += `IF(\`${ field }\` IN('0000-00-00', '0000-00-00 00:00:00'), '-INFINITY', CAST(\`${ field }\` AS CHAR)) AS \`${ field }\`,`;
+        } else if (isNumeric(type)) {
+            strRetVal += `\`${ field }\` AS \`${ field }\`,`;
+        } else if (encoding === 'utf-8' || encoding === 'utf8') {
+            strRetVal += `REPLACE(\`${ field }\`, '\0', '') AS \`${ field }\`,`;
         } else {
             strRetVal += `\`${ field }\` AS \`${ field }\`,`;
         }
     });
 
     return strRetVal.slice(0, -1);
-}
+};

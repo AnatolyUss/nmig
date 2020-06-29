@@ -49,7 +49,7 @@ export function generateError(conversion: Conversion, message: string, sql: stri
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/{tableName}.log" file.
  */
-export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string): void {
+export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, callback?: Function): void {
     console.log(log);
     const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
 
@@ -63,13 +63,22 @@ export function log(conversion: Conversion, log: string | NodeJS.ErrnoException,
                                 fs.write(fd, buffer, 0, buffer.length, null, () => {
                                     fs.close(fd, () => {
                                         // Each async function MUST have a callback (according to Node.js >= 7).
+                                        if (callback) {
+                                            callback();
+                                        }
                                     });
                                 });
+                            } else  if (callback) {
+                                callback(error);
                             }
                         });
+                    } else if (callback) {
+                        callback();
                     }
                 });
             });
+        } else if (callback) {
+            callback(error);
         }
     });
 }
@@ -77,19 +86,19 @@ export function log(conversion: Conversion, log: string | NodeJS.ErrnoException,
 /**
  * Reads the configuration file.
  */
-export function readConfig(baseDir: string, configFileName: string = 'config.json'): Promise<any> {
+export function readConfig(confPath: string, logsPath: string, configFileName: string = 'config.json'): Promise<any> {
     return new Promise<any>(resolve => {
-        const strPathToConfig = path.join(baseDir, 'config', configFileName);
+        const pathToConfig = path.join(confPath, configFileName);
 
-        fs.readFile(strPathToConfig, (error: ErrnoException | null, data: Buffer) => {
+        fs.readFile(pathToConfig, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
-                console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ strPathToConfig }`);
+                console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ pathToConfig }`);
                 process.exit(1);
             }
 
             const config: any = JSON.parse(data.toString());
-            config.logsDirPath = path.join(baseDir, 'logs_directory');
-            config.dataTypesMapAddr = path.join(baseDir, 'config', 'data_types_map.json');
+            config.logsDirPath = path.join(logsPath, 'logs_directory');
+            config.dataTypesMapAddr = path.join(confPath, 'data_types_map.json');
             resolve(config);
         });
     });
@@ -98,18 +107,18 @@ export function readConfig(baseDir: string, configFileName: string = 'config.jso
 /**
  * Reads the extra configuration file, if necessary.
  */
-export function readExtraConfig(config: any, baseDir: string): Promise<any> {
+export function readExtraConfig(config: any, confPath: string): Promise<any> {
     return new Promise<any>(resolve => {
         if (config.enable_extra_config !== true) {
             config.extraConfig = null;
             return resolve(config);
         }
 
-        const strPathToExtraConfig = path.join(baseDir, 'config', 'extra_config.json');
+        const pathToExtraConfig = path.join(confPath, 'config', 'extra_config.json');
 
-        fs.readFile(strPathToExtraConfig, (error: ErrnoException | null, data: Buffer) => {
+        fs.readFile(pathToExtraConfig, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
-                console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ strPathToExtraConfig }`);
+                console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ pathToExtraConfig }`);
                 process.exit(1);
             }
 
