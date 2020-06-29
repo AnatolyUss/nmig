@@ -97,7 +97,8 @@ function getExpectedColumnTypes(): Map<string, string> {
         ['mediumblob', 'bytea'],
         ['tinyblob', 'bytea'],
         ['varbinary', 'bytea'],
-        ['binary', 'bytea']
+        ['binary', 'bytea'],
+        ['null_char_in_varchar', 'character varying']
     ]);
 }
 

@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS `table_a`(
     `mediumblob` MEDIUMBLOB,
     `longblob` LONGBLOB,
     `blob` BLOB,
+    `null_char_in_varchar` VARCHAR(6) NOT NULL DEFAULT x'373300350035',
     PRIMARY KEY(`id_test_sequence`),
     UNIQUE KEY(`id_test_unique_index`),
     UNIQUE INDEX(`id_test_composite_unique_index_1`, `id_test_composite_unique_index_2`),
