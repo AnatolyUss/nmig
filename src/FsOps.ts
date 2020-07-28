@@ -107,14 +107,14 @@ export function readConfig(confPath: string, logsPath: string, configFileName: s
 /**
  * Reads the extra configuration file, if necessary.
  */
-export function readExtraConfig(config: any, confPath: string): Promise<any> {
+export function readExtraConfig(config: any, confPath: string, extraConfigFileName: string = 'extra_config.json'): Promise<any> {
     return new Promise<any>(resolve => {
         if (config.enable_extra_config !== true) {
             config.extraConfig = null;
             return resolve(config);
         }
 
-        const pathToExtraConfig = path.join(confPath, 'config', 'extra_config.json');
+        const pathToExtraConfig = path.join(confPath, extraConfigFileName);
 
         fs.readFile(pathToExtraConfig, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
