@@ -30,7 +30,7 @@ import { getStateLogsTableName } from './MigrationStateManager';
 /**
  * Checks correctness of connection details of both MySQL and PostgreSQL.
  */
-export async function checkConnection(conversion: Conversion): Promise<string> {
+export const checkConnection = async (conversion: Conversion): Promise<string> => {
     let resultMessage: string = '';
     const params: IDBAccessQueryParams = {
         conversion: conversion,
@@ -48,12 +48,12 @@ export async function checkConnection(conversion: Conversion): Promise<string> {
     const pgResult: DBAccessQueryResult = await DBAccess.query(params);
     resultMessage += pgResult.error ? `\tPostgreSQL connection error: ${ JSON.stringify(pgResult.error) }` : '';
     return resultMessage;
-}
+};
 
 /**
  * Returns Nmig's logo.
  */
-export function getLogo(): string {
+export const getLogo = (): string => {
     return '\n\t/\\_  |\\  /\\/\\ /\\___'
         + '\n\t|  \\ | |\\ | | | __'
         + '\n\t| |\\\\| || | | | \\_ \\'
@@ -62,12 +62,12 @@ export function getLogo(): string {
         + '\n\n\tNMIG - the database migration tool'
         + '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
         + '\t--[boot] Configuration has been just loaded.';
-}
+};
 
 /**
  * Boots the migration.
  */
-export function boot(conversion: Conversion): Promise<Conversion> {
+export const boot = (conversion: Conversion): Promise<Conversion> => {
     return new Promise<Conversion>(async resolve => {
         const connectionErrorMessage = await checkConnection(conversion);
         const logo: string = getLogo();
@@ -97,7 +97,7 @@ export function boot(conversion: Conversion): Promise<Conversion> {
 
         console.log(logo + message);
 
-        const _getUserInput = (input: string) => {
+        const _getUserInput = (input: string): void => {
             const trimedInput: string = input.trim();
 
             if (trimedInput === 'n' || trimedInput === 'N') {
@@ -122,7 +122,7 @@ export function boot(conversion: Conversion): Promise<Conversion> {
             .setEncoding(conversion._encoding)
             .on('data', _getUserInput);
     });
-}
+};
 
 /**
  * Parses CLI input arguments, if given.
@@ -132,9 +132,9 @@ export function boot(conversion: Conversion): Promise<Conversion> {
  * npm start -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
  * npm test -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
  */
-export function getConfAndLogsPaths(): IConfAndLogsPaths {
+export const getConfAndLogsPaths = (): IConfAndLogsPaths => {
     const baseDir: string = path.join(__dirname, '..', '..');
-    const _parseInputArguments = (paramName: string) => {
+    const _parseInputArguments = (paramName: string): string | undefined => {
         const _path: string | undefined = process.argv.find((arg: string) => arg.startsWith(paramName));
         return _path ? _path.split('=')[1] : undefined;
     };
@@ -143,4 +143,4 @@ export function getConfAndLogsPaths(): IConfAndLogsPaths {
         confPath: _parseInputArguments('--conf-dir') || path.join(baseDir, 'config'),
         logsPath: _parseInputArguments('--logs-dir') || baseDir
     };
-}
+};
