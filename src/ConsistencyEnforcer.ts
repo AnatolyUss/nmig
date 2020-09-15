@@ -31,7 +31,7 @@ import { getDataPoolTableName } from './DataPoolManager';
  * In case of normal execution - it is a good practice.
  * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
-export async function dataTransferred(conversion: Conversion, dataPoolId: number): Promise<boolean> {
+export const dataTransferred = async (conversion: Conversion, dataPoolId: number): Promise<boolean> => {
     const dataPoolTable: string = getDataPoolTableName(conversion);
     const sqlGetMetadata: string = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
     const params: IDBAccessQueryParams = {
@@ -53,4 +53,4 @@ export async function dataTransferred(conversion: Conversion, dataPoolId: number
 
     const probe: DBAccessQueryResult = await DBAccess.query(params);
     return probe.data.rows.length !== 0;
-}
+};

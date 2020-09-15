@@ -27,7 +27,7 @@ import DBVendors from './DBVendors';
 /**
  * Creates a new PostgreSQL schema if it does not exist yet.
  */
-export default async function(conversion: Conversion): Promise<Conversion> {
+export default async (conversion: Conversion): Promise<Conversion> => {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'SchemaProcessor::createSchema',
@@ -47,4 +47,4 @@ export default async function(conversion: Conversion): Promise<Conversion> {
     }
 
     return conversion;
-}
+};

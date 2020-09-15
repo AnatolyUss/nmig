@@ -26,7 +26,7 @@ import ErrnoException = NodeJS.ErrnoException;
 /**
  * Writes a detailed error message to the "/errors-only.log" file.
  */
-export function generateError(conversion: Conversion, message: string, sql: string = ''): Promise<void> {
+export const generateError = (conversion: Conversion, message: string, sql: string = ''): Promise<void> => {
     return new Promise<void>(resolve => {
         message += `\n\n\tSQL: ${sql}\n\n`;
         const buffer: Buffer = Buffer.from(message, conversion._encoding);
@@ -42,14 +42,14 @@ export function generateError(conversion: Conversion, message: string, sql: stri
             });
         });
     });
-}
+};
 
 /**
  * Outputs given log.
  * Writes given log to the "/all.log" file.
  * If necessary, writes given log to the "/{tableName}.log" file.
  */
-export function log(conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, callback?: Function): void {
+export const log = (conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, callback?: Function): void => {
     console.log(log);
     const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
 
@@ -81,12 +81,12 @@ export function log(conversion: Conversion, log: string | NodeJS.ErrnoException,
             callback(error);
         }
     });
-}
+};
 
 /**
  * Reads the configuration file.
  */
-export function readConfig(confPath: string, logsPath: string, configFileName: string = 'config.json'): Promise<any> {
+export const readConfig = (confPath: string, logsPath: string, configFileName: string = 'config.json'): Promise<any> => {
     return new Promise<any>(resolve => {
         const pathToConfig = path.join(confPath, configFileName);
 
@@ -102,12 +102,12 @@ export function readConfig(confPath: string, logsPath: string, configFileName: s
             resolve(config);
         });
     });
-}
+};
 
 /**
  * Reads the extra configuration file, if necessary.
  */
-export function readExtraConfig(config: any, confPath: string, extraConfigFileName: string = 'extra_config.json'): Promise<any> {
+export const readExtraConfig = (config: any, confPath: string, extraConfigFileName: string = 'extra_config.json'): Promise<any> => {
     return new Promise<any>(resolve => {
         if (config.enable_extra_config !== true) {
             config.extraConfig = null;
@@ -126,22 +126,22 @@ export function readExtraConfig(config: any, confPath: string, extraConfigFileNa
             resolve(config);
         });
     });
-}
+};
 
 /**
  * Creates logs directory.
  */
-export async function createLogsDirectory(conversion: Conversion): Promise<Conversion> {
+export const createLogsDirectory = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'FsOps::createLogsDirectory';
     await createDirectory(conversion, conversion._logsDirPath, logTitle);
     await createDirectory(conversion, conversion._notCreatedViewsPath, logTitle);
     return conversion;
-}
+};
 
 /**
  * Creates a directory at the specified path.
  */
-function createDirectory(conversion: Conversion, directoryPath: string, logTitle: string): Promise<void> {
+const createDirectory = (conversion: Conversion, directoryPath: string, logTitle: string): Promise<void> => {
     return new Promise<void>(resolve => {
         console.log(`\t--[${ logTitle }] Creating directory ${ directoryPath }...`);
 
@@ -165,12 +165,12 @@ function createDirectory(conversion: Conversion, directoryPath: string, logTitle
             }
         });
     });
-}
+};
 
 /**
  * Reads "./config/data_types_map.json" and converts its json content to js object.
  */
-export function readDataTypesMap(conversion: Conversion): Promise<Conversion> {
+export const readDataTypesMap = (conversion: Conversion): Promise<Conversion> => {
     return new Promise<Conversion>(resolve => {
         fs.readFile(conversion._dataTypesMapAddr, (error: ErrnoException | null, data: Buffer) => {
             const logTitle: string = 'FsOps::readDataTypesMap';
@@ -185,4 +185,4 @@ export function readDataTypesMap(conversion: Conversion): Promise<Conversion> {
             resolve(conversion);
         });
     });
-}
+};

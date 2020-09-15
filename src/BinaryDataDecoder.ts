@@ -29,7 +29,7 @@ import { PoolClient } from 'pg';
 /**
  * Decodes binary data from from textual representation in string.
  */
-export default async function (conversion: Conversion): Promise<Conversion> {
+export default async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'BinaryDataDecoder::decodeBinaryData';
     log(conversion, `\t--[${ logTitle }] Decodes binary data from textual representation in string.`);
 
@@ -67,4 +67,4 @@ export default async function (conversion: Conversion): Promise<Conversion> {
 
     await Promise.all(decodePromises);
     return conversion;
-}
+};

@@ -28,15 +28,15 @@ import Conversion from './Conversion';
 /**
  * Returns the state logs table name.
  */
-export function getStateLogsTableName(conversion: Conversion, getRowName: boolean = false): string {
+export const getStateLogsTableName = (conversion: Conversion, getRowName: boolean = false): string => {
     const rowName: string = `state_logs_${ conversion._schema }${ conversion._mySqlDbName }`;
     return getRowName ? rowName : `"${ conversion._schema }"."${ rowName }"`;
-}
+};
 
 /**
  * Retrieves state-log.
  */
-export async function get(conversion: Conversion, param: string): Promise<boolean> {
+export const get = async (conversion: Conversion, param: string): Promise<boolean> => {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::get',
@@ -48,12 +48,12 @@ export async function get(conversion: Conversion, param: string): Promise<boolea
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
     return result.data.rows[0][param];
-}
+};
 
 /**
  * Updates the state-log.
  */
-export async function set(conversion: Conversion, ...states: string[]): Promise<void> {
+export const set = async (conversion: Conversion, ...states: string[]): Promise<void> => {
     const statesSql: string = states.map((state: string) => `${ state } = TRUE`).join(',');
     const params: IDBAccessQueryParams = {
         conversion: conversion,
@@ -65,12 +65,12 @@ export async function set(conversion: Conversion, ...states: string[]): Promise<
     };
 
     await DBAccess.query(params);
-}
+};
 
 /**
  * Creates the "{schema}"."state_logs_{self._schema + self._mySqlDbName}" temporary table.
  */
-export async function createStateLogsTable(conversion: Conversion): Promise<Conversion> {
+export const createStateLogsTable = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'MigrationStateManager::createStateLogsTable';
     const sql: string = `CREATE TABLE IF NOT EXISTS ${ getStateLogsTableName(conversion) }(
         "tables_loaded" BOOLEAN, "per_table_constraints_loaded" BOOLEAN, "foreign_keys_loaded" BOOLEAN, "views_loaded" BOOLEAN);`;
@@ -101,12 +101,12 @@ export async function createStateLogsTable(conversion: Conversion): Promise<Conv
     const msg: string = `\t--[${ logTitle }] table ${ getStateLogsTableName(conversion) } is created...`;
     log(conversion, msg);
     return conversion;
-}
+};
 
 /**
  * Drop the "{schema}"."state_logs_{self._schema + self._mySqlDbName}" temporary table.
  */
-export async function dropStateLogsTable(conversion: Conversion): Promise<Conversion> {
+export const dropStateLogsTable = async (conversion: Conversion): Promise<Conversion> => {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::dropStateLogsTable',
@@ -118,4 +118,4 @@ export async function dropStateLogsTable(conversion: Conversion): Promise<Conver
 
     await DBAccess.query(params);
     return conversion;
-}
+};

@@ -29,7 +29,7 @@ import testColumnTypes from './TestModules/ColumnTypesTest';
 /**
  * Runs test suites.
  */
-function runTestSuites(testSchemaProcessor: TestSchemaProcessor): () => void {
+const runTestSuites = (testSchemaProcessor: TestSchemaProcessor): () => void => {
     return () => {
         test.onFinish(async () => {
             await testSchemaProcessor.removeTestResources();
@@ -48,7 +48,7 @@ function runTestSuites(testSchemaProcessor: TestSchemaProcessor): () => void {
             testColumnTypes(testSchemaProcessor, tapeTestColumnTypes);
         });
     };
-}
+};
 
 const testSchemaProcessor: TestSchemaProcessor = new TestSchemaProcessor();
 

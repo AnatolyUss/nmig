@@ -53,7 +53,7 @@ const dataLoaderPath: string = path.join(__dirname, 'DataLoader.js');
 /**
  * Returns the options object, which intended to be used upon creation of the data loader process.
  */
-function getDataLoaderOptions(conversion: Conversion): any {
+const getDataLoaderOptions = (conversion: Conversion): any => {
     const options: any = Object.create(null);
 
     if (conversion._loaderMaxOldSpaceSize !== 'DEFAULT') {
@@ -61,30 +61,30 @@ function getDataLoaderOptions(conversion: Conversion): any {
     }
 
     return options;
-}
+};
 
 /**
  * Kills a process specified by the pid.
  */
-async function killProcess(pid: number, conversion: Conversion): Promise<void> {
+const killProcess = async (pid: number, conversion: Conversion): Promise<void> => {
     try {
         process.kill(pid);
     } catch (killError) {
         await generateError(conversion, `\t--[killProcess] ${ killError }`);
     }
-}
+};
 
 /**
  * Checks if all data chunks were processed.
  */
-function dataPoolProcessed(conversion: Conversion): boolean {
+const dataPoolProcessed = (conversion: Conversion): boolean => {
     return conversion._dataPool.length === 0;
-}
+};
 
 /**
  * Runs the data pipe.
  */
-export default function(conversion: Conversion): Promise<Conversion> {
+export default (conversion: Conversion): Promise<Conversion> => {
     return new Promise<Conversion>(resolve => {
         if (dataPoolProcessed(conversion)) {
             return resolve(conversion);
@@ -116,12 +116,12 @@ export default function(conversion: Conversion): Promise<Conversion> {
             runLoaderProcess(conversion);
         }
     });
-}
+};
 
 /**
  * Runs the loader process.
  */
-function runLoaderProcess(conversion: Conversion): void {
+const runLoaderProcess = (conversion: Conversion): void => {
     if (dataPoolProcessed(conversion)) {
         // No more data to transfer.
         return;
@@ -149,4 +149,4 @@ function runLoaderProcess(conversion: Conversion): void {
 
     // Sends a message to current data loader process, which contains configuration info and a metadata of the next data-chunk.
     loaderProcess.send(new MessageToDataLoader(conversion._config, conversion._dataPool.pop()));
-}
+};

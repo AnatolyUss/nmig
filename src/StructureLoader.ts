@@ -33,15 +33,15 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
 /**
  * Processes current table before data loading.
  */
-async function processTableBeforeDataLoading(conversion: Conversion, tableName: string, stateLog: boolean): Promise<void> {
+const processTableBeforeDataLoading = async (conversion: Conversion, tableName: string, stateLog: boolean): Promise<void> => {
     await createTable(conversion, tableName);
     await prepareDataChunks(conversion, tableName, stateLog);
-}
+};
 
 /**
  * Retrieves the source db (MySQL) version.
  */
-async function getMySqlVersion(conversion: Conversion): Promise<void> {
+const getMySqlVersion = async (conversion: Conversion): Promise<void> => {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'StructureLoader::getMySqlVersion',
@@ -61,7 +61,7 @@ async function getMySqlVersion(conversion: Conversion): Promise<void> {
     const majorVersion: string = arrVersion[0];
     const minorVersion: string = arrVersion.slice(1).join('');
     conversion._mysqlVersion = +(`${ majorVersion }.${ minorVersion }`);
-}
+};
 
 /**
  * Loads source tables and views, that need to be migrated.
@@ -117,4 +117,4 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     await Promise.all(processTablePromises);
     await migrationStateManager.set(conversion, 'tables_loaded');
     return conversion;
-}
+};
