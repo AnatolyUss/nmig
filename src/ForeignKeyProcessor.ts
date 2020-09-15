@@ -30,7 +30,7 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
 /**
  * Creates foreign keys for given table.
  */
-async function processForeignKeyWorker(conversion: Conversion, tableName: string, rows: any[]): Promise<void> {
+const processForeignKeyWorker = async (conversion: Conversion, tableName: string, rows: any[]): Promise<void> => {
     const objConstraints: any = Object.create(null);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const logTitle: string = 'ForeignKeyProcessor::processForeignKeyWorker';
@@ -81,12 +81,12 @@ async function processForeignKeyWorker(conversion: Conversion, tableName: string
     });
 
     await Promise.all(constraintsPromises);
-}
+};
 
 /**
  * Starts a process of foreign keys creation.
  */
-export default async function(conversion: Conversion): Promise<void> {
+export default async (conversion: Conversion): Promise<void> => {
     const logTitle: string = 'ForeignKeyProcessor::default';
     const isForeignKeysProcessed: boolean = await migrationStateManager.get(conversion, 'foreign_keys_loaded');
 
@@ -140,4 +140,4 @@ export default async function(conversion: Conversion): Promise<void> {
     });
 
     await Promise.all(fkPromises);
-}
+};
