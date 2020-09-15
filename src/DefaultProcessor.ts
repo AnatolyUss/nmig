@@ -31,7 +31,7 @@ import IDBAccessQueryParams from './IDBAccessQueryParams';
  * Defines which columns of the given table have default value.
  * Sets default values, if need.
  */
-export default async function(conversion: Conversion, tableName: string): Promise<void> {
+export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'DefaultProcessor::default';
     const msg: string = `\t--[${ logTitle }] Defines default values for table: "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
@@ -84,4 +84,4 @@ export default async function(conversion: Conversion, tableName: string): Promis
     });
 
     await Promise.all(promises);
-}
+};

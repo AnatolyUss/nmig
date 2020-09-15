@@ -32,7 +32,7 @@ import Conversion from './Conversion';
 /**
  * Continues migration process after data loading.
  */
-export async function processConstraints(conversion: Conversion): Promise<Conversion> {
+export const processConstraints = async (conversion: Conversion): Promise<Conversion> => {
     const isTableConstraintsLoaded: boolean = await migrationStateManager.get(conversion, 'per_table_constraints_loaded');
     const migrateOnlyData: boolean = conversion.shouldMigrateOnlyData();
 
@@ -55,16 +55,16 @@ export async function processConstraints(conversion: Conversion): Promise<Conver
     }
 
     return conversion;
-}
+};
 
 /**
  * Processes given table's constraints.
  */
-export async function processConstraintsPerTable(
+export const processConstraintsPerTable = async (
     conversion: Conversion,
     tableName: string,
     migrateOnlyData: boolean
-): Promise<void> {
+): Promise<void> => {
     if (migrateOnlyData) {
         return sequencesProcessor.setSequenceValue(conversion, tableName);
     }
@@ -75,4 +75,4 @@ export async function processConstraintsPerTable(
     await sequencesProcessor.createSequence(conversion, tableName);
     await processIndexAndKey(conversion, tableName);
     await processComments(conversion, tableName);
-}
+};

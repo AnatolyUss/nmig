@@ -28,14 +28,14 @@ import IDBAccessQueryParams from './IDBAccessQueryParams';
 /**
  * Returns the data pool table name.
  */
-export function getDataPoolTableName(conversion: Conversion): string {
+export const getDataPoolTableName = (conversion: Conversion): string => {
     return `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
-}
+};
 
 /**
  * Creates the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
-export async function createDataPoolTable(conversion: Conversion): Promise<Conversion> {
+export const createDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'DataPoolManager::createDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
     const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
@@ -51,12 +51,12 @@ export async function createDataPoolTable(conversion: Conversion): Promise<Conve
     await DBAccess.query(params);
     log(conversion, `\t--[${ logTitle }] table ${ table } is created...`);
     return conversion;
-}
+};
 
 /**
  * Drops the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
-export async function dropDataPoolTable(conversion: Conversion): Promise<Conversion> {
+export const dropDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'DataPoolManager::dropDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
     const params: IDBAccessQueryParams = {
@@ -71,12 +71,12 @@ export async function dropDataPoolTable(conversion: Conversion): Promise<Convers
     await DBAccess.query(params);
     log(conversion, `\t--[${ logTitle }] table ${ table } is dropped...`);
     return conversion;
-}
+};
 
 /**
  * Reads temporary table, and generates Data-pool.
  */
-export async function readDataPool(conversion: Conversion): Promise<Conversion> {
+export const readDataPool = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'DataPoolManager::readDataPool';
     const table: string = getDataPoolTableName(conversion);
     const params: IDBAccessQueryParams = {
@@ -98,4 +98,4 @@ export async function readDataPool(conversion: Conversion): Promise<Conversion> 
 
     log(conversion, `\t--[${logTitle}] Data-Pool is loaded...`);
     return conversion;
-}
+};

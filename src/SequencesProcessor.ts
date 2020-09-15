@@ -30,7 +30,7 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
 /**
  * Sets sequence value.
  */
-export async function setSequenceValue(conversion: Conversion, tableName: string): Promise<void> {
+export const setSequenceValue = async (conversion: Conversion, tableName: string): Promise<void> => {
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const autoIncrementedColumn: any = conversion._dicTables[tableName].arrTableColumns.find((column: any) => column.Extra === 'auto_increment');
 
@@ -60,13 +60,13 @@ export async function setSequenceValue(conversion: Conversion, tableName: string
         const successMsg: string = `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
         log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
     }
-}
+};
 
 /**
  * Defines which column in given table has the "auto_increment" attribute.
  * Creates an appropriate sequence.
  */
-export async function createSequence(conversion: Conversion, tableName: string): Promise<void> {
+export const createSequence = async (conversion: Conversion, tableName: string): Promise<void> => {
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const autoIncrementedColumn: any = conversion._dicTables[tableName].arrTableColumns.find((column: any) => column.Extra === 'auto_increment');
 
@@ -125,4 +125,4 @@ export async function createSequence(conversion: Conversion, tableName: string):
         const successMsg: string = `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
         log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
     }
-}
+};

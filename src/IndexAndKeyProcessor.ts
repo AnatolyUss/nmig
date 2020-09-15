@@ -29,7 +29,7 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
 /**
  * Creates primary key and indices.
  */
-export default async function(conversion: Conversion, tableName: string): Promise<void> {
+export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'IndexAndKeyProcessor::default';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const params: IDBAccessQueryParams = {
@@ -90,4 +90,4 @@ export default async function(conversion: Conversion, tableName: string): Promis
     await Promise.all(addIndexPromises);
     const successMsg: string = `\t--[${ logTitle }] "${ conversion._schema }"."${ tableName }": PK/indices are successfully set...`;
     log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
-}
+};

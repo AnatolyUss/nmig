@@ -29,7 +29,7 @@ import { Test } from 'tape';
 /**
  * Checks if the schema exists.
  */
-async function hasSchemaCreated(testSchemaProcessor: TestSchemaProcessor): Promise<boolean> {
+const hasSchemaCreated = async (testSchemaProcessor: TestSchemaProcessor): Promise<boolean> => {
     const sql: string = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
          WHERE schema_name = '${ (<Conversion>testSchemaProcessor.conversion)._schema }');`;
 
@@ -49,12 +49,12 @@ async function hasSchemaCreated(testSchemaProcessor: TestSchemaProcessor): Promi
     }
 
     return !!result.data.rows[0].exists;
-}
+};
 
 /**
  * Tests schema creation.
  */
-export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> {
+export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
     const schemaExists: boolean = await hasSchemaCreated(testSchemaProcessor);
     const numberOfPlannedAssertions: number = 1;
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
@@ -62,4 +62,4 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     tape.plan(numberOfPlannedAssertions);
     tape.timeoutAfter(autoTimeoutMs);
     tape.equal(schemaExists, true);
-}
+};

@@ -29,7 +29,7 @@ import { Test } from 'tape';
 /**
  * Returns `table_a` column types.
  */
-async function getColumnTypes(testSchemaProcessor: TestSchemaProcessor): Promise<any[]> {
+const getColumnTypes = async (testSchemaProcessor: TestSchemaProcessor): Promise<any[]> => {
     const sql: string = `SELECT column_name, data_type  
                  FROM information_schema.columns
                  WHERE table_catalog = '${ (<Conversion>testSchemaProcessor.conversion)._targetConString.database }' 
@@ -52,12 +52,12 @@ async function getColumnTypes(testSchemaProcessor: TestSchemaProcessor): Promise
     }
 
     return result.data.rows;
-}
+};
 
 /**
  * Returns expected column types map.
  */
-function getExpectedColumnTypes(): Map<string, string> {
+const getExpectedColumnTypes = (): Map<string, string> => {
     return new Map<string, string>([
         ['id_test_sequence', 'bigint'],
         ['id_test_unique_index', 'integer'],
@@ -100,12 +100,12 @@ function getExpectedColumnTypes(): Map<string, string> {
         ['binary', 'bytea'],
         ['null_char_in_varchar', 'character varying']
     ]);
-}
+};
 
 /**
  * The data content testing.
  */
-export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> {
+export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
     const data: any[] = await getColumnTypes(testSchemaProcessor);
     const expectedColumnTypesMap: Map<string, string> = getExpectedColumnTypes();
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
@@ -122,4 +122,4 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
         tape.comment(`Test ${ columnName } column type`);
         tape.equal(actualColumnType, expectedColumnType);
     }
-}
+};
