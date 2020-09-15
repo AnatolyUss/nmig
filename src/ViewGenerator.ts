@@ -20,7 +20,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import {log} from './FsOps';
+import { log } from './FsOps';
 import Conversion from './Conversion';
 import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
@@ -32,7 +32,7 @@ import ErrnoException = NodeJS.ErrnoException;
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
  */
-function generateView(schema: string, viewName: string, mysqlViewCode: string): string {
+const generateView = (schema: string, viewName: string, mysqlViewCode: string): string => {
     mysqlViewCode = mysqlViewCode.split('`').join('"');
     const queryStart: number = mysqlViewCode.indexOf('AS');
     mysqlViewCode = mysqlViewCode.slice(queryStart);
@@ -45,12 +45,12 @@ function generateView(schema: string, viewName: string, mysqlViewCode: string): 
     });
 
     return `CREATE OR REPLACE VIEW "${ schema }"."${ viewName }" ${ arrMysqlViewCode.join(' ') };`;
-}
+};
 
 /**
  * Writes a log, containing a view code.
  */
-function logNotCreatedView(conversion: Conversion, viewName: string, sql: string): Promise<void> {
+const logNotCreatedView = (conversion: Conversion, viewName: string, sql: string): Promise<void> => {
     return new Promise<void>((resolve) => {
         const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`);
         fs.open(viewFilePath,'w', conversion._0777, (error: ErrnoException | null, fd: number) => {
@@ -67,12 +67,12 @@ function logNotCreatedView(conversion: Conversion, viewName: string, sql: string
             });
         });
     });
-}
+};
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
  */
-export default async function(conversion: Conversion): Promise<void> {
+export default async (conversion: Conversion): Promise<void> => {
     const hasViewsLoaded: boolean = await migrationStateManager.get(conversion, 'views_loaded');
 
     if (hasViewsLoaded) {
@@ -109,4 +109,4 @@ export default async function(conversion: Conversion): Promise<void> {
     });
 
     await Promise.all(createViewPromises);
-}
+};

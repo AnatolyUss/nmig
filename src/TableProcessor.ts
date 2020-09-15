@@ -31,7 +31,7 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
  * This conversion performs in accordance to mapping rules in './config/data_types_map.json'.
  * './config/data_types_map.json' can be customized.
  */
-export function mapDataTypes(objDataTypesMap: any, mySqlDataType: string): string {
+export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): string => {
     let retVal: string = '';
     const arrDataTypeDetails: string[] = mySqlDataType.split(' ');
     mySqlDataType = arrDataTypeDetails[0].toLowerCase();
@@ -69,12 +69,12 @@ export function mapDataTypes(objDataTypesMap: any, mySqlDataType: string): strin
     }
 
     return retVal;
-}
+};
 
 /**
  * Migrates structure of a single table to PostgreSql server.
  */
-export async function createTable(conversion: Conversion, tableName: string): Promise<void> {
+export const createTable = async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'TableProcessor::createTable';
     log(conversion, `\t--[${ logTitle }] Currently creating table: \`${ tableName }\``, conversion._dicTables[tableName].tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
@@ -115,4 +115,4 @@ export async function createTable(conversion: Conversion, tableName: string): Pr
     if (!createTableResult.error) {
         log(conversion, `\t--[${ logTitle }] Table "${ conversion._schema }"."${ tableName }" is created...`, conversion._dicTables[tableName].tableLogPath);
     }
-}
+};
