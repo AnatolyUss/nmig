@@ -23,7 +23,7 @@ import Conversion from './Conversion';
 /**
  * Retrieves current table's name.
  */
-export function getTableName(conversion: Conversion, currentTableName: string, shouldGetOriginal: boolean): string {
+export const getTableName = (conversion: Conversion, currentTableName: string, shouldGetOriginal: boolean): string => {
     if (conversion._extraConfig !== null && 'tables' in conversion._extraConfig) {
         for (let i: number = 0; i < conversion._extraConfig.tables.length; ++i) {
             if ((shouldGetOriginal ? conversion._extraConfig.tables[i].name.new : conversion._extraConfig.tables[i].name.original) === currentTableName) {
@@ -33,12 +33,12 @@ export function getTableName(conversion: Conversion, currentTableName: string, s
     }
 
     return currentTableName;
-}
+};
 
 /**
  * Retrieves current column's name.
  */
-export function getColumnName(conversion: Conversion, originalTableName: string, currentColumnName: string, shouldGetOriginal: boolean): string {
+export const getColumnName = (conversion: Conversion, originalTableName: string, currentColumnName: string, shouldGetOriginal: boolean): string => {
     if (conversion._extraConfig !== null && 'tables' in conversion._extraConfig) {
         for (let i: number = 0; i < conversion._extraConfig.tables.length; ++i) {
             if (conversion._extraConfig.tables[i].name.original === originalTableName && 'columns' in conversion._extraConfig.tables[i]) {
@@ -54,13 +54,13 @@ export function getColumnName(conversion: Conversion, originalTableName: string,
     }
 
     return currentColumnName;
-}
+};
 
 /**
  * Parses the extra_config foreign_keys attributes and generate
  * an output array required by ForeignKeyProcessor::processForeignKeyWorker.
  */
-export function parseForeignKeys(conversion: Conversion, tableName: string): any[] {
+export const parseForeignKeys = (conversion: Conversion, tableName: string): any[] => {
     const retVal: any[] = [];
 
     if (conversion._extraConfig !== null && 'foreign_keys' in conversion._extraConfig) {
@@ -79,4 +79,4 @@ export function parseForeignKeys(conversion: Conversion, tableName: string): any
     }
 
     return retVal;
-}
+};
