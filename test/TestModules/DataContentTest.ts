@@ -29,7 +29,7 @@ import { Test } from 'tape';
 /**
  * Retrieves a data from `table_a`.
  */
-async function retrieveData(testSchemaProcessor: TestSchemaProcessor): Promise<any> {
+const retrieveData = async (testSchemaProcessor: TestSchemaProcessor): Promise<any> => {
     const sql: string = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
         FROM ${ (<Conversion>testSchemaProcessor.conversion)._schema }.table_a AS table_a;`;
 
@@ -49,12 +49,12 @@ async function retrieveData(testSchemaProcessor: TestSchemaProcessor): Promise<a
     }
 
     return result.data.rows[0];
-}
+};
 
 /**
  * The data content testing.
  */
-export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> {
+export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
     const data: any = await retrieveData(testSchemaProcessor);
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
     const numberOfPlannedAssertions: number = 24;
@@ -136,4 +136,4 @@ export default async function(testSchemaProcessor: TestSchemaProcessor, tape: Te
     const time: string = `${ data.timestamp.getHours() }:${ data.timestamp.getMinutes() }:${ data.timestamp.getSeconds() }`;
     tape.comment('Test timestamp column value');
     tape.equal(`${ date } ${ time }`, '2018-11-11 22:21:20');
-}
+};
