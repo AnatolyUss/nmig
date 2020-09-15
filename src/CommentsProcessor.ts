@@ -29,15 +29,15 @@ import IDBAccessQueryParams from './IDBAccessQueryParams';
 /**
  * Escapes quotes inside given string.
  */
-function escapeQuotes(str: string): string {
+const escapeQuotes = (str: string): string => {
     const regexp: RegExp = new RegExp(`'`, 'g');
     return str.replace(regexp, `''`);
-}
+};
 
 /**
  * Creates table comments.
  */
-async function processTableComments(conversion: Conversion, tableName: string): Promise<void> {
+const processTableComments = async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'CommentsProcessor::processTableComments';
     const sqlSelectComment: string = `SELECT table_comment AS table_comment FROM information_schema.tables 
         WHERE table_schema = '${ conversion._mySqlDbName }' 
@@ -69,12 +69,12 @@ async function processTableComments(conversion: Conversion, tableName: string): 
 
     const successMsg: string = `\t--[${ logTitle }] Successfully set comment for table "${ conversion._schema }"."${ tableName }"`;
     log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
-}
+};
 
 /**
  * Creates columns comments.
  */
-async function processColumnsComments(conversion: Conversion, tableName: string): Promise<void> {
+const processColumnsComments = async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'CommentsProcessor::processColumnsComments';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 
@@ -105,12 +105,12 @@ async function processColumnsComments(conversion: Conversion, tableName: string)
     });
 
     await Promise.all(commentPromises);
-}
+};
 
 /**
  * Migrates comments.
  */
-export default async function(conversion: Conversion, tableName: string): Promise<void> {
+export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'CommentsProcessor::default';
     const msg: string = `\t--[${ logTitle }] Creates comments for table "${ conversion._schema }"."${ tableName }"...`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
@@ -118,4 +118,4 @@ export default async function(conversion: Conversion, tableName: string): Promis
         processTableComments(conversion, tableName),
         processColumnsComments(conversion, tableName)
     ]);
-}
+};
