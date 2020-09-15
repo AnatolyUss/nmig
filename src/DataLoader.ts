@@ -54,21 +54,21 @@ process.on('message', async (signal: MessageToDataLoader) => {
 /**
  * Wraps "process.send" method to avoid "cannot invoke an object which is possibly undefined" warning.
  */
-function processSend(x: any): void {
+const processSend = (x: any): void => {
     if (process.send) {
         process.send(x);
     }
-}
+};
 
 /**
  * Deletes given record from the data-pool.
  */
-async function deleteChunk(
+const deleteChunk = async (
     conversion: Conversion,
     dataPoolId: number,
     client: PoolClient,
     originalSessionReplicationRole: string | null = null
-): Promise<void> {
+): Promise<void> => {
     const sql: string = `DELETE FROM ${ getDataPoolTableName(conversion) } WHERE id = ${ dataPoolId };`;
 
     try {
@@ -82,12 +82,12 @@ async function deleteChunk(
     } finally {
         await DBAccess.releaseDbClient(conversion, client);
     }
-}
+};
 
 /**
  * Processes data-loading error.
  */
-async function processDataError(
+const processDataError = async (
     conv: Conversion,
     streamError: string,
     sql: string,
@@ -96,24 +96,24 @@ async function processDataError(
     dataPoolId: number,
     client: PoolClient,
     originalSessionReplicationRole: string | null
-): Promise<void> {
+): Promise<void> => {
     await generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
     const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
     log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
     await deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
     processSend(new MessageToMaster(tableName, 0));
-}
+};
 
 /**
  * Loads a chunk of data using "PostgreSQL COPY".
  */
-async function populateTableWorker(
+const populateTableWorker = async (
     conv: Conversion,
     tableName: string,
     strSelectFieldList: string,
     rowsCnt: number,
     dataPoolId: number
-): Promise<void> {
+): Promise<void> => {
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
     const sql: string = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
     const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
@@ -147,12 +147,12 @@ async function populateTableWorker(
         .stream({ highWaterMark: conv._streamsHighWaterMark })
         .pipe(json2csvStream)
         .pipe(copyStream);
-}
+};
 
 /**
  * Returns new PostgreSQL copy stream object.
  */
-function getCopyStream(
+const getCopyStream = (
     conv: Conversion,
     client: PoolClient,
     sqlCopy: string,
@@ -161,7 +161,7 @@ function getCopyStream(
     rowsCnt: number,
     dataPoolId: number,
     originalSessionReplicationRole: string | null
-): any {
+): any => {
     const copyStream: any = client.query(from(sqlCopy));
 
     copyStream
@@ -177,18 +177,18 @@ function getCopyStream(
         });
 
     return copyStream;
-}
+};
 
 /**
  * Returns new json-to-csv stream-transform object.
  */
-async function getJson2csvStream(
+const getJson2csvStream = async (
     conversion: Conversion,
     originalTableName: string,
     dataPoolId: number,
     client: PoolClient,
     originalSessionReplicationRole: string | null
-): Promise<any> {
+): Promise<any> => {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: 'DataLoader::populateTableWorker',
@@ -219,13 +219,13 @@ async function getJson2csvStream(
     });
 
     return json2CsvTransformStream;
-}
+};
 
 /**
  * Disables all triggers and rules for current database session.
  * !!!DO NOT release the client, it will be released after current data-chunk deletion.
  */
-async function disableTriggers(conversion: Conversion, client: PoolClient): Promise<string> {
+const disableTriggers = async (conversion: Conversion, client: PoolClient): Promise<string> => {
     let sql: string = `SHOW session_replication_role;`;
     let originalSessionReplicationRole: string = 'origin';
 
@@ -239,13 +239,17 @@ async function disableTriggers(conversion: Conversion, client: PoolClient): Prom
     }
 
     return originalSessionReplicationRole;
-}
+};
 
 /**
  * Enables all triggers and rules for current database session.
  * !!!DO NOT release the client, it will be released after current data-chunk deletion.
  */
-async function enableTriggers(conversion: Conversion, client: PoolClient, originalSessionReplicationRole: string): Promise<void> {
+const enableTriggers = async (
+    conversion: Conversion,
+    client: PoolClient,
+    originalSessionReplicationRole: string
+): Promise<void> => {
     const sql: string = `SET session_replication_role = ${ originalSessionReplicationRole };`;
 
     try {
@@ -253,4 +257,4 @@ async function enableTriggers(conversion: Conversion, client: PoolClient, origin
     } catch (error) {
         await generateError(conversion, `\t--[DataLoader::enableTriggers] ${ error }`, sql);
     }
-}
+};

@@ -65,4 +65,4 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     params.bindings = [metadata];
 
     await DBAccess.query(params);
-}
+};
