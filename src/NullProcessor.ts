@@ -30,7 +30,7 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
  * Defines which columns of the given table can contain the "NULL" value.
  * Sets an appropriate constraint, if need.
  */
-export default async function(conversion: Conversion, tableName: string): Promise<void> {
+export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'NullProcessor::default';
     const msg: string = `\t--[${ logTitle }] Defines "NOT NULLs" for table: "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
@@ -58,4 +58,4 @@ export default async function(conversion: Conversion, tableName: string): Promis
     });
 
     await Promise.all(promises);
-}
+};

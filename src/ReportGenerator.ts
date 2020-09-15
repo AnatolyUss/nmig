@@ -45,4 +45,4 @@ export default (conversion: Conversion): void => {
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
     log(conversion, output, undefined, () => process.exit(0));
-}
+};
