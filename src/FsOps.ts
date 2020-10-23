@@ -108,6 +108,7 @@ export const readConfig = async (confPath: string, logsPath: string, configFileN
     const config: any = await readAndParseJsonFile(pathToConfig);
     config.logsDirPath = path.join(logsPath, 'logs_directory');
     config.dataTypesMapAddr = path.join(confPath, 'data_types_map.json');
+    config.indexTypesMapAddr = path.join(confPath, 'index_types_map.json');
     return config;
 };
 
@@ -126,12 +127,13 @@ export const readExtraConfig = async (config: any, confPath: string, extraConfig
 };
 
 /**
- * Reads "./config/data_types_map.json" and converts its json content to js object.
+ * Reads both "./config/data_types_map.json" and "./config/index_types_map.json" and converts its json content to js object.
  */
-export const readDataTypesMap = async (conversion: Conversion): Promise<Conversion> => {
+export const readDataAndIndexTypesMap = async (conversion: Conversion): Promise<Conversion> => {
+    const logTitle: string = 'FsOps::readDataAndIndexTypesMap';
     conversion._dataTypesMap = await readAndParseJsonFile(conversion._dataTypesMapAddr);
-    const logTitle: string = 'FsOps::readDataTypesMap';
-    console.log(`\t--[${ logTitle }] Data Types Map is loaded...`);
+    conversion._indexTypesMap = await readAndParseJsonFile(conversion._indexTypesMapAddr);
+    console.log(`\t--[${ logTitle }] Data and Index Types Maps are loaded...`);
     return conversion;
 };
 

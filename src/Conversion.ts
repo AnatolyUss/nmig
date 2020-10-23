@@ -86,6 +86,11 @@ export default class Conversion {
     public readonly _dataTypesMapAddr: string;
 
     /**
+     * A path to the index types map.
+     */
+    public readonly _indexTypesMapAddr: string;
+
+    /**
      * A path to the "errors-only.log" file.
      */
     public readonly _errorLogsPath: string;
@@ -186,6 +191,11 @@ export default class Conversion {
     public _dataTypesMap: any;
 
     /**
+     * The index types map.
+     */
+    public _indexTypesMap: any;
+
+    /**
      * Buffer level when stream.write() starts returning false.
      * This number is a number of JavaScript objects.
      */
@@ -200,6 +210,7 @@ export default class Conversion {
         this._targetConString = this._config.target;
         this._logsDirPath = this._config.logsDirPath;
         this._dataTypesMapAddr = this._config.dataTypesMapAddr;
+        this._indexTypesMapAddr = this._config.indexTypesMapAddr;
         this._allLogsPath = path.join(this._logsDirPath, 'all.log');
         this._errorLogsPath = path.join(this._logsDirPath, 'errors-only.log');
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
