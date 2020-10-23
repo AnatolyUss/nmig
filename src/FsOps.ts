@@ -84,48 +84,55 @@ export const log = (conversion: Conversion, log: string | NodeJS.ErrnoException,
 };
 
 /**
- * Reads the configuration file.
+ * Reads and parses JOSN file under given path.
  */
-export const readConfig = (confPath: string, logsPath: string, configFileName: string = 'config.json'): Promise<any> => {
+const readAndParseJsonFile = (pathToFile: string): Promise<any> => {
     return new Promise<any>(resolve => {
-        const pathToConfig = path.join(confPath, configFileName);
-
-        fs.readFile(pathToConfig, (error: ErrnoException | null, data: Buffer) => {
+        fs.readFile(pathToFile, (error: ErrnoException | null, data: Buffer) => {
             if (error) {
-                console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ pathToConfig }`);
+                console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ pathToFile }`);
                 process.exit(1);
             }
 
             const config: any = JSON.parse(data.toString());
-            config.logsDirPath = path.join(logsPath, 'logs_directory');
-            config.dataTypesMapAddr = path.join(confPath, 'data_types_map.json');
             resolve(config);
         });
     });
 };
 
 /**
+ * Reads the configuration file.
+ */
+export const readConfig = async (confPath: string, logsPath: string, configFileName: string = 'config.json'): Promise<any> => {
+    const pathToConfig = path.join(confPath, configFileName);
+    const config: any = await readAndParseJsonFile(pathToConfig);
+    config.logsDirPath = path.join(logsPath, 'logs_directory');
+    config.dataTypesMapAddr = path.join(confPath, 'data_types_map.json');
+    return config;
+};
+
+/**
  * Reads the extra configuration file, if necessary.
  */
-export const readExtraConfig = (config: any, confPath: string, extraConfigFileName: string = 'extra_config.json'): Promise<any> => {
-    return new Promise<any>(resolve => {
-        if (config.enable_extra_config !== true) {
-            config.extraConfig = null;
-            return resolve(config);
-        }
+export const readExtraConfig = async (config: any, confPath: string, extraConfigFileName: string = 'extra_config.json'): Promise<any> => {
+    if (config.enable_extra_config !== true) {
+        config.extraConfig = null;
+        return config;
+    }
 
-        const pathToExtraConfig = path.join(confPath, extraConfigFileName);
+    const pathToExtraConfig = path.join(confPath, extraConfigFileName);
+    config.extraConfig = await readAndParseJsonFile(pathToExtraConfig);
+    return config;
+};
 
-        fs.readFile(pathToExtraConfig, (error: ErrnoException | null, data: Buffer) => {
-            if (error) {
-                console.log(`\n\t--Cannot run migration\nCannot read configuration info from ${ pathToExtraConfig }`);
-                process.exit(1);
-            }
-
-            config.extraConfig = JSON.parse(data.toString());
-            resolve(config);
-        });
-    });
+/**
+ * Reads "./config/data_types_map.json" and converts its json content to js object.
+ */
+export const readDataTypesMap = async (conversion: Conversion): Promise<Conversion> => {
+    conversion._dataTypesMap = await readAndParseJsonFile(conversion._dataTypesMapAddr);
+    const logTitle: string = 'FsOps::readDataTypesMap';
+    console.log(`\t--[${ logTitle }] Data Types Map is loaded...`);
+    return conversion;
 };
 
 /**
@@ -163,26 +170,6 @@ const createDirectory = (conversion: Conversion, directoryPath: string, logTitle
                 log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
                 resolve();
             }
-        });
-    });
-};
-
-/**
- * Reads "./config/data_types_map.json" and converts its json content to js object.
- */
-export const readDataTypesMap = (conversion: Conversion): Promise<Conversion> => {
-    return new Promise<Conversion>(resolve => {
-        fs.readFile(conversion._dataTypesMapAddr, (error: ErrnoException | null, data: Buffer) => {
-            const logTitle: string = 'FsOps::readDataTypesMap';
-
-            if (error) {
-                console.log(`\t--[${ logTitle }] Cannot read "DataTypesMap" from ${conversion._dataTypesMapAddr}`);
-                process.exit(1);
-            }
-
-            conversion._dataTypesMap = JSON.parse(data.toString());
-            console.log(`\t--[${ logTitle }] Data Types Map is loaded...`);
-            resolve(conversion);
         });
     });
 };
