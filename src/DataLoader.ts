@@ -165,10 +165,10 @@ const getCopyStream = (
     const copyStream: any = client.query(from(sqlCopy));
 
     copyStream
-        .on('end', async () => {
+        .on('finish', async () => {
             // COPY FROM STDIN does not return the number of rows inserted.
             // But the transactional behavior still applies, meaning no records inserted if at least one failed.
-            // That is why in case of 'on end' the rowsCnt value is actually the number of records inserted.
+            // That is why in case of 'on finish' the rowsCnt value is actually the number of records inserted.
             processSend(new MessageToMaster(tableName, rowsCnt));
             await deleteChunk(conv, dataPoolId, client);
         })
