@@ -307,7 +307,6 @@ export default class TestSchemaProcessor {
             .then(dropDataPoolTable)
             .then(dropStateLogsTable)
             .then(DBAccess.closeConnectionPools)
-            .then(generateReport)
-            .catch(error => console.log(error));
+            .then(generateReport);
     }
 }
