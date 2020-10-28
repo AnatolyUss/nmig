@@ -26,6 +26,7 @@ import DBVendors from './DBVendors';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 import IConfAndLogsPaths from './IConfAndLogsPaths';
 import { getStateLogsTableName } from './MigrationStateManager';
+import { generateError, log } from './FsOps';
 
 /**
  * Checks correctness of connection details of both MySQL and PostgreSQL.
@@ -67,61 +68,36 @@ export const getLogo = (): string => {
 /**
  * Boots the migration.
  */
-export const boot = (conversion: Conversion): Promise<Conversion> => {
-    return new Promise<Conversion>(async resolve => {
-        const connectionErrorMessage = await checkConnection(conversion);
-        const logo: string = getLogo();
+export const boot = async (conversion: Conversion): Promise<Conversion> => {
+    const connectionErrorMessage = await checkConnection(conversion);
+    const logo: string = getLogo();
+    const logTitle: string = 'BootProcessor::boot';
 
-        if (connectionErrorMessage) {
-            console.log(`${ logo } \n ${ connectionErrorMessage }`);
-            process.exit(1);
-        }
+    if (connectionErrorMessage) {
+        await generateError(conversion, `\t--[${ logTitle }]\n ${ logo } \n ${ connectionErrorMessage }`);
+        process.exit(1);
+    }
 
-        const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables`
-            + ` WHERE table_schema = '${ conversion._schema }' AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
+    const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables`
+        + ` WHERE table_schema = '${ conversion._schema }' AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
 
-        const params: IDBAccessQueryParams = {
-            conversion: conversion,
-            caller: 'BootProcessor::boot',
-            sql: sql,
-            vendor: DBVendors.PG,
-            processExitOnError: true,
-            shouldReturnClient: false
-        };
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: 'BootProcessor::boot',
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: true,
+        shouldReturnClient: false
+    };
 
-        const result: DBAccessQueryResult = await DBAccess.query(params);
-        const isExists: boolean = !!result.data.rows[0].exists;
-        const message: string = `${ (isExists
-            ? '\n\t--[boot] NMIG is ready to restart after some failure.\n\t--[boot] Consider checking log files at the end of migration.'
-            : '\n\t--[boot] NMIG is ready to start.') } \n\t--[boot] Proceed? [Y/n]`;
+    const result: DBAccessQueryResult = await DBAccess.query(params);
+    const isExists: boolean = !!result.data.rows[0].exists;
+    const message: string = `${ (isExists
+        ? '\n\t--[boot] NMIG is restarting after some failure.\n\t--[boot] Consider checking log files at the end of migration.\n'
+        : '\n\t--[boot] NMIG is starting.') } \n`;
 
-        console.log(logo + message);
-
-        const _getUserInput = (input: string): void => {
-            const trimedInput: string = input.trim();
-
-            if (trimedInput === 'n' || trimedInput === 'N') {
-                console.log('\t--[boot] Migration aborted.\n');
-                process.exit(0);
-            }
-
-            if (trimedInput === 'y' || trimedInput === 'Y') {
-                process.stdin.removeListener('data', _getUserInput);
-                conversion._timeBegin = new Date();
-                return resolve(conversion);
-            }
-
-            const hint: string = `\t--[boot] Unexpected input ${ trimedInput }\n`
-                + `\t--[boot] Expected input is upper case Y\n\t--[boot] or lower case n\n${message}`;
-
-            console.log(hint);
-        };
-
-        process.stdin
-            .resume()
-            .setEncoding(conversion._encoding)
-            .on('data', _getUserInput);
-    });
+    log(conversion, `\t--[${ logTitle }] ${ logo }${ message }`);
+    return conversion;
 };
 
 /**

@@ -113,7 +113,7 @@ export default class Conversion {
     /**
      * The timestamp, at which the migration began.
      */
-    public _timeBegin: Date | null;
+    public _timeBegin: Date;
 
     /**
      * Current version of source (MySQL) db.
@@ -216,7 +216,7 @@ export default class Conversion {
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
         this._excludeTables = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
         this._includeTables = this._config.include_tables === undefined ? [] : this._config.include_tables;
-        this._timeBegin = null;
+        this._timeBegin = new Date();
         this._encoding = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._0777 = '0777';
         this._mysqlVersion = '5.6.21'; // Simply a default value.

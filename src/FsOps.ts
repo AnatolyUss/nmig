@@ -133,7 +133,7 @@ export const readDataAndIndexTypesMap = async (conversion: Conversion): Promise<
     const logTitle: string = 'FsOps::readDataAndIndexTypesMap';
     conversion._dataTypesMap = await readAndParseJsonFile(conversion._dataTypesMapAddr);
     conversion._indexTypesMap = await readAndParseJsonFile(conversion._indexTypesMapAddr);
-    console.log(`\t--[${ logTitle }] Data and Index Types Maps are loaded...`);
+    log(conversion, `\t--[${ logTitle }] Data and Index Types Maps are loaded...`);
     return conversion;
 };
 
