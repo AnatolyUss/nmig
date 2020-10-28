@@ -1,0 +1,16 @@
+{
+    "README" : [
+        "This JSON document represents a correct index-types map between MySQL and PostgreSQL.",
+        "If you wish to customize (not recommended) this map - you can.",
+        "Map explanation:",
+        "Each key represents a MySQL index-type, and each value represents corresponding PostgreSQL index-type."
+    ],
+
+    "BTREE": "BTREE",
+
+    "HASH": "HASH",
+
+    "SPATIAL": "GIST",
+
+    "FULLTEXT": "GIN"
+}

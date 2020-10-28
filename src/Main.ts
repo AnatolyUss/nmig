@@ -30,16 +30,16 @@ import { processConstraints } from './ConstraintsProcessor';
 import { getConfAndLogsPaths, boot } from './BootProcessor';
 import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
-import { readConfig, readExtraConfig, createLogsDirectory, readDataTypesMap } from './FsOps';
+import { readConfig, readExtraConfig, createLogsDirectory, readDataAndIndexTypesMap } from './FsOps';
 
 const { confPath, logsPath } = getConfAndLogsPaths();
 
 readConfig(confPath, logsPath)
     .then(config => readExtraConfig(config, confPath))
     .then(Conversion.initializeConversion)
-    .then(boot)
-    .then(readDataTypesMap)
     .then(createLogsDirectory)
+    .then(readDataAndIndexTypesMap)
+    .then(boot)
     .then(createSchema)
     .then(createStateLogsTable)
     .then(createDataPoolTable)
