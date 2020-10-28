@@ -36,7 +36,7 @@ import { processConstraints } from '../../src/ConstraintsProcessor';
 import { createStateLogsTable, dropStateLogsTable } from '../../src/MigrationStateManager';
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/BootProcessor';
-import { createLogsDirectory, generateError, log, readConfig, readDataTypesMap, readExtraConfig } from '../../src/FsOps';
+import { createLogsDirectory, generateError, log, readConfig, readDataAndIndexTypesMap, readExtraConfig } from '../../src/FsOps';
 import ErrnoException = NodeJS.ErrnoException;
 
 export default class TestSchemaProcessor {
@@ -294,7 +294,7 @@ export default class TestSchemaProcessor {
             .then(this._updateMySqlConnection.bind(this))
             .then(this._loadTestSchema.bind(this))
             .then(this._loadTestData.bind(this))
-            .then(readDataTypesMap)
+            .then(readDataAndIndexTypesMap)
             .then(createLogsDirectory)
             .then(createSchema)
             .then(createStateLogsTable)
@@ -307,7 +307,6 @@ export default class TestSchemaProcessor {
             .then(dropDataPoolTable)
             .then(dropStateLogsTable)
             .then(DBAccess.closeConnectionPools)
-            .then(generateReport)
-            .catch(error => console.log(error));
+            .then(generateReport);
     }
 }

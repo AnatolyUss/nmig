@@ -1,6 +1,6 @@
 {
     "name": "nmig",
-    "version": "5.4.0",
+    "version": "5.5.0",
     "description": "The database migration app",
     "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
     "license": "GPL-3.0",
@@ -12,18 +12,18 @@
         "node": ">=10.0.0"
     },
     "dependencies": {
-        "json2csv": "^5.0.1",
+        "json2csv": "^5.0.3",
         "mysql": "^2.18.1",
-        "pg": "^8.3.3",
-        "pg-copy-streams": "^2.2.2",
+        "pg": "^8.4.2",
+        "pg-copy-streams": "^5.1.1",
         "@types/mysql": "^2.15.15",
-        "@types/node": "^14.10.1",
-        "@types/pg": "^7.14.4"
+        "@types/node": "^14.14.5",
+        "@types/pg": "^7.14.5"
     },
     "devDependencies": {
         "@types/tape": "^4.13.0",
         "tape": "^5.0.1",
-        "typescript": "^4.0.2"
+        "typescript": "^4.0.5"
     },
     "scripts": {
         "build": "tsc",

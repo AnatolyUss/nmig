@@ -86,6 +86,11 @@ export default class Conversion {
     public readonly _dataTypesMapAddr: string;
 
     /**
+     * A path to the index types map.
+     */
+    public readonly _indexTypesMapAddr: string;
+
+    /**
      * A path to the "errors-only.log" file.
      */
     public readonly _errorLogsPath: string;
@@ -108,7 +113,7 @@ export default class Conversion {
     /**
      * The timestamp, at which the migration began.
      */
-    public _timeBegin: Date | null;
+    public _timeBegin: Date;
 
     /**
      * Current version of source (MySQL) db.
@@ -186,6 +191,11 @@ export default class Conversion {
     public _dataTypesMap: any;
 
     /**
+     * The index types map.
+     */
+    public _indexTypesMap: any;
+
+    /**
      * Buffer level when stream.write() starts returning false.
      * This number is a number of JavaScript objects.
      */
@@ -200,12 +210,13 @@ export default class Conversion {
         this._targetConString = this._config.target;
         this._logsDirPath = this._config.logsDirPath;
         this._dataTypesMapAddr = this._config.dataTypesMapAddr;
+        this._indexTypesMapAddr = this._config.indexTypesMapAddr;
         this._allLogsPath = path.join(this._logsDirPath, 'all.log');
         this._errorLogsPath = path.join(this._logsDirPath, 'errors-only.log');
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
         this._excludeTables = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
         this._includeTables = this._config.include_tables === undefined ? [] : this._config.include_tables;
-        this._timeBegin = null;
+        this._timeBegin = new Date();
         this._encoding = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._0777 = '0777';
         this._mysqlVersion = '5.6.21'; // Simply a default value.
