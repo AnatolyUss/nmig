@@ -41,7 +41,6 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
 
     const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
     const logTitle: string = 'IdentityProcessor::default';
-    const seqName: string = `${ tableName }_${ columnName }_seq`;
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
