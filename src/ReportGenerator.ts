@@ -19,6 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import { EventEmitter } from 'events';
+
 import { log } from './FsOps';
 import Conversion from './Conversion';
 

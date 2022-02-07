@@ -20,6 +20,8 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import ErrnoException = NodeJS.ErrnoException;
+
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import * as migrationStateManager from './MigrationStateManager';
@@ -27,7 +29,6 @@ import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
-import ErrnoException = NodeJS.ErrnoException;
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.

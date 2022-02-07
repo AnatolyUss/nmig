@@ -18,6 +18,8 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import * as path from 'path';
+
 import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
@@ -29,7 +31,7 @@ import { dataTransferred } from './ConsistencyEnforcer';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getDataPoolTableName } from './DataPoolManager';
-import * as path from 'path';
+
 import { PoolClient, QueryResult } from 'pg';
 import { PoolConnection } from 'mysql';
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".

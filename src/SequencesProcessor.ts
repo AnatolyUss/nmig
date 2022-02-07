@@ -18,13 +18,14 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import { PoolClient } from 'pg';
+
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
-import { PoolClient } from 'pg';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 
 /**

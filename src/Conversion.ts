@@ -20,8 +20,10 @@
  */
 import * as path from 'path';
 import { EventEmitter } from 'events';
+
 import { Pool as MySQLPool } from 'mysql';
 import { Pool as PgPool } from 'pg';
+
 import { Encoding } from './Encoding';
 
 export default class Conversion {
