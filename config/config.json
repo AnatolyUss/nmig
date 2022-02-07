@@ -43,10 +43,23 @@
     ],
     "max_each_db_connection_pool_size" : 20,
 
+    "number_of_simultaneously_running_loader_processes_description": [
+        "Number of data-loader processes that will run simultaneously.",
+        "When set to 'DEFAULT', the number will be calculated by Nmig, otherwise it must be a positive integer.",
+        "When set to 'DEFAULT':",
+        "In most cases it will be a number of logical CPU cores on the machine running Nmig,",
+        "unless a number of tables in the source database or the maximal number of DB connections is smaller.",
+        "!!!Notice,",
+        "it is worth an effort to 'play' with this parameter prior running migration in production,",
+        "since the number calculated under 'DEFAULT' may be NOT the most optimal.",
+        "Hence, when trying Nmig on your test-database, try both decreasing and increasing of this number."
+    ],
+    "number_of_simultaneously_running_loader_processes": "DEFAULT",
+
     "loader_max_old_space_size_description" : [
         "V8 memory limit of the loader process.",
         "Possible values are:",
-        "1. any number, representing memory limit (in MB).",
+        "1. any positive integer, representing memory limit (in MB).",
         "2. 'DEFAULT', representing V8 default memory limit for your current hardware."
     ],
     "loader_max_old_space_size" : "DEFAULT",

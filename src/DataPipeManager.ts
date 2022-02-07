@@ -82,40 +82,20 @@ const dataPoolProcessed = (conversion: Conversion): boolean => {
 };
 
 /**
- * Runs the data pipe.
+ * Calculates a number of data-loader processes that will run simultaneously.
+ * In most cases it will be a number of logical CPU cores on the machine running Nmig,
+ * unless a number of tables in the source database or the maximal number of DB connections is smaller.
  */
-export default (conversion: Conversion): Promise<Conversion> => {
-    return new Promise<Conversion>(resolve => {
-        if (dataPoolProcessed(conversion)) {
-            return resolve(conversion);
-        }
+const getNumberOfSimultaneouslyRunningLoaderProcesses = (conversion: Conversion): number => {
+    if (conversion._numberOfSimultaneouslyRunningLoaderProcesses !== 'DEFAULT') {
+        return <number>conversion._numberOfSimultaneouslyRunningLoaderProcesses;
+    }
 
-        // Register a listener for the "tableLoadingFinished" event.
-        eventEmitter.on(tableLoadingFinishedEvent, async tableName => {
-            await processConstraintsPerTable(conversion, tableName, conversion.shouldMigrateOnlyData());
-
-            // Check a number of active loader processes on the event of "tableLoadingFinished".
-            // If no active loader processes found, then all the data is transferred,
-            // hence Nmig can proceed to the next step.
-            if (loaderProcessesCount === 0) {
-                await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
-                return resolve(conversion);
-            }
-        });
-
-        // Calculate a number of data-loader processes that will run simultaneously.
-        // In most cases it will be a number of logical CPU cores on the machine running Nmig;
-        // unless a number of tables in the source database or the maximal number of DB connections is smaller.
-        const numberOfSimultaneouslyRunningLoaderProcesses: number = Math.min(
-            conversion._dataPool.length,
-            conversion._maxEachDbConnectionPoolSize,
-            os.cpus().length
-        );
-
-        for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
-            runLoaderProcess(conversion);
-        }
-    });
+    return Math.min(
+        (os.cpus().length || 1),
+        conversion._dataPool.length,
+        conversion._maxEachDbConnectionPoolSize,
+    );
 };
 
 /**
@@ -149,4 +129,36 @@ const runLoaderProcess = (conversion: Conversion): void => {
 
     // Sends a message to current data loader process, which contains configuration info and a metadata of the next data-chunk.
     loaderProcess.send(new MessageToDataLoader(conversion._config, conversion._dataPool.pop()));
+};
+
+/**
+ * Runs the data pipe.
+ */
+export default (conversion: Conversion): Promise<Conversion> => {
+    return new Promise<Conversion>(resolve => {
+        if (dataPoolProcessed(conversion)) {
+            return resolve(conversion);
+        }
+
+        // Register a listener for the "tableLoadingFinished" event.
+        eventEmitter.on(tableLoadingFinishedEvent, async tableName => {
+            await processConstraintsPerTable(conversion, tableName, conversion.shouldMigrateOnlyData());
+
+            // Check a number of active loader processes on the event of "tableLoadingFinished".
+            // If no active loader processes found, then all the data is transferred,
+            // hence Nmig can proceed to the next step.
+            if (loaderProcessesCount === 0) {
+                await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
+                return resolve(conversion);
+            }
+        });
+
+        const numberOfSimultaneouslyRunningLoaderProcesses: number = getNumberOfSimultaneouslyRunningLoaderProcesses(
+            conversion
+        );
+
+        for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
+            runLoaderProcess(conversion);
+        }
+    });
 };
