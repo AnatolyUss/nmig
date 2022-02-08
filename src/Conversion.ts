@@ -45,7 +45,7 @@ export default class Conversion {
     /**
      * V8 memory limit of the loader process.
      */
-    public _loaderMaxOldSpaceSize: number | string;
+    public readonly _loaderMaxOldSpaceSize: number | string;
 
     /**
      * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers each.
@@ -115,7 +115,7 @@ export default class Conversion {
     /**
      * The timestamp, at which the migration began.
      */
-    public _timeBegin: Date;
+    public readonly _timeBegin: Date;
 
     /**
      * Current version of source (MySQL) db.
@@ -165,7 +165,7 @@ export default class Conversion {
     /**
      * An array of data chunks.
      */
-    public readonly _dataPool: any[];
+    public readonly _dataPool: object[];
 
     /**
      * A flag, that indicates if Nmig currently runs in test mode.
@@ -264,9 +264,8 @@ export default class Conversion {
             ? this._numberOfSimultaneouslyRunningLoaderProcesses
             : 'DEFAULT';
 
-        this._loaderMaxOldSpaceSize = this._config.loader_max_old_space_size;
-        this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize)
-            ? this._loaderMaxOldSpaceSize
+        this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._config.loader_max_old_space_size)
+            ? this._config.loader_max_old_space_size
             : 'DEFAULT';
 
         this._migrateOnlyData = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;

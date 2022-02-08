@@ -73,8 +73,8 @@ export default class DBAccess {
      * Closes both connection-pools.
      */
     public static async closeConnectionPools(conversion: Conversion): Promise<Conversion> {
-        const closeMySqlConnections = () => {
-            return new Promise(resolve => {
+        const closeMySqlConnections = (): Promise<void> => {
+            return new Promise<void>(resolve => {
                 if (conversion._mysql) {
                     conversion._mysql.end(async error => {
                         if (error) {
@@ -89,7 +89,7 @@ export default class DBAccess {
             });
         };
 
-        const closePgConnections = async () => {
+        const closePgConnections = async (): Promise<void> => {
             if (conversion._pg) {
                 try {
                     await conversion._pg.end();

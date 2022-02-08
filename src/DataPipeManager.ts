@@ -126,7 +126,7 @@ const runLoaderProcess = (conversion: Conversion): void => {
             + `Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
         log(conversion, msg);
-        await killProcess(loaderProcess.pid, conversion);
+        await killProcess(<number>loaderProcess.pid, conversion);
         loaderProcessesCount--;
         eventEmitter.emit(tableLoadingFinishedEvent, signal.tableName);
         runLoaderProcess(conversion);
