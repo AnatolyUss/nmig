@@ -41,7 +41,7 @@ const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration 
 process.on('message', async (signal: MessageToDataLoader) => {
     const { config, chunk } = signal;
     const conv: Conversion = new Conversion(config);
-    log(conv, `\t--[loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
+    log(conv, `\t--[NMIG loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
 
     const isRecoveryMode: boolean = await dataTransferred(conv, chunk._id);
 

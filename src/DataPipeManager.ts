@@ -96,7 +96,9 @@ const getNumberOfSimultaneouslyRunningLoaderProcesses = (conversion: Conversion)
         );
     }
 
+    const DEFAULT_NUMBER_OF_DATA_LOADER_PROCESSES: number = 2;
     return Math.min(
+        DEFAULT_NUMBER_OF_DATA_LOADER_PROCESSES,
         (os.cpus().length || 1),
         conversion._dataPool.length,
         conversion._maxEachDbConnectionPoolSize,
@@ -122,8 +124,9 @@ const runLoaderProcess = (conversion: Conversion): void => {
         // 2. Kill the loader process to release unused RAM as quick as possible.
         // 3. Emit the "tableLoadingFinished" event to start constraints creation for the just loaded table immediately.
         // 4. Call the "runLoaderProcess" function recursively to transfer data to the next table.
-        const msg: string = `\t--[runLoaderProcess]  For now inserted: ${ signal.totalRowsToInsert } rows,`
-            + `Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
+        const msg: string = `\n\t--[NMIG runLoaderProcess] For now inserted: ${ signal.totalRowsToInsert } rows`
+            + `\n\t--[NMIG runLoaderProcess] Total rows to insert into`
+            + ` "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
         log(conversion, msg);
         await killProcess(<number>loaderProcess.pid, conversion);
@@ -132,8 +135,15 @@ const runLoaderProcess = (conversion: Conversion): void => {
         runLoaderProcess(conversion);
     });
 
-    // Sends a message to current data loader process, which contains configuration info and a metadata of the next data-chunk.
-    loaderProcess.send(new MessageToDataLoader(conversion._config, conversion._dataPool.pop()));
+    // Sends a message to current data loader process,
+    // which contains configuration info and a metadata of the next data-chunk.
+    const chunk: any = conversion._dataPool.pop();
+    const fullTableName: string = `"${ conversion._schema }"."${ chunk._tableName }"`;
+    const msg: string = `\n\t--[NMIG data transfer] ${ fullTableName } DATA TRANSFER IN PROGRESS...`
+        + `\n\t--[NMIG data transfer] TIME REQUIRED FOR TRANSFER DEPENDS ON AMOUNT OF DATA...\n`;
+
+    log(conversion, msg);
+    loaderProcess.send(new MessageToDataLoader(conversion._config, chunk));
 };
 
 /**

@@ -45,14 +45,20 @@
 
     "number_of_simultaneously_running_loader_processes_description": [
         "Number of data-loader processes that will run simultaneously.",
-        "When set to 'DEFAULT', the number will be calculated by Nmig, otherwise it must be a positive integer.",
-        "When set to 'DEFAULT':",
-        "In most cases it will be a number of logical CPU cores on the machine running Nmig,",
-        "unless a number of tables in the source database or the maximal number of DB connections is smaller.",
-        "!!!Notice,",
-        "it is worth an effort to 'play' with this parameter prior running migration in production,",
-        "since the number calculated under 'DEFAULT' may be NOT the most optimal.",
-        "Hence, when trying Nmig on your test-database, try both decreasing and increasing of this number."
+        "Acceptable values:",
+        "1. 'DEFAULT' - when set to 'DEFAULT', Nmig will run 2 data-loader processes.",
+        "2. Any positive integer.",
+        "Notice:",
+        "1.",
+        "Usually, migration gets accomplished faster with only 2 data-loader processes,",
+        "even if more CPU cores are available.",
+        "Yet, it is worth an effort to 'play' with this parameter prior running migration in production,",
+        "to check how many processes work best in your case.",
+        "When trying Nmig on your test-database, try both decreasing and increasing this number.",
+        "2.",
+        "'number_of_simultaneously_running_loader_processes' will never be greater",
+        "than a number of logical CPU cores of the machine running Nmig.",
+        "If greater number chosen - Nmig will run one loader process per each available CPU core."
     ],
     "number_of_simultaneously_running_loader_processes": "DEFAULT",
 

@@ -249,6 +249,7 @@ export default class Conversion {
             ? +this._config.max_each_db_connection_pool_size
             : 20;
 
+        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
         this._runsInTestMode = false;
         this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
@@ -257,15 +258,12 @@ export default class Conversion {
             ? true
             : this._config.remove_test_resources;
 
-        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
-
-        this._numberOfSimultaneouslyRunningLoaderProcesses = this._config.number_of_simultaneously_running_loader_processes;
-        this._numberOfSimultaneouslyRunningLoaderProcesses = Conversion._isIntNumeric(this._numberOfSimultaneouslyRunningLoaderProcesses)
-            ? this._numberOfSimultaneouslyRunningLoaderProcesses
+        this._numberOfSimultaneouslyRunningLoaderProcesses = Conversion._isIntNumeric(this._config.number_of_simultaneously_running_loader_processes)
+            ? +this._config.number_of_simultaneously_running_loader_processes
             : 'DEFAULT';
 
         this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._config.loader_max_old_space_size)
-            ? this._config.loader_max_old_space_size
+            ? +this._config.loader_max_old_space_size
             : 'DEFAULT';
 
         this._migrateOnlyData = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
