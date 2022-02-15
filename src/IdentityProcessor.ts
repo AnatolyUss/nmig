@@ -1,3 +1,4 @@
+@@ -1,128 +0,0 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
@@ -24,13 +25,49 @@ import DBAccess from './DBAccess';
 import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { PoolClient } from 'pg';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+
+/**
+ * Sets sequence value.
+ */
+export const setSequenceValue = async (conversion: Conversion, tableName: string): Promise<void> => {
+    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const autoIncrementedColumn: any = conversion._dicTables[tableName].arrTableColumns.find((column: any) => column.Extra === 'auto_increment');
+
+    if (!autoIncrementedColumn) {
+        // No auto-incremented column found.
+        return;
+    }
+
+    const logTitle: string = 'IdentityProcessor::setSequenceValue';
+    const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
+    const seqName: string = `${ tableName }_${ columnName }_seq`;
+    const sql: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', 
+                (SELECT MAX("${ columnName }") FROM "${ conversion._schema }"."${ tableName }"));`;
+
+    const params: IDBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: sql,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false
+    };
+
+    const result: DBAccessQueryResult = await DBAccess.query(params);
+
+    if (!result.error) {
+        const successMsg: string = `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" value is set...`;
+        log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+    }
+};
 
 /**
  * Defines which column in given table has the "auto_increment" attribute.
  * Creates an appropriate identity.
  */
-export default async (conversion: Conversion, tableName: string): Promise<void> => {
+export const createIdentity = async (conversion: Conversion, tableName: string): Promise<void> => {
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const autoIncrementedColumn: any = conversion._dicTables[tableName].arrTableColumns.find((column: any) => column.Extra === 'auto_increment');
 
@@ -40,7 +77,8 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
     }
 
     const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
-    const logTitle: string = 'IdentityProcessor::default';
+    const logTitle: string = 'IdentityProcessor::createSequence';
+    const seqName: string = `${ tableName }_${ columnName }_seq`;
     const params: IDBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
@@ -51,9 +89,20 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         shouldReturnClient: false
     };
 
-    const createIdentityResult: DBAccessQueryResult = await DBAccess.query(params);
+    const createSequenceResult: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (!createIdentityResult.error) {
+    if (createSequenceResult.error) {
+        await DBAccess.releaseDbClient(conversion, <PoolClient>createSequenceResult.client);
+        return;
+    }
+
+    params.client = setSequenceOwnerResult.client;
+    params.shouldReturnClient = false;
+    params.sql = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', (SELECT MAX("${ columnName }") FROM "${ conversion._schema }"."${ tableName }"));`;
+
+    const sqlSetSequenceValueResult: DBAccessQueryResult = await DBAccess.query(params);
+
+    if (!sqlSetSequenceValueResult.error) {
         const successMsg: string = `\t--[${ logTitle }] Added IDENTITY for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
         log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
     }

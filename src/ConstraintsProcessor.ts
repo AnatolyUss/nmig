@@ -18,11 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import * as identityProcessor from './IdentityProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import processEnum from './EnumProcessor';
 import processNull from './NullProcessor';
 import processDefault from './DefaultProcessor';
-import processIdentity from './IdentityProcessor';
 import processIndexAndKey from './IndexAndKeyProcessor';
 import processComments from './CommentsProcessor';
 import processForeignKey from './ForeignKeyProcessor';
@@ -65,10 +65,14 @@ export const processConstraintsPerTable = async (
     tableName: string,
     migrateOnlyData: boolean
 ): Promise<void> => {
+    if (migrateOnlyData) {
+        return identityProcessor.setSequenceValue(conversion, tableName);
+    }
+
     await processEnum(conversion, tableName);
     await processNull(conversion, tableName);
     await processDefault(conversion, tableName);
-    await processIdentity(conversion, tableName);
+    await identityProcessor.createIdentity(conversion, tableName);
     await processIndexAndKey(conversion, tableName);
     await processComments(conversion, tableName);
 };
