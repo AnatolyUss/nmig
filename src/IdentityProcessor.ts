@@ -1,4 +1,3 @@
-@@ -1,128 +0,0 @@
 /*
  * This file is a part of "NMIG" - the database migration tool.
  *
