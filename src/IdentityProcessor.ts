@@ -95,7 +95,7 @@ export const createIdentity = async (conversion: Conversion, tableName: string):
         return;
     }
 
-    params.client = setSequenceOwnerResult.client;
+    params.client = createSequenceResult.client;
     params.shouldReturnClient = false;
     params.sql = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', (SELECT MAX("${ columnName }") FROM "${ conversion._schema }"."${ tableName }"));`;
 
