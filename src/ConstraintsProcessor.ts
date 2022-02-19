@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as identityProcessor from './IdentityProcessor';
+import * as sequencesProcessor from './SequencesProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import processEnum from './EnumProcessor';
 import processNull from './NullProcessor';
@@ -66,13 +66,13 @@ export const processConstraintsPerTable = async (
     migrateOnlyData: boolean
 ): Promise<void> => {
     if (migrateOnlyData) {
-        return identityProcessor.setSequenceValue(conversion, tableName);
+        return sequencesProcessor.setSequenceValue(conversion, tableName);
     }
 
     await processEnum(conversion, tableName);
     await processNull(conversion, tableName);
     await processDefault(conversion, tableName);
-    await identityProcessor.createIdentity(conversion, tableName);
+    await sequencesProcessor.createIdentity(conversion, tableName);
     await processIndexAndKey(conversion, tableName);
     await processComments(conversion, tableName);
 };
