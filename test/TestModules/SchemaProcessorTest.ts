@@ -18,13 +18,14 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import { Test } from 'tape';
+
 import TestSchemaProcessor from './TestSchemaProcessor';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import DBVendors from '../../src/DBVendors';
 import DBAccessQueryResult from '../../src/DBAccessQueryResult';
 import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
-import { Test } from 'tape';
 
 /**
  * Checks if the schema exists.

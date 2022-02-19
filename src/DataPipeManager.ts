@@ -18,10 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import * as os from 'os';
+import * as path from 'path';
 import { ChildProcess, fork } from 'child_process';
 import { EventEmitter } from 'events';
-import * as path from 'path';
-import * as os from 'os';
+
 import { log, generateError } from './FsOps';
 import { processConstraintsPerTable } from './ConstraintsProcessor';
 import * as migrationStateManager from './MigrationStateManager';
@@ -82,40 +83,26 @@ const dataPoolProcessed = (conversion: Conversion): boolean => {
 };
 
 /**
- * Runs the data pipe.
+ * Calculates a number of data-loader processes that will run simultaneously.
+ * In most cases it will be a number of logical CPU cores on the machine running Nmig,
+ * unless a number of tables in the source database or the maximal number of DB connections is smaller.
  */
-export default (conversion: Conversion): Promise<Conversion> => {
-    return new Promise<Conversion>(resolve => {
-        if (dataPoolProcessed(conversion)) {
-            return resolve(conversion);
-        }
-
-        // Register a listener for the "tableLoadingFinished" event.
-        eventEmitter.on(tableLoadingFinishedEvent, async tableName => {
-            await processConstraintsPerTable(conversion, tableName, conversion.shouldMigrateOnlyData());
-
-            // Check a number of active loader processes on the event of "tableLoadingFinished".
-            // If no active loader processes found, then all the data is transferred,
-            // hence Nmig can proceed to the next step.
-            if (loaderProcessesCount === 0) {
-                await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
-                return resolve(conversion);
-            }
-        });
-
-        // Calculate a number of data-loader processes that will run simultaneously.
-        // In most cases it will be a number of logical CPU cores on the machine running Nmig;
-        // unless a number of tables in the source database or the maximal number of DB connections is smaller.
-        const numberOfSimultaneouslyRunningLoaderProcesses: number = Math.min(
+const getNumberOfSimultaneouslyRunningLoaderProcesses = (conversion: Conversion): number => {
+    if (conversion._numberOfSimultaneouslyRunningLoaderProcesses !== 'DEFAULT') {
+        return Math.min(
             conversion._dataPool.length,
             conversion._maxEachDbConnectionPoolSize,
-            os.cpus().length
+            <number>conversion._numberOfSimultaneouslyRunningLoaderProcesses,
         );
+    }
 
-        for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
-            runLoaderProcess(conversion);
-        }
-    });
+    const DEFAULT_NUMBER_OF_DATA_LOADER_PROCESSES: number = 2;
+    return Math.min(
+        DEFAULT_NUMBER_OF_DATA_LOADER_PROCESSES,
+        (os.cpus().length || 1),
+        conversion._dataPool.length,
+        conversion._maxEachDbConnectionPoolSize,
+    );
 };
 
 /**
@@ -137,16 +124,56 @@ const runLoaderProcess = (conversion: Conversion): void => {
         // 2. Kill the loader process to release unused RAM as quick as possible.
         // 3. Emit the "tableLoadingFinished" event to start constraints creation for the just loaded table immediately.
         // 4. Call the "runLoaderProcess" function recursively to transfer data to the next table.
-        const msg: string = `\t--[runLoaderProcess]  For now inserted: ${ signal.totalRowsToInsert } rows,`
-            + `Total rows to insert into "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
+        const msg: string = `\n\t--[NMIG runLoaderProcess] For now inserted: ${ signal.totalRowsToInsert } rows`
+            + `\n\t--[NMIG runLoaderProcess] Total rows to insert into`
+            + ` "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
         log(conversion, msg);
-        await killProcess(loaderProcess.pid, conversion);
+        await killProcess(<number>loaderProcess.pid, conversion);
         loaderProcessesCount--;
         eventEmitter.emit(tableLoadingFinishedEvent, signal.tableName);
         runLoaderProcess(conversion);
     });
 
-    // Sends a message to current data loader process, which contains configuration info and a metadata of the next data-chunk.
-    loaderProcess.send(new MessageToDataLoader(conversion._config, conversion._dataPool.pop()));
+    // Sends a message to current data loader process,
+    // which contains configuration info and a metadata of the next data-chunk.
+    const chunk: any = conversion._dataPool.pop();
+    const fullTableName: string = `"${ conversion._schema }"."${ chunk._tableName }"`;
+    const msg: string = `\n\t--[NMIG data transfer] ${ fullTableName } DATA TRANSFER IN PROGRESS...`
+        + `\n\t--[NMIG data transfer] TIME REQUIRED FOR TRANSFER DEPENDS ON AMOUNT OF DATA...\n`;
+
+    log(conversion, msg);
+    loaderProcess.send(new MessageToDataLoader(conversion._config, chunk));
+};
+
+/**
+ * Runs the data pipe.
+ */
+export default (conversion: Conversion): Promise<Conversion> => {
+    return new Promise<Conversion>(resolve => {
+        if (dataPoolProcessed(conversion)) {
+            return resolve(conversion);
+        }
+
+        // Register a listener for the "tableLoadingFinished" event.
+        eventEmitter.on(tableLoadingFinishedEvent, async tableName => {
+            await processConstraintsPerTable(conversion, tableName, conversion.shouldMigrateOnlyData());
+
+            // Check a number of active loader processes on the event of "tableLoadingFinished".
+            // If no active loader processes found, then all the data is transferred,
+            // hence Nmig can proceed to the next step.
+            if (loaderProcessesCount === 0) {
+                await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
+                return resolve(conversion);
+            }
+        });
+
+        const numberOfSimultaneouslyRunningLoaderProcesses: number = getNumberOfSimultaneouslyRunningLoaderProcesses(
+            conversion
+        );
+
+        for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
+            runLoaderProcess(conversion);
+        }
+    });
 };

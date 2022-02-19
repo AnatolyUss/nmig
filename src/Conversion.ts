@@ -20,8 +20,10 @@
  */
 import * as path from 'path';
 import { EventEmitter } from 'events';
+
 import { Pool as MySQLPool } from 'mysql';
 import { Pool as PgPool } from 'pg';
+
 import { Encoding } from './Encoding';
 
 export default class Conversion {
@@ -43,7 +45,7 @@ export default class Conversion {
     /**
      * V8 memory limit of the loader process.
      */
-    public _loaderMaxOldSpaceSize: number | string;
+    public readonly _loaderMaxOldSpaceSize: number | string;
 
     /**
      * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers each.
@@ -113,7 +115,7 @@ export default class Conversion {
     /**
      * The timestamp, at which the migration began.
      */
-    public _timeBegin: Date;
+    public readonly _timeBegin: Date;
 
     /**
      * Current version of source (MySQL) db.
@@ -163,7 +165,7 @@ export default class Conversion {
     /**
      * An array of data chunks.
      */
-    public readonly _dataPool: any[];
+    public readonly _dataPool: object[];
 
     /**
      * A flag, that indicates if Nmig currently runs in test mode.
@@ -202,6 +204,11 @@ export default class Conversion {
     public readonly _streamsHighWaterMark: number;
 
     /**
+     * Number of data-loader processes that will run simultaneously.
+     */
+    public readonly _numberOfSimultaneouslyRunningLoaderProcesses: string | number;
+
+    /**
      * Constructor.
      */
     public constructor(config: any) {
@@ -226,24 +233,41 @@ export default class Conversion {
         this._dataPool = [];
         this._dicTables = Object.create(null);
         this._mySqlDbName = this._sourceConString.database;
-        this._streamsHighWaterMark = this._config.streams_high_water_mark === undefined ? 16384 : +this._config.streams_high_water_mark;
+
+        this._streamsHighWaterMark = this._config.streams_high_water_mark === undefined
+            ? 16384
+            : +this._config.streams_high_water_mark;
 
         this._schema = this._config.schema === undefined || this._config.schema === ''
             ? this._mySqlDbName
             : this._config.schema;
 
-        this._maxEachDbConnectionPoolSize = this._config.max_each_db_connection_pool_size !== undefined && Conversion._isIntNumeric(this._config.max_each_db_connection_pool_size)
+        const isValidMaxEachDbConnectionPoolSize: boolean = this._config.max_each_db_connection_pool_size !== undefined
+            && Conversion._isIntNumeric(this._config.max_each_db_connection_pool_size);
+
+        this._maxEachDbConnectionPoolSize = isValidMaxEachDbConnectionPoolSize
             ? +this._config.max_each_db_connection_pool_size
             : 20;
 
+        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
         this._runsInTestMode = false;
         this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
-        this._removeTestResources = this._config.remove_test_resources === undefined ? true : this._config.remove_test_resources;
-        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
-        this._loaderMaxOldSpaceSize = this._config.loader_max_old_space_size;
-        this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._loaderMaxOldSpaceSize) ? this._loaderMaxOldSpaceSize : 'DEFAULT';
+
+        this._removeTestResources = this._config.remove_test_resources === undefined
+            ? true
+            : this._config.remove_test_resources;
+
+        this._numberOfSimultaneouslyRunningLoaderProcesses = Conversion._isIntNumeric(this._config.number_of_simultaneously_running_loader_processes)
+            ? +this._config.number_of_simultaneously_running_loader_processes
+            : 'DEFAULT';
+
+        this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._config.loader_max_old_space_size)
+            ? +this._config.loader_max_old_space_size
+            : 'DEFAULT';
+
         this._migrateOnlyData = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
+
         this._delimiter = this._config.delimiter !== undefined && this._config.delimiter.length === 1
             ? this._config.delimiter
             : ',';

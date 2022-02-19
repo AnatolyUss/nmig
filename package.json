@@ -1,6 +1,6 @@
 {
     "name": "nmig",
-    "version": "5.5.0",
+    "version": "5.6.0",
     "description": "The database migration app",
     "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
     "license": "GPL-3.0",
@@ -12,21 +12,21 @@
         "node": ">=10.0.0"
     },
     "dependencies": {
-        "json2csv": "^5.0.3",
+        "@types/mysql": "^2.15.21",
+        "@types/node": "^17.0.16",
+        "@types/pg": "^8.6.4",
+        "json2csv": "^5.0.6",
         "mysql": "^2.18.1",
-        "pg": "^8.4.2",
-        "pg-copy-streams": "^5.1.1",
-        "@types/mysql": "^2.15.15",
-        "@types/node": "^14.14.5",
-        "@types/pg": "^7.14.5"
+        "pg": "^8.7.3",
+        "pg-copy-streams": "^6.0.2"
     },
     "devDependencies": {
-        "@types/tape": "^4.13.0",
-        "tape": "^5.0.1",
-        "typescript": "^4.0.5"
+        "@types/tape": "^4.13.2",
+        "tape": "^5.5.0",
+        "typescript": "4.5.5"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "tsc --incremental -p tsconfig.json",
         "start": "node dist/src/Main.js",
         "test": "node dist/test/Main.test.js"
     },

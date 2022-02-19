@@ -18,10 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import Conversion from './Conversion';
-import DBVendors from './DBVendors';
 import { PoolConnection } from 'mysql';
 import { PoolClient } from 'pg';
+
+import Conversion from './Conversion';
+import DBVendors from './DBVendors';
 
 export default interface IDBAccessQueryParams {
     /**
