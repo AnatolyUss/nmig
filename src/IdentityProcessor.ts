@@ -51,7 +51,7 @@ export const setSequenceValue = async (conversion: Conversion, tableName: string
         return;
     }
 
-    const logTitle: string = 'SequenceProcessor::setSequenceValue';
+    const logTitle: string = 'IdentityProcessor::setSequenceValue';
     const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
     const seqName: string = getSequenceName(tableName, columnName);
     const sql: string = `SELECT SETVAL(\'"${ conversion._schema }"."${ seqName }"\', 
@@ -69,7 +69,7 @@ export const setSequenceValue = async (conversion: Conversion, tableName: string
     const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (!result.error) {
-        const successMsg: string = `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" is created...`;
+        const successMsg: string = `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" value is set...`;
         log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
     }
 };
@@ -78,7 +78,7 @@ export const setSequenceValue = async (conversion: Conversion, tableName: string
  * Defines which column in given table has the "auto_increment" attribute.
  * Creates an appropriate identity.
  */
-export const createSequence = async (conversion: Conversion, tableName: string): Promise<void> => {
+export const createIdentity = async (conversion: Conversion, tableName: string): Promise<void> => {
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const autoIncrementedColumn: any = conversion._dicTables[tableName].arrTableColumns.find((column: any) => column.Extra === 'auto_increment');
 
@@ -88,7 +88,7 @@ export const createSequence = async (conversion: Conversion, tableName: string):
     }
 
     const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, autoIncrementedColumn.Field, false);
-    const logTitle: string = 'SequencesProcessor::createSequence';
+    const logTitle: string = 'IdentityProcessor::createSequence';
     const seqName: string = getSequenceName(tableName, columnName);
     const params: IDBAccessQueryParams = {
         conversion: conversion,
