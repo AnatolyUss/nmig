@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { PoolConnection } from 'mysql';
+import { PoolConnection } from 'mysql2';
 import { PoolClient } from 'pg';
 
 import Conversion from './Conversion';
