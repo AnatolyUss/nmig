@@ -25,6 +25,7 @@ import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import * as uuid from "uuid";
 
 /**
  * Returns PostgreSQL index type, that correlates to given MySQL index type.
@@ -83,8 +84,21 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         } else {
             // "schema_idxname_{integer}_idx" - is NOT a mistake.
             const columnName: string = objPgIndices[index].column_name[0].slice(1, -1) + cnt++;
+            let index_name = `${ conversion._schema }_${ tableName }_${ columnName }_idx`;
+            if (index_name.length > 63) {
+                // Postgres object names are truncated to 63 chars, and this can cause duplicate names
+                // This truncates the name to 57 chars and adds a 6 char UUID fragment, to make a unique name
+                // simon hewitt simon.hewitt@maplecroft.com Maplecroft
+                // Changed April 2022, to fix a problem with GRID MySL to Postgres migration
+                // (NB also submitted to the FOSS source)
+                const uuid_tag: string = uuid.v4()
+                index_name = index_name.substring(0, 57) + uuid_tag.substring(0,6)
+                console.log(index_name)
+            }
+
             indexType = 'index';
-            sqlAddIndex = `CREATE ${ (objPgIndices[index].is_unique ? 'UNIQUE ' : '') }INDEX "${ conversion._schema }_${ tableName }_${ columnName }_idx" 
+            // sqlAddIndex = `CREATE ${ (objPgIndices[index].is_unique ? 'UNIQUE ' : '') }INDEX "${ conversion._schema }_${ tableName }_${ columnName }_idx"
+            sqlAddIndex = `CREATE ${ (objPgIndices[index].is_unique ? 'UNIQUE ' : '') }INDEX "${index_name}" 
             ON "${ conversion._schema }"."${ tableName }" 
             ${ objPgIndices[index].index_type } (${ objPgIndices[index].column_name.join(',') });`;
         }
