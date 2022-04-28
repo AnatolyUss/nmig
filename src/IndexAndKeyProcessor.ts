@@ -88,9 +88,6 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
             if (index_name.length > 63) {
                 // Postgres object names are truncated to 63 chars, and this can cause duplicate names
                 // This truncates the name to 57 chars and adds a 6 char UUID fragment, to make a unique name
-                // simon hewitt simon.hewitt@maplecroft.com Maplecroft
-                // Changed April 2022, to fix a problem with GRID MySL to Postgres migration
-                // (NB also submitted to the FOSS source)
                 const uuid_tag: string = uuid.v4()
                 index_name = index_name.substring(0, 57) + uuid_tag.substring(0,6)
                 console.log(index_name)
