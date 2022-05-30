@@ -113,6 +113,11 @@ export default class Conversion {
     public readonly _includeTables: string[];
 
     /**
+     * List of tables.columns to be saved as Postgres uuid data types
+     */
+    public readonly _uuidColumns: string[];
+
+    /**
      * The timestamp, at which the migration began.
      */
     public readonly _timeBegin: Date;
@@ -223,6 +228,7 @@ export default class Conversion {
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
         this._excludeTables = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
         this._includeTables = this._config.include_tables === undefined ? [] : this._config.include_tables;
+        this._uuidColumns = this._config.uuid_columns === undefined ? [] : this._config.uuid_columns;
         this._timeBegin = new Date();
         this._encoding = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._0777 = '0777';

@@ -1,5 +1,18 @@
 <h3>NMIG - the database migration tool.</h3>
 
+<h4>Fork</h4>
+Simon Hewitt  
+simon.d.hewitt@gmail.com
+<ol>
+<li>Index names can exceed the 63 character Postgres limit, 
+for these names truncate to 57 chars and add 6 chars of a UUID tag to the end
+</li>
+<li>
+MySQL stores UUID values as varchar(36) (or(32)?). 
+NMIG seems to be truncating these on conversion. Add a config.json element
+that saves them as Postgres UUID datatypes.
+</li>
+</ol>
 <h3>WHAT IS IT ALL ABOUT?</h3>
 <p>NMIG is an app, intended to make a process of migration
 from MySQL to PostgreSQL as easy and smooth as possible.</p>

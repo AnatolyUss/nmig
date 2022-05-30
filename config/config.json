@@ -12,12 +12,12 @@
     ],
     "source" : {
         "host"             : "localhost",
-        "port"             : 3306,
-        "database"         : "test_db",
+        "port"             : 3316,
+        "database"         : "db",
         "charset"          : "utf8mb4",
         "supportBigNumbers": true,
-        "user"             : "root",
-        "password"         : "0123456789"
+        "user"             : "simon",
+        "password"         : "whmcc"
     },
 
     "target_description" : [
@@ -28,11 +28,11 @@
     ],
     "target" : {
         "host"     : "localhost",
-        "port"     : 5432,
-        "database" : "test_db",
+        "port"     : 5430,
+        "database" : "db",
         "charset"  : "UTF8",
-        "user"     : "postgres",
-        "password" : "0123456789"
+        "user"     : "simon",
+        "password" : "whmcc"
     },
 
     "max_each_db_connection_pool_size_description" : [
@@ -99,6 +99,12 @@
         "By default, nmig will migrate all tables."
     ],
     "include_tables": [],
+
+    "uuid_columns_description": [
+        "List the table.column of any MySQL columns that contain UUID values",
+        "And should be stored in Postgres UUID data types"
+    ],
+    "uuid_columns": ["uuid_test.uuid"],
 
     "migrate_only_data_description" : [
         "In order to skip schema migration, and just migrate data into a preset tables",
