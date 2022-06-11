@@ -10,7 +10,7 @@
         "types": [
             "node",
             "pg",
-            "mysql",
+            "mysql2",
             "tape"
         ]
     },

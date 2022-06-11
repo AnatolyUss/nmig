@@ -18,8 +18,8 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as mysql from 'mysql';
-import { MysqlError, Pool as MySQLPool, PoolConnection } from 'mysql';
+import * as mysql from 'mysql2';
+import { Pool as MySQLPool, PoolConnection } from 'mysql2';
 import { Pool as PgPool, PoolClient } from 'pg';
 
 import { log, generateError } from './FsOps';
@@ -110,7 +110,7 @@ export default class DBAccess {
     public static getMysqlClient(conversion: Conversion): Promise<PoolConnection> {
         return new Promise<PoolConnection>(async (resolve, reject) => {
             await DBAccess._getMysqlConnection(conversion);
-            (<MySQLPool>conversion._mysql).getConnection((err: MysqlError | null, connection: PoolConnection) => {
+            (<MySQLPool>conversion._mysql).getConnection((err: NodeJS.ErrnoException | null, connection: PoolConnection) => {
                 return err ? reject(err) : resolve(connection);
             });
         });
@@ -192,7 +192,7 @@ export default class DBAccess {
                 sql = (<PoolConnection>client).format(sql, bindings);
             }
 
-            (<PoolConnection>client).query(sql, async (error: MysqlError | null, data: any) => {
+            (<PoolConnection>client).query(sql, async (error: NodeJS.ErrnoException | null, data: any) => {
                 await DBAccess._releaseDbClientIfNecessary(conversion, (<PoolConnection>client), shouldReturnClient);
 
                 if (error) {
