@@ -14,12 +14,10 @@
         "host"             : "localhost",
         "port"             : 3306,
         "database"         : "test_db",
-        "database"         : "sample_staff",
         "charset"          : "utf8mb4",
         "supportBigNumbers": true,
         "user"             : "root",
-        "password"         : "0123456789",
-        "password"         : "30071984@Tal"
+        "password"         : "0123456789"
     },
 
     "target_description" : [
@@ -32,11 +30,9 @@
         "host"     : "localhost",
         "port"     : 5432,
         "database" : "test_db",
-        "database" : "sample_staff",
         "charset"  : "UTF8",
         "user"     : "postgres",
-        "password" : "0123456789",
-        "password" : "30071984@Tal"
+        "password" : "0123456789"
     },
 
     "max_each_db_connection_pool_size_description" : [
