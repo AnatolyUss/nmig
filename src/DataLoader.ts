@@ -18,6 +18,8 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import * as path from 'path';
+
 import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
@@ -29,16 +31,17 @@ import { dataTransferred } from './ConsistencyEnforcer';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getDataPoolTableName } from './DataPoolManager';
-import * as path from 'path';
+
 import { PoolClient, QueryResult } from 'pg';
-import { PoolConnection } from 'mysql';
+import { PoolConnection } from 'mysql2';
+
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
 const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
 
 process.on('message', async (signal: MessageToDataLoader) => {
     const { config, chunk } = signal;
     const conv: Conversion = new Conversion(config);
-    log(conv, `\t--[loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
+    log(conv, `\t--[NMIG loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
 
     const isRecoveryMode: boolean = await dataTransferred(conv, chunk._id);
 

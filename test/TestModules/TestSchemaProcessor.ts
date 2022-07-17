@@ -18,9 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
 import { EventEmitter } from 'events';
+import ErrnoException = NodeJS.ErrnoException;
+
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
 import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
@@ -37,7 +39,6 @@ import { createStateLogsTable, dropStateLogsTable } from '../../src/MigrationSta
 import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
 import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/BootProcessor';
 import { createLogsDirectory, generateError, log, readConfig, readDataAndIndexTypesMap, readExtraConfig } from '../../src/FsOps';
-import ErrnoException = NodeJS.ErrnoException;
 
 export default class TestSchemaProcessor {
     /**

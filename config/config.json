@@ -43,10 +43,29 @@
     ],
     "max_each_db_connection_pool_size" : 20,
 
+    "number_of_simultaneously_running_loader_processes_description": [
+        "Number of data-loader processes that will run simultaneously.",
+        "Acceptable values:",
+        "1. 'DEFAULT' - when set to 'DEFAULT', Nmig will run 2 data-loader processes.",
+        "2. Any positive integer.",
+        "Notice:",
+        "1.",
+        "Usually, migration gets accomplished faster with only 2 data-loader processes,",
+        "even if more CPU cores are available.",
+        "Yet, it is worth an effort to 'play' with this parameter prior running migration in production,",
+        "to check how many processes work best in your case.",
+        "When trying Nmig on your test-database, try both decreasing and increasing this number.",
+        "2.",
+        "'number_of_simultaneously_running_loader_processes' will never be greater",
+        "than a number of logical CPU cores of the machine running Nmig.",
+        "If greater number chosen - Nmig will run one loader process per each available CPU core."
+    ],
+    "number_of_simultaneously_running_loader_processes": "DEFAULT",
+
     "loader_max_old_space_size_description" : [
         "V8 memory limit of the loader process.",
         "Possible values are:",
-        "1. any number, representing memory limit (in MB).",
+        "1. any positive integer, representing memory limit (in MB).",
         "2. 'DEFAULT', representing V8 default memory limit for your current hardware."
     ],
     "loader_max_old_space_size" : "DEFAULT",

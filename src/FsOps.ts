@@ -20,8 +20,9 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import Conversion from './Conversion';
 import ErrnoException = NodeJS.ErrnoException;
+
+import Conversion from './Conversion';
 
 /**
  * Writes a detailed error message to the "/errors-only.log" file.

@@ -36,7 +36,13 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
     const msg: string = `\t--[${ logTitle }] Defines default values for table: "${ conversion._schema }"."${ tableName }"`;
     log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const pgSqlNumericTypes: string[] = ['money', 'numeric', 'decimal', 'double precision', 'real', 'bigint', 'int', 'smallint'];
+    const pgSqlBitTypes: string[] = ['bit', 'bit varying'];
+    const pgSqlBinaryTypes: string[] = ['bytea'];
+    const pgSqlNumericTypes: string[] = [
+        'smallint', 'integer', 'bigint', 'decimal', 'numeric', 'int',
+        'real', 'double precision', 'smallserial', 'serial', 'bigserial',
+    ];
+
     const sqlReservedValues: any = {
         'CURRENT_DATE': 'CURRENT_DATE',
         '0000-00-00': "'-INFINITY'",
@@ -57,9 +63,14 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         const pgSqlDataType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
         const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
         let sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ALTER COLUMN "${ columnName }" SET DEFAULT `;
+        const isOfBitType: boolean = !!(pgSqlBitTypes.find((bitType: string) => pgSqlDataType.startsWith(bitType)));
 
         if (sqlReservedValues[column.Default]) {
             sql += `${ sqlReservedValues[column.Default] };`;
+        } else if (isOfBitType) {
+            sql += `${ column.Default };`; // bit varying
+        } else if (pgSqlBinaryTypes.indexOf(pgSqlDataType) !== -1) {
+            sql += `'\\x${ column.Default }';`; // bytea
         } else if (pgSqlNumericTypes.indexOf(pgSqlDataType) === -1) {
             sql += `'${ column.Default }';`;
         } else {

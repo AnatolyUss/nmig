@@ -19,7 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import { PoolClient } from 'pg';
-import { PoolConnection } from 'mysql';
+import { PoolConnection } from 'mysql2';
 
 export default class DBAccessQueryResult {
     /**

@@ -18,9 +18,10 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as mysql from 'mysql';
-import { MysqlError, Pool as MySQLPool, PoolConnection } from 'mysql';
+import * as mysql from 'mysql2';
+import { Pool as MySQLPool, PoolConnection } from 'mysql2';
 import { Pool as PgPool, PoolClient } from 'pg';
+
 import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
 import DBVendors from './DBVendors';
@@ -72,8 +73,8 @@ export default class DBAccess {
      * Closes both connection-pools.
      */
     public static async closeConnectionPools(conversion: Conversion): Promise<Conversion> {
-        const closeMySqlConnections = () => {
-            return new Promise(resolve => {
+        const closeMySqlConnections = (): Promise<void> => {
+            return new Promise<void>(resolve => {
                 if (conversion._mysql) {
                     conversion._mysql.end(async error => {
                         if (error) {
@@ -88,7 +89,7 @@ export default class DBAccess {
             });
         };
 
-        const closePgConnections = async () => {
+        const closePgConnections = async (): Promise<void> => {
             if (conversion._pg) {
                 try {
                     await conversion._pg.end();
@@ -109,7 +110,7 @@ export default class DBAccess {
     public static getMysqlClient(conversion: Conversion): Promise<PoolConnection> {
         return new Promise<PoolConnection>(async (resolve, reject) => {
             await DBAccess._getMysqlConnection(conversion);
-            (<MySQLPool>conversion._mysql).getConnection((err: MysqlError | null, connection: PoolConnection) => {
+            (<MySQLPool>conversion._mysql).getConnection((err: NodeJS.ErrnoException | null, connection: PoolConnection) => {
                 return err ? reject(err) : resolve(connection);
             });
         });
@@ -191,7 +192,7 @@ export default class DBAccess {
                 sql = (<PoolConnection>client).format(sql, bindings);
             }
 
-            (<PoolConnection>client).query(sql, async (error: MysqlError | null, data: any) => {
+            (<PoolConnection>client).query(sql, async (error: NodeJS.ErrnoException | null, data: any) => {
                 await DBAccess._releaseDbClientIfNecessary(conversion, (<PoolConnection>client), shouldReturnClient);
 
                 if (error) {

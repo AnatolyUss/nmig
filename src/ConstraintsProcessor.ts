@@ -72,7 +72,7 @@ export const processConstraintsPerTable = async (
     await processEnum(conversion, tableName);
     await processNull(conversion, tableName);
     await processDefault(conversion, tableName);
-    await sequencesProcessor.createSequence(conversion, tableName);
+    await sequencesProcessor.createIdentity(conversion, tableName);
     await processIndexAndKey(conversion, tableName);
     await processComments(conversion, tableName);
 };

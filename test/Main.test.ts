@@ -18,8 +18,10 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as test from 'tape';
 import { EventEmitter } from 'events';
+
+import * as test from 'tape';
+
 import Conversion from '../src/Conversion';
 import TestSchemaProcessor from './TestModules/TestSchemaProcessor';
 import testSchema from './TestModules/SchemaProcessorTest';
