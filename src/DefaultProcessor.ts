@@ -48,7 +48,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         '0000-00-00': "'-INFINITY'",
         'CURRENT_TIME': 'CURRENT_TIME',
         '00:00:00': '00:00:00',
-        'CURRENT_TIMESTAMP': 'CURRENT_TIMESTAMP',
+        'CURRENT_TIMESTAMP()': 'CURRENT_TIMESTAMP',
         '0000-00-00 00:00:00': "'-INFINITY'",
         'LOCALTIME': 'LOCALTIME',
         'LOCALTIMESTAMP': 'LOCALTIMESTAMP',
