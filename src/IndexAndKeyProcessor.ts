@@ -25,6 +25,7 @@ import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import { getUniqueIdentifier } from './Utils';
 
 /**
  * Returns PostgreSQL index type, that correlates to given MySQL index type.
@@ -55,8 +56,6 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
     }
 
     const objPgIndices: any = Object.create(null);
-    let cnt: number = 0;
-    let indexType: string = '';
 
     showIndexResult.data.forEach((index: any) => {
         const pgColumnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, index.Column_name, false);
@@ -77,14 +76,12 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         let sqlAddIndex: string = '';
 
         if (index.toLowerCase() === 'primary') {
-            indexType = 'PK';
             sqlAddIndex = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
                 ADD PRIMARY KEY(${ objPgIndices[index].column_name.join(',') });`;
         } else {
-            // "schema_idxname_{integer}_idx" - is NOT a mistake.
-            const columnName: string = objPgIndices[index].column_name[0].slice(1, -1) + cnt++;
-            indexType = 'index';
-            sqlAddIndex = `CREATE ${ (objPgIndices[index].is_unique ? 'UNIQUE ' : '') }INDEX "${ conversion._schema }_${ tableName }_${ columnName }_idx" 
+            const columnName: string = objPgIndices[index].column_name[0].slice(1, -1);
+            const indexName: string = getUniqueIdentifier(`${ tableName }_${ columnName }_idx`, '_idx');
+            sqlAddIndex = `CREATE ${ (objPgIndices[index].is_unique ? 'UNIQUE ' : '') }INDEX "${ indexName }" 
             ON "${ conversion._schema }"."${ tableName }" 
             ${ objPgIndices[index].index_type } (${ objPgIndices[index].column_name.join(',') });`;
         }
