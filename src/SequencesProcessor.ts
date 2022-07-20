@@ -27,16 +27,15 @@ import DBVendors from './DBVendors';
 import DBAccessQueryResult from './DBAccessQueryResult';
 import IDBAccessQueryParams from './IDBAccessQueryParams';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import { getUniqueIdentifier } from './Utils';
 
 /**
  * Returns sequence name by table's name and column's name.
- * Notice:
- * 1. "{table_name}_{autoincrement_column_name}_seq" is a standard PostgreSQL's template to generate sequence names.
- * 2. Later, if needed, this function will be rewritten so it probably will query PostgreSQL's "sequences" view
- *    to obtain sequence name by table's name and column's name.
+ * Note, "{table_name}_{column_name}_seq" is a standard PostgreSQL's template to generate sequence names.
  */
 const getSequenceName = (tableName: string, columnName: string): string => {
-    return `${ tableName }_${ columnName }_seq`;
+    const sequenceName = `${ tableName }_${ columnName }_seq`;
+    return getUniqueIdentifier(sequenceName, '_seq');
 };
 
 /**

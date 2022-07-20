@@ -47,7 +47,8 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         'CURRENT_DATE': 'CURRENT_DATE',
         '0000-00-00': "'-INFINITY'",
         'CURRENT_TIME': 'CURRENT_TIME',
-        '00:00:00': '00:00:00',
+        '00:00:00': "'00:00:00'",
+        'CURRENT_TIMESTAMP()': 'CURRENT_TIMESTAMP',
         'CURRENT_TIMESTAMP': 'CURRENT_TIMESTAMP',
         '0000-00-00 00:00:00': "'-INFINITY'",
         'LOCALTIME': 'LOCALTIME',
@@ -56,7 +57,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         'null': 'NULL',
         'UTC_DATE': "(CURRENT_DATE AT TIME ZONE 'UTC')",
         'UTC_TIME': "(CURRENT_TIME AT TIME ZONE 'UTC')",
-        'UTC_TIMESTAMP': "(NOW() AT TIME ZONE 'UTC')"
+        'UTC_TIMESTAMP': "(NOW() AT TIME ZONE 'UTC')",
     };
 
     const promises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
@@ -66,7 +67,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         const isOfBitType: boolean = !!(pgSqlBitTypes.find((bitType: string) => pgSqlDataType.startsWith(bitType)));
 
         if (sqlReservedValues[column.Default]) {
-            sql += `${ sqlReservedValues[column.Default] };`;
+            sql += sqlReservedValues[column.Default];
         } else if (isOfBitType) {
             sql += `${ column.Default };`; // bit varying
         } else if (pgSqlBinaryTypes.indexOf(pgSqlDataType) !== -1) {
