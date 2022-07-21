@@ -26,7 +26,7 @@ import Conversion from './Conversion';
 /**
  * Generates a summary report.
  */
-export default (conversion: Conversion): void => {
+export default async (conversion: Conversion): Promise<void> => {
     if (conversion._runsInTestMode) {
         (<EventEmitter>conversion._eventEmitter).emit(conversion._migrationCompletedEvent);
         return;
@@ -45,5 +45,6 @@ export default (conversion: Conversion): void => {
         \n\t--[generateReport] Total time: ${ formattedHours }:${ formattedMinutes }:${ formattedSeconds }
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
-    log(conversion, output, undefined, () => process.exit(0));
+    log(conversion, output, undefined, true);
+    process.exit(0);
 };
