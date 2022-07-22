@@ -23,7 +23,8 @@ import * as path from 'path';
 import { ChildProcess, fork } from 'child_process';
 import { EventEmitter } from 'events';
 
-import { log, generateError } from './FsOps';
+import { killProcess } from './Utils';
+import { log } from './FsOps';
 import { processConstraintsPerTable } from './ConstraintsProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import Conversion from './Conversion';
@@ -62,17 +63,6 @@ const getDataLoaderOptions = (conversion: Conversion): any => {
     }
 
     return options;
-};
-
-/**
- * Kills a process specified by the pid.
- */
-const killProcess = async (pid: number, conversion: Conversion): Promise<void> => {
-    try {
-        process.kill(pid);
-    } catch (killError) {
-        await generateError(conversion, `\t--[killProcess] ${ killError }`);
-    }
 };
 
 /**

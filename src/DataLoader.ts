@@ -38,6 +38,9 @@ import { PoolConnection } from 'mysql2';
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
 const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
 
+/**
+ * Processes incoming messages from the DataPipeManager.
+ */
 process.on('message', async (signal: MessageToDataLoader) => {
     const { config, chunk } = signal;
     const conv: Conversion = new Conversion(config);

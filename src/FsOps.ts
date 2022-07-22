@@ -20,68 +20,45 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import ErrnoException = NodeJS.ErrnoException;
+import {ChildProcess} from 'child_process';
 
 import Conversion from './Conversion';
+import { LogMessage } from './LogMessage';
+import { LogMessageType } from './LogMessageType';
+import ErrnoException = NodeJS.ErrnoException;
 
 /**
- * Writes a detailed error message to the "/errors-only.log" file.
+ * Sends error-log to dedicated logger process.
  */
-export const generateError = (conversion: Conversion, message: string, sql: string = ''): Promise<void> => {
-    return new Promise<void>(resolve => {
-        message += `\n\n\tSQL: ${sql}\n\n`;
-        const buffer: Buffer = Buffer.from(message, conversion._encoding);
-        log(conversion, message, undefined);
-
-        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
-            if (error) {
-                return resolve();
-            }
-
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                fs.close(fd, () => resolve());
-            });
-        });
-    });
+export const generateError = (conversion: Conversion, message: string, sql: string = ''): void => {
+    (<ChildProcess>conversion.logger).send(
+        new LogMessage(
+            LogMessageType.ERROR,
+            message,
+            sql,
+        )
+    );
 };
 
 /**
- * Outputs given log.
- * Writes given log to the "/all.log" file.
- * If necessary, writes given log to the "/{tableName}.log" file.
+ * Sends log to dedicated logger process.
  */
-export const log = (conversion: Conversion, log: string | NodeJS.ErrnoException, tableLogPath?: string, callback?: Function): void => {
-    console.log(log);
-    const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
+export const log = (
+    conversion: Conversion,
+    log: string | ErrnoException,
+    tableLogPath?: string,
+    isConcluding: boolean = false,
+): void => {
+    const messageType: LogMessageType = isConcluding ? LogMessageType.EXIT : LogMessageType.LOG;
 
-    fs.open(conversion._allLogsPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
-        if (!error) {
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                fs.close(fd, () => {
-                    if (tableLogPath) {
-                        fs.open(tableLogPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
-                            if (!error) {
-                                fs.write(fd, buffer, 0, buffer.length, null, () => {
-                                    fs.close(fd, () => {
-                                        // Each async function MUST have a callback (according to Node.js >= 7).
-                                        if (callback) {
-                                            callback();
-                                        }
-                                    });
-                                });
-                            } else  if (callback) {
-                                callback(error);
-                            }
-                        });
-                    } else if (callback) {
-                        callback();
-                    }
-                });
-            });
-        } else if (callback) {
-            callback(error);
-        }
-    });
+    (<ChildProcess>conversion.logger).send(
+        new LogMessage(
+            messageType,
+            log,
+            undefined,
+            tableLogPath,
+        )
+    );
 };
 
 /**
