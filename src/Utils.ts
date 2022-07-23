@@ -43,10 +43,10 @@ export const getUniqueIdentifier = (identifier: string, mandatoryPostfix: string
 /**
  * Kills a process specified by the pid.
  */
-export const killProcess = async (pid: number, conversion: Conversion): Promise<void> => {
+export const killProcess = (pid: number, conversion: Conversion): void => {
     try {
         process.kill(pid);
     } catch (killError) {
-        await generateError(conversion, `\t--[killProcess] ${ killError }`);
+        generateError(conversion, `\t--[killProcess] ${ killError }`);
     }
 };

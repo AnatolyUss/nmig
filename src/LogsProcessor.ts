@@ -28,9 +28,13 @@ import ErrnoException = NodeJS.ErrnoException;
 /**
  * Writes a detailed error message to the "/errors-only.log" file.
  */
-const _generateErrorInBackground = (conversion: Conversion, message: string, sql: string = ''): Promise<void> => {
+const _generateErrorInBackground = (
+    conversion: Conversion,
+    message: string,
+    sql: string = '',
+): Promise<void> => {
     return new Promise<void>(async resolve => {
-        message += `\n\n\tSQL: ${sql}\n\n`;
+        message += sql !== '' ? `\n\n\tSQL: ${sql}\n\n` : sql;
         const buffer: Buffer = Buffer.from(message, conversion._encoding);
         await _logInBackground(conversion, message);
 
@@ -40,7 +44,12 @@ const _generateErrorInBackground = (conversion: Conversion, message: string, sql
                 return resolve();
             }
 
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
+            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: ErrnoException | null) => {
+                if (fsWriteError) {
+                    console.error(fsWriteError);
+                    // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                }
+
                 fs.close(fd, () => resolve());
             });
         });
@@ -57,7 +66,7 @@ const _logInBackground = (
     log: string | NodeJS.ErrnoException,
     tableLogPath?: string,
 ): Promise<void> => {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(resolve => {
         console.log(log);
         const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
 
@@ -67,7 +76,12 @@ const _logInBackground = (
                 return resolve();
             }
 
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
+            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: ErrnoException | null) => {
+                if (fsWriteError) {
+                    console.error(fsWriteError);
+                    // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                }
+
                 fs.close(fd, () => {
                     if (tableLogPath) {
                         fs.open(tableLogPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
@@ -75,7 +89,12 @@ const _logInBackground = (
                                 console.error(error);
                                 return resolve();
                             } else {
-                                fs.write(fd, buffer, 0, buffer.length, null, () => {
+                                fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: ErrnoException | null) => {
+                                    if (fsWriteError) {
+                                        console.error(fsWriteError);
+                                        // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                                    }
+
                                     fs.close(fd, () => resolve());
                                 });
                             }
@@ -90,7 +109,7 @@ const _logInBackground = (
 };
 
 /**
- * Conversion instance, used in a context og logger process.
+ * Conversion instance, used in a context of logger process.
  */
 let conv: Conversion;
 
@@ -114,8 +133,7 @@ process.on('message', async (_log: LogMessage) => {
             await _logInBackground(conv, <string>_log.message, _log.tableLogPath);
             process.exit(0);
         }
-    } catch (err) {
-        console.log('\t--[Logger] Error:');
-        console.error(err);
+    } catch (error) {
+        console.log(`\n\t--[LogsProcessor] Logger error: ${JSON.stringify(error)}\n`);
     }
 });

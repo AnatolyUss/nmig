@@ -46,14 +46,14 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (result.error) {
         // No need to continue if no 'bytea' or 'geometry' columns found.
-        await DBAccess.releaseDbClient(conversion, <PoolClient>result.client);
+        DBAccess.releaseDbClient(conversion, <PoolClient>result.client);
         return conversion;
     }
 

@@ -75,7 +75,7 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'BootProcessor::boot';
 
     if (connectionErrorMessage) {
-        await generateError(conversion, `\t--[${ logTitle }]\n ${ logo } \n ${ connectionErrorMessage }`);
+        generateError(conversion, `\t--[${ logTitle }]\n ${ logo } \n ${ connectionErrorMessage }`);
         process.exit(1);
     }
 

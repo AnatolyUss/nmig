@@ -102,7 +102,7 @@ export const createIdentity = async (conversion: Conversion, tableName: string):
     const createSequenceResult: DBAccessQueryResult = await DBAccess.query(params);
 
     if (createSequenceResult.error) {
-        await DBAccess.releaseDbClient(conversion, <PoolClient>createSequenceResult.client);
+        DBAccess.releaseDbClient(conversion, <PoolClient>createSequenceResult.client);
         return;
     }
 
