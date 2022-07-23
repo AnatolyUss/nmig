@@ -30,7 +30,11 @@ import ErrnoException = NodeJS.ErrnoException;
 /**
  * Sends error-log to dedicated logger process.
  */
-export const generateError = (conversion: Conversion, message: string, sql: string = ''): void => {
+export const generateError = (
+    conversion: Conversion,
+    message: string,
+    sql: string = '',
+): void => {
     (<ChildProcess>conversion.logger).send(
         new LogMessage(
             LogMessageType.ERROR,
