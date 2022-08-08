@@ -47,14 +47,14 @@ const processForeignKeyWorker = async (conversion: Conversion, tableName: string
         );
 
         if (row.CONSTRAINT_NAME in objConstraints) {
-            objConstraints[row.CONSTRAINT_NAME].column_name.push(`"${ currentColumnName }"`);
-            objConstraints[row.CONSTRAINT_NAME].referenced_column_name.push(`"${ currentReferencedColumnName }"`);
+            objConstraints[row.CONSTRAINT_NAME].column_name.add(`"${ currentColumnName }"`);
+            objConstraints[row.CONSTRAINT_NAME].referenced_column_name.add(`"${ currentReferencedColumnName }"`);
             return;
         }
 
         objConstraints[row.CONSTRAINT_NAME] = Object.create(null);
-        objConstraints[row.CONSTRAINT_NAME].column_name = [`"${ currentColumnName }"`];
-        objConstraints[row.CONSTRAINT_NAME].referenced_column_name = [`"${ currentReferencedColumnName }"`];
+        objConstraints[row.CONSTRAINT_NAME].column_name = new Set<string>([`"${ currentColumnName }"`]);
+        objConstraints[row.CONSTRAINT_NAME].referenced_column_name = new Set<string>([`"${ currentReferencedColumnName }"`]);
         objConstraints[row.CONSTRAINT_NAME].referenced_table_name = currentReferencedTableName;
         objConstraints[row.CONSTRAINT_NAME].update_rule = row.UPDATE_RULE;
         objConstraints[row.CONSTRAINT_NAME].delete_rule = row.DELETE_RULE;
@@ -71,9 +71,9 @@ const processForeignKeyWorker = async (conversion: Conversion, tableName: string
 
     const constraintsPromises: Promise<void>[] = Object.keys(objConstraints).map(async (attr: string) => {
         params.sql = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
-            ADD FOREIGN KEY (${ objConstraints[attr].column_name.join(',') }) 
+            ADD FOREIGN KEY (${ [...objConstraints[attr].column_name].join(',') }) 
             REFERENCES "${ conversion._schema }"."${ objConstraints[attr].referenced_table_name }" 
-            (${ objConstraints[attr].referenced_column_name.join(',') }) 
+            (${ [...objConstraints[attr].referenced_column_name].join(',') }) 
             ON UPDATE ${ objConstraints[attr].update_rule } 
             ON DELETE ${ objConstraints[attr].delete_rule };`;
 
