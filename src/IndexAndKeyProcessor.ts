@@ -79,7 +79,10 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
             sqlAddIndex = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
                 ADD PRIMARY KEY(${ objPgIndices[index].column_name.join(',') });`;
         } else {
-            const columnName: string = objPgIndices[index].column_name[0].slice(1, -1);
+            const columnName: string = objPgIndices[index].column_name
+                .map((colName: string) => colName.slice(1, -1))
+                .join('_');
+
             const indexName: string = getUniqueIdentifier(`${ tableName }_${ columnName }_idx`, '_idx');
             sqlAddIndex = `CREATE ${ (objPgIndices[index].is_unique ? 'UNIQUE ' : '') }INDEX "${ indexName }" 
             ON "${ conversion._schema }"."${ tableName }" 
