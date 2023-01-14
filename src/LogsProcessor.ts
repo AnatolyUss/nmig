@@ -19,11 +19,11 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as fs from 'fs';
+import ErrnoException = NodeJS.ErrnoException;
 
 import Conversion from './Conversion';
 import { LogMessage } from './LogMessage';
 import { LogMessageType } from './LogMessageType';
-import ErrnoException = NodeJS.ErrnoException;
 
 /**
  * Writes a detailed error message to the "/errors-only.log" file.
@@ -63,7 +63,7 @@ const _generateErrorInBackground = (
  */
 const _logInBackground = (
     conversion: Conversion,
-    log: string | NodeJS.ErrnoException,
+    log: string | ErrnoException,
     tableLogPath?: string,
 ): Promise<void> => {
     return new Promise<void>(resolve => {
@@ -119,7 +119,7 @@ let conv: Conversion;
 process.on('message', async (_log: LogMessage) => {
     try {
         if (_log.type === LogMessageType.CONFIG) {
-            // Create Conversion instance, but avoid circular recursion,
+            // Create Conversion instance, but avoid recursion,
             // which might lead to redundant logger processes creation.
             const avoidLogger: boolean = true;
             conv = conv || new Conversion(_log.config, avoidLogger);
