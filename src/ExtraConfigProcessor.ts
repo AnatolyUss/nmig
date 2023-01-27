@@ -39,21 +39,28 @@ export const getTableName = (conversion: Conversion, currentTableName: string, s
  * Retrieves current column's name.
  */
 export const getColumnName = (conversion: Conversion, originalTableName: string, currentColumnName: string, shouldGetOriginal: boolean): string => {
-    if (conversion._extraConfig !== null && 'tables' in conversion._extraConfig) {
-        for (let i: number = 0; i < conversion._extraConfig.tables.length; ++i) {
-            if (conversion._extraConfig.tables[i].name.original === originalTableName && 'columns' in conversion._extraConfig.tables[i]) {
-                for (let columnsCount: number = 0; columnsCount < conversion._extraConfig.tables[i].columns.length; ++columnsCount) {
-                    if (conversion._extraConfig.tables[i].columns[columnsCount].original === currentColumnName) {
-                        return shouldGetOriginal
-                            ? conversion._extraConfig.tables[i].columns[columnsCount].original
-                            : conversion._extraConfig.tables[i].columns[columnsCount].new;
+    let retVal: string = currentColumnName;
+
+    if (conversion._extraConfig !== null) {
+        if ('tables' in conversion._extraConfig) {
+            for (let i: number = 0; i < conversion._extraConfig.tables.length; ++i) {
+                if (conversion._extraConfig.tables[i].name.original === originalTableName && 'columns' in conversion._extraConfig.tables[i]) {
+                    for (let columnsCount: number = 0; columnsCount < conversion._extraConfig.tables[i].columns.length; ++columnsCount) {
+                        if (conversion._extraConfig.tables[i].columns[columnsCount].original === currentColumnName) {
+                            retVal = shouldGetOriginal
+                                ? conversion._extraConfig.tables[i].columns[columnsCount].original
+                                : conversion._extraConfig.tables[i].columns[columnsCount].new;
+                        }
                     }
                 }
             }
         }
+        if (conversion._extraConfig.lowerCaseAllColumnNames && !shouldGetOriginal) {
+            retVal = retVal.toLowerCase();
+        }
     }
 
-    return currentColumnName;
+    return retVal;
 };
 
 /**
