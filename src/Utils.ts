@@ -20,21 +20,33 @@
  */
 import { v4 as uuidV4 } from 'uuid';
 
+import Conversion from './Conversion';
+import { generateError } from './FsOps';
+
 /**
  * PostgreSQL has a limit of 63 characters for identifier names.
  * This function substitutes a postfix of possibly long identifiers with UUID string to ensure identifier uniqueness.
  */
 export const getUniqueIdentifier = (identifier: string, mandatoryPostfix: string = ''): string => {
-    const MAX_IDENTIFIER_LENGTH: number = 63;
+    const MAX_PG_IDENTIFIER_LENGTH: number = 63;
 
-    if (identifier.length > MAX_IDENTIFIER_LENGTH) {
-        const uuidSliceStart: number = mandatoryPostfix.length === 0
-            ? mandatoryPostfix.length
-            : mandatoryPostfix.length - 1;
-
+    if (identifier.length > MAX_PG_IDENTIFIER_LENGTH) {
+        const mandatoryPostfixLength: number = mandatoryPostfix.length;
+        const uuidSliceStart: number = mandatoryPostfixLength === 0 ? mandatoryPostfixLength : mandatoryPostfixLength - 1;
         const uuid: string = uuidV4().slice(uuidSliceStart) + mandatoryPostfix;
-        return identifier.slice(0, (MAX_IDENTIFIER_LENGTH - uuid.length)) + uuid;
+        return identifier.slice(0, (MAX_PG_IDENTIFIER_LENGTH - uuid.length)) + uuid;
     }
 
     return identifier;
+};
+
+/**
+ * Kills a process specified by the pid.
+ */
+export const killProcess = (pid: number, conversion: Conversion): void => {
+    try {
+        process.kill(pid);
+    } catch (killError) {
+        generateError(conversion, `\t--[killProcess] ${ killError }`);
+    }
 };

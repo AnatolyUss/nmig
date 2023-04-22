@@ -23,7 +23,8 @@ import * as path from 'path';
 import { ChildProcess, fork } from 'child_process';
 import { EventEmitter } from 'events';
 
-import { log, generateError } from './FsOps';
+import { killProcess } from './Utils';
+import { log } from './FsOps';
 import { processConstraintsPerTable } from './ConstraintsProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import Conversion from './Conversion';
@@ -65,17 +66,6 @@ const getDataLoaderOptions = (conversion: Conversion): any => {
 };
 
 /**
- * Kills a process specified by the pid.
- */
-const killProcess = async (pid: number, conversion: Conversion): Promise<void> => {
-    try {
-        process.kill(pid);
-    } catch (killError) {
-        await generateError(conversion, `\t--[killProcess] ${ killError }`);
-    }
-};
-
-/**
  * Checks if all data chunks were processed.
  */
 const dataPoolProcessed = (conversion: Conversion): boolean => {
@@ -90,6 +80,7 @@ const dataPoolProcessed = (conversion: Conversion): boolean => {
 const getNumberOfSimultaneouslyRunningLoaderProcesses = (conversion: Conversion): number => {
     if (conversion._numberOfSimultaneouslyRunningLoaderProcesses !== 'DEFAULT') {
         return Math.min(
+            (os.cpus().length || 1),
             conversion._dataPool.length,
             conversion._maxEachDbConnectionPoolSize,
             <number>conversion._numberOfSimultaneouslyRunningLoaderProcesses,
@@ -118,7 +109,7 @@ const runLoaderProcess = (conversion: Conversion): void => {
     const loaderProcess: ChildProcess = fork(dataLoaderPath, getDataLoaderOptions(conversion));
     loaderProcessesCount++;
 
-    loaderProcess.on('message', async (signal: MessageToMaster) => {
+    loaderProcess.on('message', (signal: MessageToMaster) => {
         // Following actions are performed when a message from the loader process is accepted:
         // 1. Log an info regarding the just-populated table.
         // 2. Kill the loader process to release unused RAM as quick as possible.
@@ -129,7 +120,7 @@ const runLoaderProcess = (conversion: Conversion): void => {
             + ` "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
         log(conversion, msg);
-        await killProcess(<number>loaderProcess.pid, conversion);
+        killProcess(<number>loaderProcess.pid, conversion);
         loaderProcessesCount--;
         eventEmitter.emit(tableLoadingFinishedEvent, signal.tableName);
         runLoaderProcess(conversion);

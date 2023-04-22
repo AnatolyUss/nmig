@@ -20,11 +20,14 @@
  */
 import * as path from 'path';
 import { EventEmitter } from 'events';
+import { ChildProcess, fork } from 'child_process';
 
 import { Pool as MySQLPool } from 'mysql2';
 import { Pool as PgPool } from 'pg';
 
 import { Encoding } from './Encoding';
+import { LogMessage } from './LogMessage';
+import { LogMessageType } from './LogMessageType';
 
 export default class Conversion {
     /**
@@ -120,7 +123,7 @@ export default class Conversion {
     /**
      * Current version of source (MySQL) db.
      */
-    public _mysqlVersion: string | number;
+    public _mysqlVersion: string;
 
     /**
      * Node-MySQL connections pool.
@@ -209,10 +212,17 @@ export default class Conversion {
     public readonly _numberOfSimultaneouslyRunningLoaderProcesses: string | number;
 
     /**
+     * Logger is implemented as a child process.
+     * Note, here we hold only a reference to the logger process.
+     */
+    public logger?: ChildProcess;
+
+    /**
      * Constructor.
      */
-    public constructor(config: any) {
+    public constructor(config: any, avoidLogger: boolean = false) {
         this._config = config;
+        this.logger = avoidLogger ? undefined : this._setLogger();
         this._sourceConString = this._config.source;
         this._targetConString = this._config.target;
         this._logsDirPath = this._config.logsDirPath;
@@ -276,21 +286,47 @@ export default class Conversion {
     /**
      * Checks if there are actions to take other than data migration.
      */
-    public shouldMigrateOnlyData(): boolean {
-        return this._migrateOnlyData;
-    }
+    public shouldMigrateOnlyData = (): boolean => this._migrateOnlyData;
 
     /**
      * Checks if given value is integer number.
      */
-    private static _isIntNumeric(value: any): boolean {
-        return !isNaN(parseInt(value)) && isFinite(value);
-    }
+    private static _isIntNumeric = (value: any): boolean => !isNaN(parseInt(value)) && isFinite(value);
 
     /**
      * Initializes Conversion instance.
      */
-    public static initializeConversion(config: any): Promise<Conversion> {
-        return Promise.resolve(new Conversion(config));
-    }
+    public static initializeConversion = (config: any): Promise<Conversion> => Promise.resolve(new Conversion(config));
+
+    /**
+     * Starts a new logger process.
+     */
+    private _setLogger = (): ChildProcess => {
+        // A path to the FsOps.js file.
+        // !!!Notice, in runtime it points to ../dist/src/LogsProcessor.js and not LogsProcessor.ts
+        const loggerPath: string = path.join(__dirname, 'LogsProcessor.js');
+
+        const logger: ChildProcess = fork(loggerPath)
+            .on('error', (err: Error) => console.log(`\t--[_setLogger] Error: ${ JSON.stringify(err) }`))
+            .on('exit', (code: number | null) => {
+                console.log(`\t--[_setLogger] Process exited with code: ${ code || 'exit-code unknown' }`);
+
+                if (code !== 0) {
+                    console.log('\t--[_setLogger] Restarting logging process...');
+                    this.logger = this._setLogger();
+                }
+            });
+
+        logger.send(
+            new LogMessage(
+                LogMessageType.CONFIG,
+                undefined,
+                undefined,
+                undefined,
+                this._config,
+            )
+        );
+
+        return logger;
+    };
 }

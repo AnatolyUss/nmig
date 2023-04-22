@@ -38,6 +38,9 @@ import { PoolConnection } from 'mysql2';
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
 const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
 
+/**
+ * Processes incoming messages from the DataPipeManager.
+ */
 process.on('message', async (signal: MessageToDataLoader) => {
     const { config, chunk } = signal;
     const conv: Conversion = new Conversion(config);
@@ -81,9 +84,9 @@ const deleteChunk = async (
             await enableTriggers(conversion, client, <string>originalSessionReplicationRole);
         }
     } catch (error) {
-        await generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
+        generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
     } finally {
-        await DBAccess.releaseDbClient(conversion, client);
+        DBAccess.releaseDbClient(conversion, client);
     }
 };
 
@@ -100,7 +103,7 @@ const processDataError = async (
     client: PoolClient,
     originalSessionReplicationRole: string | null
 ): Promise<void> => {
-    await generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
+    generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
     const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
     log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
     await deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
@@ -238,7 +241,7 @@ const disableTriggers = async (conversion: Conversion, client: PoolClient): Prom
         sql = 'SET session_replication_role = replica;';
         await client.query(sql);
     } catch (error) {
-        await generateError(conversion, `\t--[DataLoader::disableTriggers] ${ error }`, sql);
+        generateError(conversion, `\t--[DataLoader::disableTriggers] ${ error }`, sql);
     }
 
     return originalSessionReplicationRole;
@@ -258,6 +261,6 @@ const enableTriggers = async (
     try {
         await client.query(sql);
     } catch (error) {
-        await generateError(conversion, `\t--[DataLoader::enableTriggers] ${ error }`, sql);
+        generateError(conversion, `\t--[DataLoader::enableTriggers] ${ error }`, sql);
     }
 };
