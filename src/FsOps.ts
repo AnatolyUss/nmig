@@ -20,7 +20,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import {ChildProcess} from 'child_process';
+import { ChildProcess } from 'child_process';
 
 import Conversion from './Conversion';
 import { LogMessage } from './LogMessage';

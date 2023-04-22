@@ -33,23 +33,17 @@ const isSpacial = (type: string): boolean => {
 /**
  * Defines if given type is one of MySQL binary types.
  */
-const isBinary = (type: string): boolean => {
-    return type.indexOf('blob') !== -1 || type.indexOf('binary') !== -1;
-};
+const isBinary = (type: string): boolean => type.indexOf('blob') !== -1 || type.indexOf('binary') !== -1;
 
 /**
  * Defines if given type is one of MySQL bit types.
  */
-const isBit = (type: string): boolean => {
-    return type.indexOf('bit') !== -1;
-};
+const isBit = (type: string): boolean => type.indexOf('bit') !== -1;
 
 /**
  * Defines if given type is one of MySQL date-time types.
  */
-const isDateTime = (type: string): boolean => {
-    return type.indexOf('timestamp') !== -1 || type.indexOf('date') !== -1;
-};
+const isDateTime = (type: string): boolean => type.indexOf('timestamp') !== -1 || type.indexOf('date') !== -1;
 
 /**
  * Defines if given type is one of MySQL numeric types.
@@ -64,15 +58,23 @@ const isNumeric = (type: string): boolean => {
 };
 
 /**
+ * Returns type name, while dropping unnecessary parts.
+ * Sample:
+ * 1. "enum" instead of "enum('val1','val2','val3')".
+ * 2. "int" instead of "int(11)".
+ */
+const getSanitizedType = (type: string): string => type.split('(')[0];
+
+/**
  * Arranges columns data before loading.
  */
-export default (arrTableColumns: any[], mysqlVersion: string | number, encoding: Encoding): string => {
+export default (arrTableColumns: any[], mysqlVersion: number, encoding: Encoding): string => {
     let strRetVal: string = '';
     const wkbFunc: string = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
     arrTableColumns.forEach((column: any) => {
         const field: string = column.Field;
-        const type: string  = column.Type;
+        const type: string = getSanitizedType(column.Type);
 
         if (isSpacial(type)) {
             // Apply HEX(ST_AsWKB(...)) due to the issue, described at https://bugs.mysql.com/bug.php?id=69798

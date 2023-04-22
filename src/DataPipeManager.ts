@@ -80,6 +80,7 @@ const dataPoolProcessed = (conversion: Conversion): boolean => {
 const getNumberOfSimultaneouslyRunningLoaderProcesses = (conversion: Conversion): number => {
     if (conversion._numberOfSimultaneouslyRunningLoaderProcesses !== 'DEFAULT') {
         return Math.min(
+            (os.cpus().length || 1),
             conversion._dataPool.length,
             conversion._maxEachDbConnectionPoolSize,
             <number>conversion._numberOfSimultaneouslyRunningLoaderProcesses,

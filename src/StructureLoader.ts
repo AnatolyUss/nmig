@@ -41,10 +41,10 @@ const processTableBeforeDataLoading = async (conversion: Conversion, tableName: 
 /**
  * Retrieves the source db (MySQL) version.
  */
-const getMySqlVersion = async (conversion: Conversion): Promise<void> => {
+const setMySqlVersion = async (conversion: Conversion): Promise<void> => {
     const params: IDBAccessQueryParams = {
         conversion: conversion,
-        caller: 'StructureLoader::getMySqlVersion',
+        caller: 'StructureLoader::setMySqlVersion',
         sql: 'SELECT VERSION() AS mysql_version;',
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
@@ -60,7 +60,7 @@ const getMySqlVersion = async (conversion: Conversion): Promise<void> => {
     const arrVersion: string[] = result.data[0].mysql_version.split('.');
     const majorVersion: string = arrVersion[0];
     const minorVersion: string = arrVersion.slice(1).join('');
-    conversion._mysqlVersion = +(`${ majorVersion }.${ minorVersion }`);
+    conversion._mysqlVersion = `${ majorVersion }.${ minorVersion }`;
 };
 
 /**
@@ -68,7 +68,7 @@ const getMySqlVersion = async (conversion: Conversion): Promise<void> => {
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'StructureLoader::default';
-    await getMySqlVersion(conversion);
+    await setMySqlVersion(conversion);
     const haveTablesLoaded: boolean = await migrationStateManager.get(conversion, 'tables_loaded');
     let sql: string = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\` WHERE 1 = 1`;
 

@@ -123,7 +123,7 @@ export default class Conversion {
     /**
      * Current version of source (MySQL) db.
      */
-    public _mysqlVersion: string | number;
+    public _mysqlVersion: string;
 
     /**
      * Node-MySQL connections pool.
@@ -309,7 +309,7 @@ export default class Conversion {
      */
     private _setLogger = (): ChildProcess => {
         // A path to the FsOps.js file.
-        // !!!Notice, in runtime it points to ../dist/src/LogsProcessor.js and not FsOps.ts
+        // !!!Notice, in runtime it points to ../dist/src/LogsProcessor.js and not LogsProcessor.ts
         const loggerPath: string = path.join(__dirname, 'LogsProcessor.js');
 
         const logger: ChildProcess = fork(loggerPath)
