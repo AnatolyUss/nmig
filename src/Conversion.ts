@@ -286,23 +286,17 @@ export default class Conversion {
     /**
      * Checks if there are actions to take other than data migration.
      */
-    public shouldMigrateOnlyData = (): boolean => {
-        return this._migrateOnlyData;
-    };
+    public shouldMigrateOnlyData = (): boolean => this._migrateOnlyData;
 
     /**
      * Checks if given value is integer number.
      */
-    private static _isIntNumeric = (value: any): boolean => {
-        return !isNaN(parseInt(value)) && isFinite(value);
-    };
+    private static _isIntNumeric = (value: any): boolean => !isNaN(parseInt(value)) && isFinite(value);
 
     /**
      * Initializes Conversion instance.
      */
-    public static initializeConversion = (config: any): Promise<Conversion> => {
-        return Promise.resolve(new Conversion(config));
-    };
+    public static initializeConversion = (config: any): Promise<Conversion> => Promise.resolve(new Conversion(config));
 
     /**
      * Starts a new logger process.
