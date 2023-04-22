@@ -43,6 +43,7 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
         +(conversion._mysqlVersion.split(".").slice(0, 2).join(".")),
         conversion._encoding,
     );
+
     const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const params: IDBAccessQueryParams = {
         conversion: conversion,

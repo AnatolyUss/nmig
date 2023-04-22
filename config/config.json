@@ -8,10 +8,11 @@
         "Connection parameters to your MySQL database",
         "Please ensure, that you have defined all parameters properly.",
         "Ensure, that details like 'charset' are included (if necessary).",
-        "Notice, any parameter, acceptable by the node mysql module can be placed here."
+        "Note, any parameter, acceptable by the node mysql module can be placed here.",
+        "Check the 'source.host' parameter, that can be either '127.0.0.1' or 'localhost', depends on your setup."
     ],
     "source" : {
-        "host"             : "localhost",
+        "host"             : "127.0.0.1",
         "port"             : 3306,
         "database"         : "test_db",
         "charset"          : "utf8mb4",
@@ -24,10 +25,11 @@
         "Connection parameters to your PostgreSQL database",
         "Please ensure, that you have defined all parameters properly.",
         "Ensure, that details like 'charset' are included (if necessary).",
-        "Notice, any parameter, acceptable by the node pg module can be placed here."
+        "Note, any parameter, acceptable by the node pg module can be placed here.",
+        "Check the 'target.host' parameter, that can be either '127.0.0.1' or 'localhost', depends on your setup."
     ],
     "target" : {
-        "host"     : "localhost",
+        "host"     : "127.0.0.1",
         "port"     : 5432,
         "database" : "test_db",
         "charset"  : "UTF8",
@@ -48,7 +50,7 @@
         "Acceptable values:",
         "1. 'DEFAULT' - when set to 'DEFAULT', Nmig will run 2 data-loader processes.",
         "2. Any positive integer.",
-        "Notice:",
+        "Note:",
         "1.",
         "Usually, migration gets accomplished faster with only 2 data-loader processes,",
         "even if more CPU cores are available.",
