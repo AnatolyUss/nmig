@@ -123,7 +123,7 @@ export default class Conversion {
     /**
      * Current version of source (MySQL) db.
      */
-    public _mysqlVersion: string | number;
+    public _mysqlVersion: string;
 
     /**
      * Node-MySQL connections pool.
