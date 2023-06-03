@@ -23,12 +23,10 @@ import { PoolClient } from 'pg';
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import DBVendors from './DBVendors';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
- * Decodes binary data from from textual representation in string.
+ * Decodes binary data from textual representation in string.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'BinaryDataDecoder::decodeBinaryData';
@@ -40,7 +38,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
           AND table_schema = '${ conversion._schema }' 
           AND data_type IN ('bytea', 'geometry');`;
 
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
         sql: sql,
@@ -53,19 +51,20 @@ export default async (conversion: Conversion): Promise<Conversion> => {
 
     if (result.error) {
         // No need to continue if no 'bytea' or 'geometry' columns found.
-        DBAccess.releaseDbClient(conversion, <PoolClient>result.client);
+        DBAccess.releaseDbClient(conversion, result.client as PoolClient);
         return conversion;
     }
 
-    const decodePromises: Promise<void>[] = result.data.rows.map(async (row: any) => {
+    const _cb = async (row: any): Promise<void> => {
         const tableName: string = row.table_name;
         const columnName: string = row.column_name;
         params.sql = `UPDATE ${ conversion._schema }."${ tableName }"
                 SET "${ columnName }" = DECODE(ENCODE("${ columnName }", 'escape'), 'hex');`;
 
         await DBAccess.query(params);
-    });
+    };
 
+    const decodePromises: Promise<void>[] = result.data.rows.map(_cb);
     await Promise.all(decodePromises);
     return conversion;
 };

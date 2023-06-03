@@ -18,30 +18,28 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as path from 'path';
-
-import { log, generateError } from './FsOps';
-import Conversion from './Conversion';
-import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import DBVendors from './DBVendors';
-import MessageToMaster from './MessageToMaster';
-import MessageToDataLoader from './MessageToDataLoader';
-import { dataTransferred } from './ConsistencyEnforcer';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
-import * as extraConfigProcessor from './ExtraConfigProcessor';
-import { getDataPoolTableName } from './DataPoolManager';
+import * as path from 'node:path';
+import { ChildProcess, spawn } from 'node:child_process';
+import { Readable, Writable, Duplex as DuplexStream, promises as streamPromises } from 'node:stream';
 
 import { PoolClient, QueryResult } from 'pg';
 import { PoolConnection } from 'mysql2';
-
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
 const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
+
+import { log, generateError } from './FsOps';
+import { CopyStreamSerializableParams, MessageToDataWriter, MessageToDataReader } from './Types';
+import Conversion from './Conversion';
+import DBAccess from './DBAccess';
+import { dataTransferred } from './ConsistencyEnforcer';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, MessageToMaster } from './Types';
+import * as extraConfigProcessor from './ExtraConfigProcessor';
+import { getDataPoolTableName } from './DataPoolManager';
 
 /**
  * Processes incoming messages from the DataPipeManager.
  */
-process.on('message', async (signal: MessageToDataLoader) => {
+process.on('message', async (signal: MessageToDataReader): Promise<void> => {
     const { config, chunk } = signal;
     const conv: Conversion = new Conversion(config);
     log(conv, `\t--[NMIG loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
@@ -49,7 +47,7 @@ process.on('message', async (signal: MessageToDataLoader) => {
     const isRecoveryMode: boolean = await dataTransferred(conv, chunk._id);
 
     if (!isRecoveryMode) {
-        await populateTableWorker(conv, chunk._tableName, chunk._selectFieldList, chunk._rowsCnt, chunk._id);
+        await populateTableWorker(conv, chunk);
         return;
     }
 
@@ -69,11 +67,11 @@ const processSend = (x: any): void => {
 /**
  * Deletes given record from the data-pool.
  */
-const deleteChunk = async (
+export const deleteChunk = async (
     conversion: Conversion,
     dataPoolId: number,
     client: PoolClient,
-    originalSessionReplicationRole: string | null = null
+    originalSessionReplicationRole: string | null = null,
 ): Promise<void> => {
     const sql: string = `DELETE FROM ${ getDataPoolTableName(conversion) } WHERE id = ${ dataPoolId };`;
 
@@ -81,10 +79,10 @@ const deleteChunk = async (
         await client.query(sql);
 
         if (originalSessionReplicationRole) {
-            await enableTriggers(conversion, client, <string>originalSessionReplicationRole);
+            await enableTriggers(conversion, client, originalSessionReplicationRole as string);
         }
     } catch (error) {
-        generateError(conversion, `\t--[DataLoader::deleteChunk] ${ error }`, sql);
+        generateError(conversion, `\t--[DataReader::deleteChunk] ${ error }`, sql);
     } finally {
         DBAccess.releaseDbClient(conversion, client);
     }
@@ -93,7 +91,7 @@ const deleteChunk = async (
 /**
  * Processes data-loading error.
  */
-const processDataError = async (
+export const processDataError = async (
     conv: Conversion,
     streamError: string,
     sql: string,
@@ -101,25 +99,29 @@ const processDataError = async (
     tableName: string,
     dataPoolId: number,
     client: PoolClient,
-    originalSessionReplicationRole: string | null
+    originalSessionReplicationRole: string | null,
 ): Promise<void> => {
     generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
     const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
     log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
     await deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
-    processSend(new MessageToMaster(tableName, 0));
+    const messageToMaster: MessageToMaster = {
+        tableName: tableName,
+        totalRowsToInsert: 0,
+    };
+
+    processSend(messageToMaster);
 };
 
 /**
  * Loads a chunk of data using "PostgreSQL COPY".
  */
-const populateTableWorker = async (
-    conv: Conversion,
-    tableName: string,
-    strSelectFieldList: string,
-    rowsCnt: number,
-    dataPoolId: number
-): Promise<void> => {
+const populateTableWorker = async (conv: Conversion, chunk: any): Promise<void> => {
+    const tableName: string = chunk._tableName;
+    const strSelectFieldList: string = chunk._selectFieldList;
+    const rowsCnt: number = chunk._rowsCnt;
+    const dataPoolId: number = chunk._id;
+
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
     const sql: string = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
     const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
@@ -131,56 +133,106 @@ const populateTableWorker = async (
         originalSessionReplicationRole = await disableTriggers(conv, client);
     }
 
-    const copyStream: any = getCopyStream(
+    const json2csvStream: DuplexStream = await getJson2csvStream(
         conv,
-        client,
-        sqlCopy,
-        sql,
-        tableName,
-        rowsCnt,
+        originalTableName,
         dataPoolId,
-        originalSessionReplicationRole
+        client,
+        originalSessionReplicationRole,
     );
 
-    const json2csvStream = await getJson2csvStream(conv, originalTableName, dataPoolId, client, originalSessionReplicationRole);
-    const mysqlClientErrorHandler = async (err: string) => {
+    const mysqlClientErrorHandler = async (err: string): Promise<void> => {
         await processDataError(conv, err, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
     };
 
-    mysqlClient
+    const cliArgs: string[] = [path.join(__dirname, 'DataWriter.js')];
+
+    if (conv._readerMaxOldSpaceSize !== 'DEFAULT') {
+        // Note, all the child-process params are equally applicable to both "DataReader" and "DataWriter" processes.
+        cliArgs.push(`--max-old-space-size=${ conv._readerMaxOldSpaceSize }`);
+    }
+
+    const dataWriter: ChildProcess = spawn(process.execPath, cliArgs, { stdio: ['pipe', 1, 2, 'ipc'] });
+    const messageToDataWriter: MessageToDataWriter = {
+        config: conv._config,
+        chunk: chunk,
+        copyStreamSerializableParams: {
+            sqlCopy,
+            sql,
+            tableName,
+            dataPoolId,
+            originalSessionReplicationRole,
+        },
+    };
+
+    const _dataWriterOnExitCallback = async (code: number): Promise<void> => {
+        // Note, no need to "kill" the DataWriter, since it has already exited successfully.
+        log(
+            conv,
+            `\t--[NMIG loadData] DataWriter process (table "${ tableName }") exited with code ${ code }`,
+        );
+
+        // COPY FROM STDIN does not return the number of rows inserted.
+        // But the transactional behavior still applies, meaning no records inserted if at least one failed.
+        // That is why in case of 'on finish' the rowsCnt value is actually the number of records inserted.
+        await deleteChunk(conv, dataPoolId, client);
+        const messageToMaster: MessageToMaster = {
+            tableName: tableName,
+            totalRowsToInsert: rowsCnt,
+        };
+
+        processSend(messageToMaster);
+    };
+
+    dataWriter
+        .on('exit', _dataWriterOnExitCallback)
+        .send(messageToDataWriter);
+
+    const dataReaderStream: Readable = mysqlClient
         .query(sql)
         .on('error', mysqlClientErrorHandler)
-        .stream({ highWaterMark: conv._streamsHighWaterMark })
-        .pipe(json2csvStream)
-        .pipe(copyStream);
+        .stream({ highWaterMark: conv._streamsHighWaterMark });
+
+    // TODO: should I apply errors-handling using "catch"?
+    await streamPromises.pipeline(dataReaderStream, json2csvStream, dataWriter.stdin as Writable);
+    // mysqlClient
+    //     .query(sql)
+    //     .on('error', mysqlClientErrorHandler)
+    //     .stream({ highWaterMark: conv._streamsHighWaterMark })
+    //     .pipe(json2csvStream)
+    //     .pipe(dataWriter.stdin as Writable);
 };
 
 /**
  * Returns new PostgreSQL copy stream object.
  */
-const getCopyStream = (
+export const getCopyStream = (
     conv: Conversion,
     client: PoolClient,
-    sqlCopy: string,
-    sql: string,
-    tableName: string,
-    rowsCnt: number,
-    dataPoolId: number,
-    originalSessionReplicationRole: string | null
-): any => {
-    const copyStream: any = client.query(from(sqlCopy));
+    copyStreamSerializableParams: CopyStreamSerializableParams,
+): Writable => {
+    const {
+        sqlCopy,
+        sql,
+        tableName,
+        dataPoolId,
+        originalSessionReplicationRole,
+    } = copyStreamSerializableParams;
 
-    copyStream
-        .on('finish', async () => {
-            // COPY FROM STDIN does not return the number of rows inserted.
-            // But the transactional behavior still applies, meaning no records inserted if at least one failed.
-            // That is why in case of 'on finish' the rowsCnt value is actually the number of records inserted.
-            processSend(new MessageToMaster(tableName, rowsCnt));
-            await deleteChunk(conv, dataPoolId, client);
-        })
-        .on('error', async (copyStreamError: string) => {
-            await processDataError(conv, copyStreamError, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
-        });
+    const copyStream: Writable = client.query(from(sqlCopy));
+
+    copyStream.on('error', async (copyStreamError: string): Promise<void> => {
+        await processDataError(
+            conv,
+            copyStreamError,
+            sql,
+            sqlCopy,
+            tableName,
+            dataPoolId,
+            client,
+            originalSessionReplicationRole,
+        );
+    });
 
     return copyStream;
 };
@@ -193,15 +245,15 @@ const getJson2csvStream = async (
     originalTableName: string,
     dataPoolId: number,
     client: PoolClient,
-    originalSessionReplicationRole: string | null
-): Promise<any> => {
-    const params: IDBAccessQueryParams = {
+    originalSessionReplicationRole: string | null,
+): Promise<DuplexStream> => {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
-        caller: 'DataLoader::populateTableWorker',
+        caller: 'DataReader::populateTableWorker',
         sql: `SHOW COLUMNS FROM \`${ originalTableName }\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: true,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const tableColumnsResult: DBAccessQueryResult = await DBAccess.query(params);
@@ -209,19 +261,28 @@ const getJson2csvStream = async (
     const options: any = {
         delimiter: conversion._delimiter,
         header: false,
-        fields: tableColumnsResult.data.map((column: any) => column.Field)
+        fields: tableColumnsResult.data.map((column: any) => column.Field),
     };
 
     const streamTransformOptions: any = {
         highWaterMark: conversion._streamsHighWaterMark,
         objectMode: true,
-        encoding: conversion._encoding
+        encoding: conversion._encoding,
     };
 
     const json2CsvTransformStream = new Json2CsvTransform(options, streamTransformOptions);
 
-    json2CsvTransformStream.on('error', async (transformError: string) => {
-        await processDataError(conversion, transformError, '', '', originalTableName, dataPoolId, client, originalSessionReplicationRole);
+    json2CsvTransformStream.on('error', async (transformError: string): Promise<void> => {
+        await processDataError(
+            conversion,
+            transformError,
+            '',
+            '',
+            originalTableName,
+            dataPoolId,
+            client,
+            originalSessionReplicationRole,
+        );
     });
 
     return json2CsvTransformStream;
@@ -241,7 +302,7 @@ const disableTriggers = async (conversion: Conversion, client: PoolClient): Prom
         sql = 'SET session_replication_role = replica;';
         await client.query(sql);
     } catch (error) {
-        generateError(conversion, `\t--[DataLoader::disableTriggers] ${ error }`, sql);
+        generateError(conversion, `\t--[DataReader::disableTriggers] ${ error }`, sql);
     }
 
     return originalSessionReplicationRole;
@@ -254,13 +315,13 @@ const disableTriggers = async (conversion: Conversion, client: PoolClient): Prom
 const enableTriggers = async (
     conversion: Conversion,
     client: PoolClient,
-    originalSessionReplicationRole: string
+    originalSessionReplicationRole: string,
 ): Promise<void> => {
     const sql: string = `SET session_replication_role = ${ originalSessionReplicationRole };`;
 
     try {
         await client.query(sql);
     } catch (error) {
-        generateError(conversion, `\t--[DataLoader::enableTriggers] ${ error }`, sql);
+        generateError(conversion, `\t--[DataReader::enableTriggers] ${ error }`, sql);
     }
 };

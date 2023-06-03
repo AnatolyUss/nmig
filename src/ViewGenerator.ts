@@ -18,17 +18,14 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as fs from 'fs';
-import * as path from 'path';
-import ErrnoException = NodeJS.ErrnoException;
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
-import DBVendors from './DBVendors';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
@@ -52,15 +49,15 @@ const generateView = (schema: string, viewName: string, mysqlViewCode: string): 
  * Writes a log, containing a view code.
  */
 const logNotCreatedView = (conversion: Conversion, viewName: string, sql: string): Promise<void> => {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>(resolve => {
         const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`);
-        fs.open(viewFilePath,'w', conversion._0777, (error: ErrnoException | null, fd: number) => {
+        fs.open(viewFilePath,'w', conversion._0777, (error: NodeJS.ErrnoException | null, fd: number) => {
             if (error) {
                 log(conversion, error);
                 return resolve();
             }
 
-            const buffer = Buffer.from(sql, conversion._encoding);
+            const buffer: Buffer = Buffer.from(sql, conversion._encoding);
             fs.write(fd, buffer, 0, buffer.length, null, () => {
                 fs.close(fd, () => {
                     return resolve();
@@ -82,14 +79,14 @@ export default async (conversion: Conversion): Promise<void> => {
 
     const logTitle: string = 'ViewGenerator::default';
 
-    const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(async (view: string) => {
-        const params: IDBAccessQueryParams = {
+    const _cb = async (view: string): Promise<void> => {
+        const params: DBAccessQueryParams = {
             conversion: conversion,
             caller: logTitle,
             sql: `SHOW CREATE VIEW \`${ view }\`;`,
             vendor: DBVendors.MYSQL,
             processExitOnError: false,
-            shouldReturnClient: false
+            shouldReturnClient: false,
         };
 
         const showCreateViewResult: DBAccessQueryResult = await DBAccess.query(params);
@@ -103,11 +100,13 @@ export default async (conversion: Conversion): Promise<void> => {
         const createPgViewResult: DBAccessQueryResult = await DBAccess.query(params);
 
         if (createPgViewResult.error) {
-            return logNotCreatedView(conversion, view, params.sql);
+            await logNotCreatedView(conversion, view, params.sql);
+            return;
         }
 
         log(conversion, `\t--[${ logTitle }] View "${ conversion._schema }"."${ view }" is created...`);
-    });
+    };
 
+    const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(_cb);
     await Promise.all(createViewPromises);
 };

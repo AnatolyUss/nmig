@@ -33,19 +33,29 @@ import Conversion from './Conversion';
  * Continues migration process after data loading.
  */
 export const processConstraints = async (conversion: Conversion): Promise<Conversion> => {
-    const isTableConstraintsLoaded: boolean = await migrationStateManager.get(conversion, 'per_table_constraints_loaded');
+    const isTableConstraintsLoaded: boolean = await migrationStateManager.get(
+        conversion,
+        'per_table_constraints_loaded',
+    );
+
     const migrateOnlyData: boolean = conversion.shouldMigrateOnlyData();
 
     if (!isTableConstraintsLoaded) {
-        const promises: Promise<void>[] = conversion._tablesToMigrate.map(async (tableName: string) => {
+        const _cb = async (tableName: string): Promise<void> => {
             await processConstraintsPerTable(conversion, tableName, migrateOnlyData);
-        });
+        };
 
+        const promises: Promise<void>[] = conversion._tablesToMigrate.map(_cb);
         await Promise.all(promises);
     }
 
     if (migrateOnlyData) {
-        await migrationStateManager.set(conversion, 'per_table_constraints_loaded', 'foreign_keys_loaded', 'views_loaded');
+        await migrationStateManager.set(
+            conversion,
+            'per_table_constraints_loaded',
+            'foreign_keys_loaded',
+            'views_loaded',
+        );
     } else {
         await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
         await processForeignKey(conversion);
@@ -63,7 +73,7 @@ export const processConstraints = async (conversion: Conversion): Promise<Conver
 export const processConstraintsPerTable = async (
     conversion: Conversion,
     tableName: string,
-    migrateOnlyData: boolean
+    migrateOnlyData: boolean,
 ): Promise<void> => {
     if (migrateOnlyData) {
         return sequencesProcessor.setSequenceValue(conversion, tableName);

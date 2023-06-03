@@ -19,9 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
-import DBVendors from './DBVendors';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import { log } from './FsOps';
 import Conversion from './Conversion';
 
@@ -37,13 +35,13 @@ export const getStateLogsTableName = (conversion: Conversion, getRowName: boolea
  * Retrieves state-log.
  */
 export const get = async (conversion: Conversion, param: string): Promise<boolean> => {
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::get',
         sql: `SELECT ${ param } FROM ${ getStateLogsTableName(conversion) };`,
         vendor: DBVendors.PG,
         processExitOnError: true,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
@@ -54,14 +52,14 @@ export const get = async (conversion: Conversion, param: string): Promise<boolea
  * Updates the state-log.
  */
 export const set = async (conversion: Conversion, ...states: string[]): Promise<void> => {
-    const statesSql: string = states.map((state: string) => `${ state } = TRUE`).join(',');
-    const params: IDBAccessQueryParams = {
+    const statesSql: string = states.map((state: string): string => `${ state } = TRUE`).join(',');
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::set',
         sql: `UPDATE ${ getStateLogsTableName(conversion) } SET ${ statesSql };`,
         vendor: DBVendors.PG,
         processExitOnError: true,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     await DBAccess.query(params);
@@ -73,15 +71,18 @@ export const set = async (conversion: Conversion, ...states: string[]): Promise<
 export const createStateLogsTable = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'MigrationStateManager::createStateLogsTable';
     const sql: string = `CREATE TABLE IF NOT EXISTS ${ getStateLogsTableName(conversion) }(
-        "tables_loaded" BOOLEAN, "per_table_constraints_loaded" BOOLEAN, "foreign_keys_loaded" BOOLEAN, "views_loaded" BOOLEAN);`;
+        "tables_loaded" BOOLEAN,
+        "per_table_constraints_loaded" BOOLEAN,
+        "foreign_keys_loaded" BOOLEAN,
+        "views_loaded" BOOLEAN);`;
 
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: true,
-        shouldReturnClient: true
+        shouldReturnClient: true,
     };
 
     let result: DBAccessQueryResult = await DBAccess.query(params);
@@ -98,8 +99,7 @@ export const createStateLogsTable = async (conversion: Conversion): Promise<Conv
         return conversion;
     }
 
-    const msg: string = `\t--[${ logTitle }] table ${ getStateLogsTableName(conversion) } is created...`;
-    log(conversion, msg);
+    log(conversion, `\t--[${ logTitle }] table ${ getStateLogsTableName(conversion) } is created...`);
     return conversion;
 };
 
@@ -107,13 +107,13 @@ export const createStateLogsTable = async (conversion: Conversion): Promise<Conv
  * Drop the "{schema}"."state_logs_{self._schema + self._mySqlDbName}" temporary table.
  */
 export const dropStateLogsTable = async (conversion: Conversion): Promise<Conversion> => {
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'MigrationStateManager::dropStateLogsTable',
         sql: `DROP TABLE ${ getStateLogsTableName(conversion) };`,
         vendor: DBVendors.PG,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     await DBAccess.query(params);

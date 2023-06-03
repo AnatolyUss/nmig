@@ -32,7 +32,10 @@ export const getUniqueIdentifier = (identifier: string, mandatoryPostfix: string
 
     if (identifier.length > MAX_PG_IDENTIFIER_LENGTH) {
         const mandatoryPostfixLength: number = mandatoryPostfix.length;
-        const uuidSliceStart: number = mandatoryPostfixLength === 0 ? mandatoryPostfixLength : mandatoryPostfixLength - 1;
+        const uuidSliceStart: number = mandatoryPostfixLength === 0
+            ? mandatoryPostfixLength
+            : mandatoryPostfixLength - 1;
+
         const uuid: string = uuidV4().slice(uuidSliceStart) + mandatoryPostfix;
         return identifier.slice(0, (MAX_PG_IDENTIFIER_LENGTH - uuid.length)) + uuid;
     }
@@ -47,6 +50,6 @@ export const killProcess = (pid: number, conversion: Conversion): void => {
     try {
         process.kill(pid);
     } catch (killError) {
-        generateError(conversion, `\t--[killProcess] ${ killError }`);
+        generateError(conversion, `\t--[killProcess] pid: ${pid} killError: ${killError}`);
     }
 };

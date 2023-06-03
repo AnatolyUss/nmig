@@ -23,15 +23,17 @@ import arrangeColumnsData from './ColumnsDataArranger';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import DBVendors from './DBVendors';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 import { getDataPoolTableName } from './DataPoolManager';
 
 /**
  * Prepares an array of tables metadata.
  */
-export default async (conversion: Conversion, tableName: string, haveDataChunksProcessed: boolean): Promise<void> => {
+export default async (
+    conversion: Conversion,
+    tableName: string,
+    haveDataChunksProcessed: boolean,
+): Promise<void> => {
     if (haveDataChunksProcessed) {
         return;
     }
@@ -39,25 +41,31 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const logTitle: string = 'DataChunksProcessor::default';
     const selectFieldList: string = arrangeColumnsData(
-        conversion._dicTables[tableName].arrTableColumns,
+        (conversion._dicTables.get(tableName) as Table).arrTableColumns,
         +(conversion._mysqlVersion.split(".").slice(0, 2).join(".")),
         conversion._encoding,
     );
 
     const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'DataChunksProcessor::default',
         sql: sqlRowsCnt,
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const countResult: DBAccessQueryResult = await DBAccess.query(params);
     const rowsCnt: number = countResult.data[0].rows_count;
-    const msg: string = `\t--[${ logTitle }] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
-    log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
+    const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
+
+    log(
+        conversion,
+        `\t--[${ logTitle }] Total rows to insert into ${ fullTableName }: ${ rowsCnt }`,
+        (conversion._dicTables.get(tableName) as Table).tableLogPath,
+    );
+
     const metadata: string = JSON.stringify({
         _tableName: tableName,
         _selectFieldList: selectFieldList,
@@ -68,6 +76,5 @@ export default async (conversion: Conversion, tableName: string, haveDataChunksP
     params.vendor = DBVendors.PG;
     params.client = undefined;
     params.bindings = [metadata];
-
     await DBAccess.query(params);
 };

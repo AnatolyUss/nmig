@@ -21,10 +21,8 @@
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBVendors from './DBVendors';
-import DBAccessQueryResult from './DBAccessQueryResult';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Escapes quotes inside given string.
@@ -43,13 +41,13 @@ const processTableComments = async (conversion: Conversion, tableName: string): 
         WHERE table_schema = '${ conversion._mySqlDbName }' 
         AND table_name = '${ extraConfigProcessor.getTableName(conversion, tableName, true) }';`;
 
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
         sql: sqlSelectComment,
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const resultSelectComment: DBAccessQueryResult = await DBAccess.query(params);
@@ -67,8 +65,11 @@ const processTableComments = async (conversion: Conversion, tableName: string): 
         return;
     }
 
-    const successMsg: string = `\t--[${ logTitle }] Successfully set comment for table "${ conversion._schema }"."${ tableName }"`;
-    log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+    log(
+        conversion,
+        `\t--[${ logTitle }] Successfully set comment for table "${ conversion._schema }"."${ tableName }"`,
+        (conversion._dicTables.get(tableName) as Table).tableLogPath,
+    );
 };
 
 /**
@@ -77,21 +78,28 @@ const processTableComments = async (conversion: Conversion, tableName: string): 
 const processColumnsComments = async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'CommentsProcessor::processColumnsComments';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
 
-    const commentPromises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
+    const _cb = async (column: any): Promise<void> => {
         if (column.Comment === '') {
             return;
         }
 
-        const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
-        const comment = escapeQuotes(column.Comment);
-        const params: IDBAccessQueryParams = {
+        const columnName: string = extraConfigProcessor.getColumnName(
+            conversion,
+            originalTableName,
+            column.Field,
+            false,
+        );
+
+        const comment: string = escapeQuotes(column.Comment);
+        const params: DBAccessQueryParams = {
             conversion: conversion,
             caller: logTitle,
-            sql: `COMMENT ON COLUMN "${ conversion._schema }"."${ tableName }"."${ columnName }" IS '${ comment }';`,
+            sql: `COMMENT ON COLUMN ${ fullTableName }."${ columnName }" IS '${ comment }';`,
             vendor: DBVendors.PG,
             processExitOnError: false,
-            shouldReturnClient: false
+            shouldReturnClient: false,
         };
 
         const createCommentResult: DBAccessQueryResult = await DBAccess.query(params);
@@ -100,10 +108,14 @@ const processColumnsComments = async (conversion: Conversion, tableName: string)
             return;
         }
 
-        const successMsg: string = `\t--[${ logTitle }] Set comment for "${ conversion._schema }"."${ tableName }" column: "${ columnName }"...`;
-        log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
-    });
+        log(
+            conversion,
+            `\t--[${ logTitle }] Set comment for ${ fullTableName } column: "${ columnName }"...`,
+            (conversion._dicTables.get(tableName) as Table).tableLogPath,
+        );
+    };
 
+    const commentPromises: Promise<void>[] = (conversion._dicTables.get(tableName) as Table).arrTableColumns.map(_cb);
     await Promise.all(commentPromises);
 };
 
@@ -113,9 +125,9 @@ const processColumnsComments = async (conversion: Conversion, tableName: string)
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'CommentsProcessor::default';
     const msg: string = `\t--[${ logTitle }] Creates comments for table "${ conversion._schema }"."${ tableName }"...`;
-    log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
+    log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
     await Promise.all([
         processTableComments(conversion, tableName),
-        processColumnsComments(conversion, tableName)
+        processColumnsComments(conversion, tableName),
     ]);
 };

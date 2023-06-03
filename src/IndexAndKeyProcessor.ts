@@ -21,9 +21,7 @@
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBVendors from './DBVendors';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table, Index } from './Types';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getUniqueIdentifier } from './Utils';
 
@@ -40,13 +38,13 @@ const getIndexType = (conversion: Conversion, indexType: string): string => {
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'IndexAndKeyProcessor::default';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
         sql: `SHOW INDEX FROM \`${ originalTableName }\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const showIndexResult: DBAccessQueryResult = await DBAccess.query(params);
@@ -55,46 +53,60 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         return;
     }
 
-    const objPgIndices: any = Object.create(null);
+    const pgIndices: Map<string, Index> = new Map<string, Index>();
 
     showIndexResult.data.forEach((index: any) => {
-        const pgColumnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, index.Column_name, false);
+        const pgColumnName: string = extraConfigProcessor.getColumnName(
+            conversion,
+            originalTableName,
+            index.Column_name,
+            false,
+        );
 
-        if (index.Key_name in objPgIndices) {
-            objPgIndices[index.Key_name].column_name.push(`"${ pgColumnName }"`);
-            return;
+        if (pgIndices.has(index.Key_name)) {
+            (pgIndices.get(index.Key_name) as Index).column_name.push(`"${ pgColumnName }"`);
+            return; // Continue to the next iteration.
         }
 
-        objPgIndices[index.Key_name] = {
+        pgIndices.set(index.Key_name, {
             is_unique: index.Non_unique === 0,
             column_name: [`"${ pgColumnName }"`],
             index_type: ` USING ${ getIndexType(conversion, index.Index_type) }`,
-        };
+        });
     });
 
-    const addIndexPromises: Promise<void>[] = Object.keys(objPgIndices).map(async (index: string) => {
+    const _cb = async (index: string): Promise<void> => {
         let sqlAddIndex: string = '';
+        const currentIndex: Index = pgIndices.get(index) as Index;
 
         if (index.toLowerCase() === 'primary') {
             sqlAddIndex = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
-                ADD PRIMARY KEY(${ objPgIndices[index].column_name.join(',') });`;
+                ADD PRIMARY KEY(${ currentIndex.column_name.join(',') });`;
         } else {
-            const columnName: string = objPgIndices[index].column_name
+            const columnName: string = currentIndex.column_name
                 .map((colName: string) => colName.slice(1, -1))
                 .join('_');
 
-            const indexName: string = getUniqueIdentifier(`${ tableName }_${ columnName }_idx`, '_idx');
-            sqlAddIndex = `CREATE ${ (objPgIndices[index].is_unique ? 'UNIQUE ' : '') }INDEX "${ indexName }" 
+            const indexName: string = getUniqueIdentifier(
+                `${ tableName }_${ columnName }_idx`,
+                '_idx',
+            );
+
+            sqlAddIndex = `CREATE ${ (currentIndex.is_unique ? 'UNIQUE' : '') } INDEX "${ indexName }" 
             ON "${ conversion._schema }"."${ tableName }" 
-            ${ objPgIndices[index].index_type } (${ objPgIndices[index].column_name.join(',') });`;
+            ${ currentIndex.index_type } (${ currentIndex.column_name.join(',') });`;
         }
 
         params.vendor = DBVendors.PG;
         params.sql = sqlAddIndex;
         await DBAccess.query(params);
-    });
+    };
 
+    const addIndexPromises: Promise<void>[] = Array.from(pgIndices.keys()).map(_cb);
     await Promise.all(addIndexPromises);
-    const successMsg: string = `\t--[${ logTitle }] "${ conversion._schema }"."${ tableName }": PK/indices are successfully set...`;
-    log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+    log(
+        conversion,
+        `\t--[${ logTitle }] "${ conversion._schema }"."${ tableName }": PK/indices are successfully set...`,
+        (conversion._dicTables.get(tableName) as Table).tableLogPath,
+    );
 };

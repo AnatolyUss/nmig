@@ -18,14 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as path from 'path';
+import * as path from 'node:path';
 
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import DBVendors from './DBVendors';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
-import IConfAndLogsPaths from './IConfAndLogsPaths';
+import { ConfAndLogsPaths, DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import { getStateLogsTableName } from './MigrationStateManager';
 import { generateError, log } from './FsOps';
 
@@ -34,13 +31,13 @@ import { generateError, log } from './FsOps';
  */
 export const checkConnection = async (conversion: Conversion): Promise<string> => {
     let resultMessage: string = '';
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'BootProcessor::checkConnection',
         sql: 'SELECT 1;',
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const mySqlResult: DBAccessQueryResult = await DBAccess.query(params);
@@ -80,21 +77,23 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
     }
 
     const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables`
-        + ` WHERE table_schema = '${ conversion._schema }' AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
+        + ` WHERE table_schema = '${ conversion._schema }'`
+        + ` AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
 
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'BootProcessor::boot',
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: true,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
     const isExists: boolean = !!result.data.rows[0].exists;
     const message: string = `${ (isExists
-        ? '\n\t--[boot] NMIG is restarting after some failure.\n\t--[boot] Consider checking log files at the end of migration.\n'
+        ? '\n\t--[boot] NMIG is restarting after some failure.\n'
+          + '\t--[boot] Consider checking log files at the end of migration.\n'
         : '\n\t--[boot] NMIG is starting.') } \n`;
 
     log(conversion, `\t--[${ logTitle }] ${ logo }${ message }`);
@@ -106,10 +105,10 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
  * Returns an object containing paths to configuration files and to logs directory.
  *
  * Sample:
- * npm start -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
- * npm test -- --conf-dir='C:\Users\anatolyuss\Documents\projects\nmig_config' --logs-dir='C:\Users\anatolyuss\Documents\projects\nmig_logs'
+ * npm start -- --conf-dir='C:\Users\u\Docs\projects\nmig_config' --logs-dir='C:\Users\u\Docs\projects\nmig_logs'
+ * npm test -- --conf-dir='C:\Users\u\Docs\projects\nmig_config' --logs-dir='C:\Users\u\Docs\projects\nmig_logs'
  */
-export const getConfAndLogsPaths = (): IConfAndLogsPaths => {
+export const getConfAndLogsPaths = (): ConfAndLogsPaths => {
     const baseDir: string = path.join(__dirname, '..', '..');
     const _parseInputArguments = (paramName: string): string | undefined => {
         const _path: string | undefined = process.argv.find((arg: string) => arg.startsWith(paramName));
@@ -118,6 +117,6 @@ export const getConfAndLogsPaths = (): IConfAndLogsPaths => {
 
     return {
         confPath: _parseInputArguments('--conf-dir') || path.join(baseDir, 'config'),
-        logsPath: _parseInputArguments('--logs-dir') || baseDir
+        logsPath: _parseInputArguments('--logs-dir') || baseDir,
     };
 };

@@ -18,11 +18,9 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import DBAccessQueryResult from './DBAccessQueryResult';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBVendors from './DBVendors';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import { getDataPoolTableName } from './DataPoolManager';
 
 /**
@@ -34,13 +32,13 @@ import { getDataPoolTableName } from './DataPoolManager';
 export const dataTransferred = async (conversion: Conversion, dataPoolId: number): Promise<boolean> => {
     const dataPoolTable: string = getDataPoolTableName(conversion);
     const sqlGetMetadata: string = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'ConsistencyEnforcer::dataTransferred',
         sql: sqlGetMetadata,
         vendor: DBVendors.PG,
         processExitOnError: true,
-        shouldReturnClient: true
+        shouldReturnClient: true,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);

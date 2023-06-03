@@ -19,11 +19,9 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import DBVendors from './DBVendors';
 import { log } from './FsOps';
 import Conversion from './Conversion';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Returns the data pool table name.
@@ -39,13 +37,13 @@ export const createDataPoolTable = async (conversion: Conversion): Promise<Conve
     const logTitle: string = 'DataPoolManager::createDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
     const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: true,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     await DBAccess.query(params);
@@ -59,13 +57,13 @@ export const createDataPoolTable = async (conversion: Conversion): Promise<Conve
 export const dropDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'DataPoolManager::dropDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
         sql: `DROP TABLE ${ table };`,
         vendor: DBVendors.PG,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     await DBAccess.query(params);
@@ -79,13 +77,13 @@ export const dropDataPoolTable = async (conversion: Conversion): Promise<Convers
 export const readDataPool = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'DataPoolManager::readDataPool';
     const table: string = getDataPoolTableName(conversion);
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
         sql: `SELECT id AS id, metadata AS metadata FROM ${ table };`,
         vendor: DBVendors.PG,
         processExitOnError: true,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);

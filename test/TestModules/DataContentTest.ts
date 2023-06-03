@@ -23,24 +23,22 @@ import { Test } from 'tape';
 import Conversion from '../../src/Conversion';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import DBAccess from '../../src/DBAccess';
-import DBVendors from '../../src/DBVendors';
-import DBAccessQueryResult from '../../src/DBAccessQueryResult';
-import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 
 /**
  * Retrieves a data from `table_a`.
  */
 const retrieveData = async (testSchemaProcessor: TestSchemaProcessor): Promise<any> => {
     const sql: string = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
-        FROM ${ (<Conversion>testSchemaProcessor.conversion)._schema }.table_a AS table_a;`;
+        FROM ${ (testSchemaProcessor.conversion as Conversion)._schema }.table_a AS table_a;`;
 
-    const params: IDBAccessQueryParams = {
-        conversion: <Conversion>testSchemaProcessor.conversion,
+    const params: DBAccessQueryParams = {
+        conversion: testSchemaProcessor.conversion as Conversion,
         caller: 'DataContentTest::retrieveData',
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
@@ -55,11 +53,16 @@ const retrieveData = async (testSchemaProcessor: TestSchemaProcessor): Promise<a
 /**
  * The data content testing.
  */
-export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
+export default async (
+    testSchemaProcessor: TestSchemaProcessor,
+    tape: Test,
+): Promise<void> => {
     const data: any = await retrieveData(testSchemaProcessor);
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
     const numberOfPlannedAssertions: number = 24;
-    const originalTestBlobText: string = testSchemaProcessor.getTestBlob(<Conversion>testSchemaProcessor.conversion).toString();
+    const originalTestBlobText: string = testSchemaProcessor
+        .getTestBlob(testSchemaProcessor.conversion as Conversion)
+        .toString();
 
     tape.plan(numberOfPlannedAssertions);
     tape.timeoutAfter(autoTimeoutMs);
@@ -119,7 +122,10 @@ export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Pro
     tape.equal(data.varchar_5, 'abcde');
 
     tape.comment('Test date column value');
-    tape.equal(`${ data.date.getFullYear() }-${ data.date.getMonth() + 1 }-${ data.date.getDate() }`, '1984-11-30');
+    tape.equal(
+        `${ data.date.getFullYear() }-${ data.date.getMonth() + 1 }-${ data.date.getDate() }`,
+        '1984-11-30',
+    );
 
     tape.comment('Test time column value');
     tape.equal(data.time, '21:12:33');

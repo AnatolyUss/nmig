@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 import { log } from './FsOps';
 import Conversion from './Conversion';
@@ -28,11 +28,11 @@ import Conversion from './Conversion';
  */
 export default async (conversion: Conversion): Promise<void> => {
     if (conversion._runsInTestMode) {
-        (<EventEmitter>conversion._eventEmitter).emit(conversion._migrationCompletedEvent);
+        (conversion._eventEmitter as EventEmitter).emit(conversion._migrationCompletedEvent);
         return;
     }
 
-    let differenceSec: number = ((new Date()).getTime() - (<Date>conversion._timeBegin).getTime()) / 1000;
+    let differenceSec: number = ((new Date()).getTime() - (conversion._timeBegin as Date).getTime()) / 1000;
     const seconds: number = Math.floor(differenceSec % 60);
     differenceSec = differenceSec / 60;
     const minutes: number = Math.floor(differenceSec % 60);

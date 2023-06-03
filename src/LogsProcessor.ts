@@ -18,12 +18,10 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as fs from 'fs';
-import ErrnoException = NodeJS.ErrnoException;
+import * as fs from 'node:fs';
 
 import Conversion from './Conversion';
-import { LogMessage } from './LogMessage';
-import { LogMessageType } from './LogMessageType';
+import { LogMessage, LogMessageType } from './Types';
 
 /**
  * Writes a detailed error message to the "/errors-only.log" file.
@@ -38,13 +36,13 @@ const _generateErrorInBackground = (
         const buffer: Buffer = Buffer.from(message, conversion._encoding);
         await _logInBackground(conversion, message);
 
-        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
+        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: NodeJS.ErrnoException | null, fd: number) => {
             if (error) {
                 console.error(error);
                 return resolve();
             }
 
-            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: ErrnoException | null) => {
+            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
                 if (fsWriteError) {
                     console.error(fsWriteError);
                     // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
@@ -63,20 +61,20 @@ const _generateErrorInBackground = (
  */
 const _logInBackground = (
     conversion: Conversion,
-    log: string | ErrnoException,
+    log: string | NodeJS.ErrnoException,
     tableLogPath?: string,
 ): Promise<void> => {
     return new Promise<void>(resolve => {
         console.log(log);
         const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
 
-        fs.open(conversion._allLogsPath, 'a', conversion._0777, (err: ErrnoException | null, fd: number) => {
+        fs.open(conversion._allLogsPath, 'a', conversion._0777, (err: NodeJS.ErrnoException | null, fd: number) => {
             if (err) {
                 console.error(err);
                 return resolve();
             }
 
-            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: ErrnoException | null) => {
+            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
                 if (fsWriteError) {
                     console.error(fsWriteError);
                     // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
@@ -84,12 +82,12 @@ const _logInBackground = (
 
                 fs.close(fd, () => {
                     if (tableLogPath) {
-                        fs.open(tableLogPath, 'a', conversion._0777, (error: ErrnoException | null, fd: number) => {
+                        fs.open(tableLogPath, 'a', conversion._0777, (error: NodeJS.ErrnoException | null, fd: number) => {
                             if (error) {
                                 console.error(error);
                                 return resolve();
                             } else {
-                                fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: ErrnoException | null) => {
+                                fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
                                     if (fsWriteError) {
                                         console.error(fsWriteError);
                                         // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
@@ -116,7 +114,7 @@ let conv: Conversion;
 /**
  * Process incoming logs in a context of logger process.
  */
-process.on('message', async (_log: LogMessage) => {
+process.on('message', async (_log: LogMessage): Promise<void> => {
     try {
         if (_log.type === LogMessageType.CONFIG) {
             // Create Conversion instance, but avoid recursion,
@@ -124,13 +122,13 @@ process.on('message', async (_log: LogMessage) => {
             const avoidLogger: boolean = true;
             conv = conv || new Conversion(_log.config, avoidLogger);
         } else if (_log.type === LogMessageType.LOG) {
-            await _logInBackground(conv, <string>_log.message, _log.tableLogPath);
+            await _logInBackground(conv, _log.message as string, _log.tableLogPath);
         } else if (_log.type === LogMessageType.ERROR) {
-            await _generateErrorInBackground(conv, <string>_log.message, _log.sql);
+            await _generateErrorInBackground(conv, _log.message as string, _log.sql);
         } else if (_log.type === LogMessageType.EXIT) {
             // Migration has been just finished.
             // All resources must be released.
-            await _logInBackground(conv, <string>_log.message, _log.tableLogPath);
+            await _logInBackground(conv, _log.message as string, _log.tableLogPath);
             process.exit(0);
         }
     } catch (error) {

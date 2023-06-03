@@ -23,27 +23,25 @@ import { Test } from 'tape';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
-import DBVendors from '../../src/DBVendors';
-import DBAccessQueryResult from '../../src/DBAccessQueryResult';
-import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 
 /**
  * Returns `table_a` column types.
  */
 const getColumnTypes = async (testSchemaProcessor: TestSchemaProcessor): Promise<any[]> => {
     const sql: string = `SELECT column_name, data_type  
-                 FROM information_schema.columns
-                 WHERE table_catalog = '${ (<Conversion>testSchemaProcessor.conversion)._targetConString.database }' 
-                   AND table_schema = '${ (<Conversion>testSchemaProcessor.conversion)._schema }' 
-                   AND table_name = 'table_a';`;
+        FROM information_schema.columns
+        WHERE table_catalog = '${ (testSchemaProcessor.conversion as Conversion)._targetConString.database }' 
+            AND table_schema = '${ (testSchemaProcessor.conversion as Conversion)._schema }' 
+            AND table_name = 'table_a';`;
 
-    const params: IDBAccessQueryParams = {
-        conversion: <Conversion>testSchemaProcessor.conversion,
+    const params: DBAccessQueryParams = {
+        conversion: testSchemaProcessor.conversion as Conversion,
         caller: 'ColumnTypesTest::getColumnTypes',
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
@@ -99,14 +97,17 @@ const getExpectedColumnTypes = (): Map<string, string> => {
         ['tinyblob', 'bytea'],
         ['varbinary', 'bytea'],
         ['binary', 'bytea'],
-        ['null_char_in_varchar', 'character varying']
+        ['null_char_in_varchar', 'character varying'],
     ]);
 };
 
 /**
  * The data content testing.
  */
-export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
+export default async (
+    testSchemaProcessor: TestSchemaProcessor,
+    tape: Test,
+): Promise<void> => {
     const data: any[] = await getColumnTypes(testSchemaProcessor);
     const expectedColumnTypesMap: Map<string, string> = getExpectedColumnTypes();
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
@@ -118,7 +119,7 @@ export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Pro
     for (let i: number = 0; i < numberOfPlannedAssertions; ++i) {
         const columnName: string = data[i].column_name;
         const actualColumnType: string = data[i].data_type;
-        const expectedColumnType: string = <string>expectedColumnTypesMap.get(columnName);
+        const expectedColumnType: string = expectedColumnTypesMap.get(columnName) as string;
 
         tape.comment(`Test ${ columnName } column type`);
         tape.equal(actualColumnType, expectedColumnType);

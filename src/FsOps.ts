@@ -18,14 +18,12 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as fs from 'fs';
-import * as path from 'path';
-import { ChildProcess } from 'child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { ChildProcess } from 'node:child_process';
 
 import Conversion from './Conversion';
-import { LogMessage } from './LogMessage';
-import { LogMessageType } from './LogMessageType';
-import ErrnoException = NodeJS.ErrnoException;
+import { LogMessage, LogMessageType } from './Types';
 
 /**
  * Sends error-log to dedicated logger process.
@@ -35,13 +33,13 @@ export const generateError = (
     message: string,
     sql: string = '',
 ): void => {
-    (<ChildProcess>conversion.logger).send(
-        new LogMessage(
-            LogMessageType.ERROR,
-            message,
-            sql,
-        )
-    );
+    const logMessage: LogMessage = {
+        type: LogMessageType.ERROR,
+        message: message,
+        sql: sql,
+    };
+
+    (conversion.logger as ChildProcess).send(logMessage);
 };
 
 /**
@@ -49,20 +47,13 @@ export const generateError = (
  */
 export const log = (
     conversion: Conversion,
-    log: string | ErrnoException,
+    message: string | NodeJS.ErrnoException,
     tableLogPath?: string,
     isConcluding: boolean = false,
 ): void => {
-    const messageType: LogMessageType = isConcluding ? LogMessageType.EXIT : LogMessageType.LOG;
-
-    (<ChildProcess>conversion.logger).send(
-        new LogMessage(
-            messageType,
-            log,
-            undefined,
-            tableLogPath,
-        )
-    );
+    const type: LogMessageType = isConcluding ? LogMessageType.EXIT : LogMessageType.LOG;
+    const logMessage: LogMessage = { type, message, tableLogPath };
+    (conversion.logger as ChildProcess).send(logMessage);
 };
 
 /**
@@ -70,7 +61,7 @@ export const log = (
  */
 const readAndParseJsonFile = (pathToFile: string): Promise<any> => {
     return new Promise<any>(resolve => {
-        fs.readFile(pathToFile, (error: ErrnoException | null, data: Buffer) => {
+        fs.readFile(pathToFile, (error: NodeJS.ErrnoException | null, data: Buffer) => {
             if (error) {
                 console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ pathToFile }`);
                 process.exit(1);
@@ -85,8 +76,12 @@ const readAndParseJsonFile = (pathToFile: string): Promise<any> => {
 /**
  * Reads the configuration file.
  */
-export const readConfig = async (confPath: string, logsPath: string, configFileName: string = 'config.json'): Promise<any> => {
-    const pathToConfig = path.join(confPath, configFileName);
+export const readConfig = async (
+    confPath: string,
+    logsPath: string,
+    configFileName: string = 'config.json',
+): Promise<any> => {
+    const pathToConfig: string = path.join(confPath, configFileName);
     const config: any = await readAndParseJsonFile(pathToConfig);
     config.logsDirPath = path.join(logsPath, 'logs_directory');
     config.dataTypesMapAddr = path.join(confPath, 'data_types_map.json');
@@ -97,19 +92,24 @@ export const readConfig = async (confPath: string, logsPath: string, configFileN
 /**
  * Reads the extra configuration file, if necessary.
  */
-export const readExtraConfig = async (config: any, confPath: string, extraConfigFileName: string = 'extra_config.json'): Promise<any> => {
+export const readExtraConfig = async (
+    config: any,
+    confPath: string,
+    extraConfigFileName: string = 'extra_config.json',
+): Promise<any> => {
     if (config.enable_extra_config !== true) {
         config.extraConfig = null;
         return config;
     }
 
-    const pathToExtraConfig = path.join(confPath, extraConfigFileName);
+    const pathToExtraConfig: string = path.join(confPath, extraConfigFileName);
     config.extraConfig = await readAndParseJsonFile(pathToExtraConfig);
     return config;
 };
 
 /**
- * Reads both "./config/data_types_map.json" and "./config/index_types_map.json" and converts its json content to js object.
+ * Reads both "./config/data_types_map.json" and "./config/index_types_map.json"
+ * and converts its json content to js object.
  */
 export const readDataAndIndexTypesMap = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'FsOps::readDataAndIndexTypesMap';
@@ -132,28 +132,37 @@ export const createLogsDirectory = async (conversion: Conversion): Promise<Conve
 /**
  * Creates a directory at the specified path.
  */
-const createDirectory = (conversion: Conversion, directoryPath: string, logTitle: string): Promise<void> => {
+const createDirectory = (
+    conversion: Conversion,
+    directoryPath: string,
+    logTitle: string,
+): Promise<void> => {
     return new Promise<void>(resolve => {
         console.log(`\t--[${ logTitle }] Creating directory ${ directoryPath }...`);
 
-        fs.stat(directoryPath, (directoryDoesNotExist: ErrnoException | null, stat: fs.Stats) => {
+        fs.stat(directoryPath, (directoryDoesNotExist: NodeJS.ErrnoException | null, stat: fs.Stats) => {
             if (directoryDoesNotExist) {
                 fs.mkdir(directoryPath, conversion._0777, e => {
                     if (e) {
-                        console.log(`\t--[${ logTitle }] Cannot perform a migration due to impossibility to create directory: ${ directoryPath }`);
+                        console.log(`\t--[${ logTitle }] Cannot perform migration.`);
+                        console.log(`\t--[${ logTitle }] Failed to create directory ${ directoryPath }`);
                         process.exit(1);
-                    } else {
-                        log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } is created...`);
-                        resolve();
                     }
+
+                    log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } is created...`);
+                    resolve();
                 });
-            } else if (!stat.isDirectory()) {
+
+                return;
+            }
+
+            if (!stat.isDirectory()) {
                 console.log(`\t--[${ logTitle }] Cannot perform a migration due to unexpected error`);
                 process.exit(1);
-            } else {
-                log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
-                resolve();
             }
+
+            log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
+            resolve();
         });
     });
 };

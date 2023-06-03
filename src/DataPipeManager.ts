@@ -18,23 +18,22 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as os from 'os';
-import * as path from 'path';
-import { ChildProcess, fork } from 'child_process';
-import { EventEmitter } from 'events';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { ChildProcess, fork, ForkOptions } from 'node:child_process';
+import { EventEmitter } from 'node:events';
 
 import { killProcess } from './Utils';
 import { log } from './FsOps';
 import { processConstraintsPerTable } from './ConstraintsProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import Conversion from './Conversion';
-import MessageToDataLoader from './MessageToDataLoader';
-import MessageToMaster from './MessageToMaster';
+import { MessageToDataReader, MessageToMaster } from './Types';
 
 /**
- * A number of currently running loader processes.
+ * A number of currently running reader processes.
  */
-let loaderProcessesCount: number = 0;
+let readerProcessesCount: number = 0;
 
 /**
  * "tableLoadingFinished" event.
@@ -47,19 +46,19 @@ const tableLoadingFinishedEvent: string = 'tableLoadingFinished';
 const eventEmitter: EventEmitter = new EventEmitter();
 
 /**
- * A path to the DataLoader.js file.
- * !!!Notice, in runtime it points to ../dist/src/DataLoader.js and not DataLoader.ts
+ * A path to the DataReader.js file.
+ * !!!Notice, in runtime it points to ../dist/src/DataReader.js and not DataReader.ts
  */
-const dataLoaderPath: string = path.join(__dirname, 'DataLoader.js');
+const dataReaderPath: string = path.join(__dirname, 'DataReader.js');
 
 /**
- * Returns the options object, which intended to be used upon creation of the data loader process.
+ * Returns the options object, which intended to be used upon creation of the data reader process.
  */
-const getDataLoaderOptions = (conversion: Conversion): any => {
-    const options: any = Object.create(null);
+const getDataReaderOptions = (conversion: Conversion): ForkOptions => {
+    const options: ForkOptions = Object.create(null);
 
-    if (conversion._loaderMaxOldSpaceSize !== 'DEFAULT') {
-        options.execArgv = [`--max-old-space-size=${ conversion._loaderMaxOldSpaceSize }`];
+    if (conversion._readerMaxOldSpaceSize !== 'DEFAULT') {
+        options.execArgv = [`--max-old-space-size=${ conversion._readerMaxOldSpaceSize }`];
     }
 
     return options;
@@ -68,28 +67,26 @@ const getDataLoaderOptions = (conversion: Conversion): any => {
 /**
  * Checks if all data chunks were processed.
  */
-const dataPoolProcessed = (conversion: Conversion): boolean => {
-    return conversion._dataPool.length === 0;
-};
+const dataPoolProcessed = (conversion: Conversion): boolean => conversion._dataPool.length === 0;
 
 /**
- * Calculates a number of data-loader processes that will run simultaneously.
+ * Calculates a number of data-reader processes that will run simultaneously.
  * In most cases it will be a number of logical CPU cores on the machine running Nmig,
  * unless a number of tables in the source database or the maximal number of DB connections is smaller.
  */
-const getNumberOfSimultaneouslyRunningLoaderProcesses = (conversion: Conversion): number => {
-    if (conversion._numberOfSimultaneouslyRunningLoaderProcesses !== 'DEFAULT') {
+const getNumberOfSimultaneouslyRunningReaderProcesses = (conversion: Conversion): number => {
+    if (conversion._numberOfSimultaneouslyRunningReaderProcesses !== 'DEFAULT') {
         return Math.min(
             (os.cpus().length || 1),
             conversion._dataPool.length,
             conversion._maxEachDbConnectionPoolSize,
-            <number>conversion._numberOfSimultaneouslyRunningLoaderProcesses,
+            conversion._numberOfSimultaneouslyRunningReaderProcesses as number,
         );
     }
 
-    const DEFAULT_NUMBER_OF_DATA_LOADER_PROCESSES: number = 2;
+    const DEFAULT_NUMBER_OF_DATA_READER_PROCESSES: number = 2;
     return Math.min(
-        DEFAULT_NUMBER_OF_DATA_LOADER_PROCESSES,
+        DEFAULT_NUMBER_OF_DATA_READER_PROCESSES,
         (os.cpus().length || 1),
         conversion._dataPool.length,
         conversion._maxEachDbConnectionPoolSize,
@@ -97,36 +94,36 @@ const getNumberOfSimultaneouslyRunningLoaderProcesses = (conversion: Conversion)
 };
 
 /**
- * Runs the loader process.
+ * Runs the data reader process.
  */
-const runLoaderProcess = (conversion: Conversion): void => {
+const runDataReaderProcess = (conversion: Conversion): void => {
     if (dataPoolProcessed(conversion)) {
         // No more data to transfer.
         return;
     }
 
-    // Start a new data-loader process.
-    const loaderProcess: ChildProcess = fork(dataLoaderPath, getDataLoaderOptions(conversion));
-    loaderProcessesCount++;
+    // Start a new data-reader process.
+    const readerProcess: ChildProcess = fork(dataReaderPath, getDataReaderOptions(conversion));
+    readerProcessesCount++;
 
-    loaderProcess.on('message', (signal: MessageToMaster) => {
-        // Following actions are performed when a message from the loader process is accepted:
+    readerProcess.on('message', (signal: MessageToMaster): void => {
+        // Following actions are performed when a message from the reader process is accepted:
         // 1. Log an info regarding the just-populated table.
-        // 2. Kill the loader process to release unused RAM as quick as possible.
+        // 2. Kill the reader process to release unused RAM as quick as possible.
         // 3. Emit the "tableLoadingFinished" event to start constraints creation for the just loaded table immediately.
-        // 4. Call the "runLoaderProcess" function recursively to transfer data to the next table.
-        const msg: string = `\n\t--[NMIG runLoaderProcess] For now inserted: ${ signal.totalRowsToInsert } rows`
-            + `\n\t--[NMIG runLoaderProcess] Total rows to insert into`
+        // 4. Call the "runDataReaderProcess" function recursively to transfer data to the next table.
+        const msg: string = `\n\t--[NMIG runDataReaderProcess] For now inserted: ${ signal.totalRowsToInsert } rows`
+            + `\n\t--[NMIG runDataReaderProcess] Total rows to insert into`
             + ` "${ conversion._schema }"."${ signal.tableName }": ${ signal.totalRowsToInsert }`;
 
         log(conversion, msg);
-        killProcess(<number>loaderProcess.pid, conversion);
-        loaderProcessesCount--;
+        killProcess(readerProcess.pid as number, conversion);
+        readerProcessesCount--;
         eventEmitter.emit(tableLoadingFinishedEvent, signal.tableName);
-        runLoaderProcess(conversion);
+        runDataReaderProcess(conversion);
     });
 
-    // Sends a message to current data loader process,
+    // Sends a message to current data reader process,
     // which contains configuration info and a metadata of the next data-chunk.
     const chunk: any = conversion._dataPool.pop();
     const fullTableName: string = `"${ conversion._schema }"."${ chunk._tableName }"`;
@@ -134,7 +131,12 @@ const runLoaderProcess = (conversion: Conversion): void => {
         + `\n\t--[NMIG data transfer] TIME REQUIRED FOR TRANSFER DEPENDS ON AMOUNT OF DATA...\n`;
 
     log(conversion, msg);
-    loaderProcess.send(new MessageToDataLoader(conversion._config, chunk));
+    const messageToDataReader: MessageToDataReader = {
+        config: conversion._config,
+        chunk: chunk,
+    };
+
+    readerProcess.send(messageToDataReader);
 };
 
 /**
@@ -147,24 +149,24 @@ export default (conversion: Conversion): Promise<Conversion> => {
         }
 
         // Register a listener for the "tableLoadingFinished" event.
-        eventEmitter.on(tableLoadingFinishedEvent, async tableName => {
+        eventEmitter.on(tableLoadingFinishedEvent, async (tableName: string): Promise<void> => {
             await processConstraintsPerTable(conversion, tableName, conversion.shouldMigrateOnlyData());
 
-            // Check a number of active loader processes on the event of "tableLoadingFinished".
-            // If no active loader processes found, then all the data is transferred,
+            // Check a number of active reader processes on the event of "tableLoadingFinished".
+            // If no active reader processes found, then all the data is transferred,
             // hence Nmig can proceed to the next step.
-            if (loaderProcessesCount === 0) {
+            if (readerProcessesCount === 0) {
                 await migrationStateManager.set(conversion, 'per_table_constraints_loaded');
                 return resolve(conversion);
             }
         });
 
-        const numberOfSimultaneouslyRunningLoaderProcesses: number = getNumberOfSimultaneouslyRunningLoaderProcesses(
+        const numberOfSimultaneouslyRunningReaderProcesses: number = getNumberOfSimultaneouslyRunningReaderProcesses(
             conversion
         );
 
-        for (let i: number = 0; i < numberOfSimultaneouslyRunningLoaderProcesses; ++i) {
-            runLoaderProcess(conversion);
+        for (let i: number = 0; i < numberOfSimultaneouslyRunningReaderProcesses; ++i) {
+            runDataReaderProcess(conversion);
         }
     });
 };

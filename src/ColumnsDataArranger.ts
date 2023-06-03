@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { Encoding } from './Encoding';
+import { Encoding } from './Types';
 
 /**
  * Defines if given type is one of MySQL spacial types.

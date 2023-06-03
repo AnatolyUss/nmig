@@ -18,16 +18,14 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import * as path from 'path';
-import { EventEmitter } from 'events';
-import { ChildProcess, fork } from 'child_process';
+import * as path from 'node:path';
+import { EventEmitter } from 'node:events';
+import { ChildProcess, fork } from 'node:child_process';
 
 import { Pool as MySQLPool } from 'mysql2';
 import { Pool as PgPool } from 'pg';
 
-import { Encoding } from './Encoding';
-import { LogMessage } from './LogMessage';
-import { LogMessageType } from './LogMessageType';
+import { LogMessage, LogMessageType, Encoding, Table } from './Types';
 
 export default class Conversion {
     /**
@@ -46,9 +44,9 @@ export default class Conversion {
     public readonly _targetConString: any;
 
     /**
-     * V8 memory limit of the loader process.
+     * V8 memory limit of the reader process.
      */
-    public readonly _loaderMaxOldSpaceSize: number | string;
+    public readonly _readerMaxOldSpaceSize: number | string;
 
     /**
      * Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers each.
@@ -163,7 +161,7 @@ export default class Conversion {
     /**
      * A dictionary of table names, and corresponding metadata.
      */
-    public readonly _dicTables: any;
+    public readonly _dicTables: Map<string, Table>;
 
     /**
      * An array of data chunks.
@@ -207,9 +205,9 @@ export default class Conversion {
     public readonly _streamsHighWaterMark: number;
 
     /**
-     * Number of data-loader processes that will run simultaneously.
+     * Number of data-reader processes that will run simultaneously.
      */
-    public readonly _numberOfSimultaneouslyRunningLoaderProcesses: string | number;
+    public readonly _numberOfSimultaneouslyRunningReaderProcesses: string | number;
 
     /**
      * Logger is implemented as a child process.
@@ -241,7 +239,7 @@ export default class Conversion {
         this._tablesToMigrate = [];
         this._viewsToMigrate = [];
         this._dataPool = [];
-        this._dicTables = Object.create(null);
+        this._dicTables = new Map<string, Table>();
         this._mySqlDbName = this._sourceConString.database;
 
         this._streamsHighWaterMark = this._config.streams_high_water_mark === undefined
@@ -259,7 +257,10 @@ export default class Conversion {
             ? +this._config.max_each_db_connection_pool_size
             : 20;
 
-        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
+        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0
+            ? this._maxEachDbConnectionPoolSize
+            : 20;
+
         this._runsInTestMode = false;
         this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
@@ -268,11 +269,13 @@ export default class Conversion {
             ? true
             : this._config.remove_test_resources;
 
-        this._numberOfSimultaneouslyRunningLoaderProcesses = Conversion._isIntNumeric(this._config.number_of_simultaneously_running_loader_processes)
+        this._numberOfSimultaneouslyRunningReaderProcesses = Conversion._isIntNumeric(
+            this._config.number_of_simultaneously_running_loader_processes
+        )
             ? +this._config.number_of_simultaneously_running_loader_processes
             : 'DEFAULT';
 
-        this._loaderMaxOldSpaceSize = Conversion._isIntNumeric(this._config.loader_max_old_space_size)
+        this._readerMaxOldSpaceSize = Conversion._isIntNumeric(this._config.loader_max_old_space_size)
             ? +this._config.loader_max_old_space_size
             : 'DEFAULT';
 
@@ -317,16 +320,12 @@ export default class Conversion {
                 }
             });
 
-        logger.send(
-            new LogMessage(
-                LogMessageType.CONFIG,
-                undefined,
-                undefined,
-                undefined,
-                this._config,
-            )
-        );
+        const logMessage: LogMessage = {
+            type: LogMessageType.CONFIG,
+            config: this._config,
+        };
 
+        logger.send(logMessage);
         return logger;
     };
 }
