@@ -23,7 +23,11 @@ import { Test } from 'tape';
 import Conversion from '../../src/Conversion';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import DBAccess from '../../src/DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from '../../src/Types';
 
 /**
  * Retrieves a data from `table_a`.

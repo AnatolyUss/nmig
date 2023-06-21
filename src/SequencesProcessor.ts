@@ -23,9 +23,14 @@ import { PoolClient } from 'pg';
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getUniqueIdentifier } from './Utils';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    Table,
+} from './Types';
 
 /**
  * Returns sequence name by table's name and column's name.
@@ -74,7 +79,7 @@ export const setSequenceValue = async (conversion: Conversion, tableName: string
     const result: DBAccessQueryResult = await DBAccess.query(params);
 
     if (!result.error) {
-        log(
+        await log(
             conversion,
             `\t--[${ logTitle }] Sequence "${ conversion._schema }"."${ seqName }" value is set...`,
             conversionTable.tableLogPath,
@@ -122,7 +127,7 @@ export const createIdentity = async (conversion: Conversion, tableName: string):
     const createSequenceResult: DBAccessQueryResult = await DBAccess.query(params);
 
     if (createSequenceResult.error) {
-        DBAccess.releaseDbClient(conversion, createSequenceResult.client as PoolClient);
+        await DBAccess.releaseDbClient(conversion, createSequenceResult.client as PoolClient);
         return;
     }
 
@@ -135,6 +140,6 @@ export const createIdentity = async (conversion: Conversion, tableName: string):
 
     if (!sqlSetSequenceValueResult.error) {
         const successMsg: string = `\t--[${ logTitle }] Added IDENTITY for ${ fullTableName }."${ columnName }"...`;
-        log(conversion, successMsg, conversionTable.tableLogPath);
+        await log(conversion, successMsg, conversionTable.tableLogPath);
     }
 };

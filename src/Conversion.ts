@@ -20,12 +20,20 @@
  */
 import * as path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { ChildProcess, fork } from 'node:child_process';
+import {
+    ChildProcess,
+    fork,
+} from 'node:child_process';
 
 import { Pool as MySQLPool } from 'mysql2';
 import { Pool as PgPool } from 'pg';
 
-import { LogMessage, LogMessageType, Encoding, Table } from './Types';
+import {
+    LogMessage,
+    LogMessageType,
+    Encoding,
+    Table,
+} from './Types';
 
 export default class Conversion {
     /**
@@ -311,7 +319,7 @@ export default class Conversion {
 
         const logger: ChildProcess = fork(loggerPath)
             .on('error', (err: Error) => console.log(`\t--[_setLogger] Error: ${ JSON.stringify(err) }`))
-            .on('exit', (code: number | null) => {
+            .on('exit', (code: number | null): void => {
                 console.log(`\t--[_setLogger] Process exited with code: ${ code || 'exit-code unknown' }`);
 
                 if (code !== 0) {

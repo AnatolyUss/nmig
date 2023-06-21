@@ -21,7 +21,11 @@
 import DBAccess from './DBAccess';
 import { log } from './FsOps';
 import Conversion from './Conversion';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 /**
  * Returns the data pool table name.
@@ -47,7 +51,7 @@ export const createDataPoolTable = async (conversion: Conversion): Promise<Conve
     };
 
     await DBAccess.query(params);
-    log(conversion, `\t--[${ logTitle }] table ${ table } is created...`);
+    await log(conversion, `\t--[${ logTitle }] table ${ table } is created...`);
     return conversion;
 };
 
@@ -67,7 +71,7 @@ export const dropDataPoolTable = async (conversion: Conversion): Promise<Convers
     };
 
     await DBAccess.query(params);
-    log(conversion, `\t--[${ logTitle }] table ${ table } is dropped...`);
+    await log(conversion, `\t--[${ logTitle }] table ${ table } is dropped...`);
     return conversion;
 };
 
@@ -94,6 +98,6 @@ export const readDataPool = async (conversion: Conversion): Promise<Conversion> 
         conversion._dataPool.push(obj);
     });
 
-    log(conversion, `\t--[${logTitle}] Data-Pool is loaded...`);
+    await log(conversion, `\t--[${logTitle}] Data-Pool is loaded...`);
     return conversion;
 };

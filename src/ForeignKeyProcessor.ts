@@ -22,8 +22,12 @@ import * as migrationStateManager from './MigrationStateManager';
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 /**
  * Creates foreign keys for given table.
@@ -126,7 +130,7 @@ export default async (conversion: Conversion): Promise<void> => {
     };
 
     const _cb = async (tableName: string): Promise<void> => {
-        log(
+        await log(
             conversion,
             `\t--[${ logTitle }] Search foreign keys for table "${ conversion._schema }"."${ tableName }"...`,
         );
@@ -165,7 +169,7 @@ export default async (conversion: Conversion): Promise<void> => {
         const extraRows: any[] = extraConfigProcessor.parseForeignKeys(conversion, tableName);
         const fullRows: any[] = (result.data || []).concat(extraRows); // Prevent failure if "result.data" is undefined.
         await processForeignKeyWorker(conversion, tableName, fullRows);
-        log(
+        await log(
             conversion,
             `\t--[${ logTitle }] Foreign keys for table "${ conversion._schema }"."${ tableName }" are set...`,
         );

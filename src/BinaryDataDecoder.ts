@@ -23,16 +23,20 @@ import { PoolClient } from 'pg';
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 /**
  * Decodes binary data from textual representation in string.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'BinaryDataDecoder::decodeBinaryData';
-    log(conversion, `\t--[${ logTitle }] Decodes binary data from textual representation in string.`);
+    const logTitle = 'BinaryDataDecoder::decodeBinaryData';
+    await log(conversion, `\t--[${ logTitle }] Decodes binary data from textual representation in string.`);
 
-    const sql: string = `SELECT table_name, column_name 
+    const sql = `SELECT table_name, column_name 
         FROM information_schema.columns
         WHERE table_catalog = '${ conversion._targetConString.database }' 
           AND table_schema = '${ conversion._schema }' 
@@ -51,7 +55,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
 
     if (result.error) {
         // No need to continue if no 'bytea' or 'geometry' columns found.
-        DBAccess.releaseDbClient(conversion, result.client as PoolClient);
+        await DBAccess.releaseDbClient(conversion, result.client as PoolClient);
         return conversion;
     }
 

@@ -18,25 +18,39 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { Pool as MySQLPool, createPool as createMySQLPool, PoolConnection } from 'mysql2';
-import { Pool as PgPool, PoolClient } from 'pg';
+import {
+    Pool as MySQLPool,
+    createPool as createMySQLPool,
+    PoolConnection,
+} from 'mysql2';
+import {
+    Pool as PgPool,
+    PoolClient,
+} from 'pg';
 
-import { log, generateError } from './FsOps';
 import Conversion from './Conversion';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
+import {
+    log,
+    generateError,
+} from './FsOps';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 export default class DBAccess {
     /**
      * Ensures MySQL connection pool existence.
      */
-    private static _getMysqlConnection = (conversion: Conversion): void => {
+    private static _getMysqlConnection = async (conversion: Conversion): Promise<void> => {
         if (!conversion._mysql) {
             conversion._sourceConString.connectionLimit = conversion._maxEachDbConnectionPoolSize;
             conversion._sourceConString.multipleStatements = true;
             const pool: MySQLPool = createMySQLPool(conversion._sourceConString);
 
             if (!pool) {
-                generateError(conversion, '\t--[getMysqlConnection] Cannot connect to MySQL server...');
+                await generateError(conversion, '\t--[getMysqlConnection] Cannot connect to MySQL server...');
                 process.exit(1);
             }
 
@@ -47,20 +61,20 @@ export default class DBAccess {
     /**
      * Ensures PostgreSQL connection pool existence.
      */
-    private static _getPgConnection = (conversion: Conversion): void => {
+    private static _getPgConnection = async (conversion: Conversion): Promise<void> => {
         if (!conversion._pg) {
             conversion._targetConString.max = conversion._maxEachDbConnectionPoolSize;
             const pool: PgPool = new PgPool(conversion._targetConString);
 
             if (!pool) {
-                generateError(conversion, '\t--[getPgConnection] Cannot connect to PostgreSQL server...');
+                await generateError(conversion, '\t--[getPgConnection] Cannot connect to PostgreSQL server...');
                 process.exit(1);
             }
 
             conversion._pg = pool;
 
-            conversion._pg.on('error', (error: Error): void => {
-                generateError(
+            conversion._pg.on('error', async (error: Error): Promise<void> => {
+                await generateError(
                     conversion,
                     `Cannot connect to PostgreSQL server...\n' ${ error.message }\n${ error.stack }`,
                 );
@@ -75,9 +89,9 @@ export default class DBAccess {
         const closeMySqlConnections = (): Promise<void> => {
             return new Promise<void>(resolve => {
                 if (conversion._mysql) {
-                    conversion._mysql.end((error: NodeJS.ErrnoException | null): void => {
+                    conversion._mysql.end(async (error: NodeJS.ErrnoException | null): Promise<void> => {
                         if (error) {
-                            generateError(conversion, `\t--[DBAccess::closeConnectionPools] ${ error }`);
+                            await generateError(conversion, `\t--[DBAccess::closeConnectionPools] ${ error }`);
                         }
 
                         return resolve();
@@ -93,13 +107,13 @@ export default class DBAccess {
                 try {
                     await conversion._pg.end();
                 } catch (error) {
-                    generateError(conversion, `\t--[DBAccess::closeConnectionPools] ${ error }`);
+                    await generateError(conversion, `\t--[DBAccess::closeConnectionPools] ${ error }`);
                 }
             }
         };
 
         await Promise.all([closeMySqlConnections, closePgConnections]);
-        log(conversion, `\t--[DBAccess::closeConnectionPools] Closed all DB connections.`);
+        await log(conversion, `\t--[DBAccess::closeConnectionPools] Closed all DB connections.`);
         return conversion;
     };
 
@@ -107,8 +121,8 @@ export default class DBAccess {
      * Obtains PoolConnection instance.
      */
     public static getMysqlClient = (conversion: Conversion): Promise<PoolConnection> => {
-        return new Promise<PoolConnection>((resolve, reject) => {
-            DBAccess._getMysqlConnection(conversion);
+        return new Promise<PoolConnection>(async (resolve, reject): Promise<void> => {
+            await DBAccess._getMysqlConnection(conversion);
 
             const _resolvePromise = (err: NodeJS.ErrnoException | null, connection: PoolConnection) => {
                 return err ? reject(err) : resolve(connection);
@@ -122,22 +136,22 @@ export default class DBAccess {
      * Obtains PoolClient instance.
      */
     public static getPgClient = async (conversion: Conversion): Promise<PoolClient> => {
-        DBAccess._getPgConnection(conversion);
+        await DBAccess._getPgConnection(conversion);
         return await (conversion._pg as PgPool).connect();
     };
 
     /**
      * Releases MySQL or PostgreSQL connection back to appropriate pool.
      */
-    public static releaseDbClient = (
+    public static releaseDbClient = async (
         conversion: Conversion,
         dbClient?: PoolConnection | PoolClient,
-    ): void => {
+    ): Promise<void> => {
         try {
             (dbClient as PoolConnection | PoolClient).release();
             dbClient = undefined;
         } catch (error) {
-            generateError(conversion, `\t--[DBAccess::releaseDbClient] ${ error }`);
+            await generateError(conversion, `\t--[DBAccess::releaseDbClient] ${ error }`);
         }
     };
 
@@ -145,13 +159,13 @@ export default class DBAccess {
      * Checks if there are no more queries to be sent using current client.
      * In such case the client should be released.
      */
-    private static _releaseDbClientIfNecessary = (
+    private static _releaseDbClientIfNecessary = async (
         conversion: Conversion,
         client: PoolConnection | PoolClient,
         shouldHoldClient: boolean,
-    ): void => {
+    ): Promise<void> => {
         if (!shouldHoldClient) {
-            this.releaseDbClient(conversion, client);
+            await this.releaseDbClient(conversion, client);
         }
     };
 
@@ -181,7 +195,7 @@ export default class DBAccess {
                     : await DBAccess.getMysqlClient(conversion);
             } catch (error) {
                 // An error occurred when tried to obtain a client from one of pools.
-                generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
+                await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
                 return processExitOnError ? process.exit(1) : { client, error };
             }
         }
@@ -226,11 +240,11 @@ export default class DBAccess {
                 sql = (client as PoolConnection).format(sql, bindings);
             }
 
-            (client as PoolConnection).query(sql, (error: NodeJS.ErrnoException | null, data: any) => {
-                DBAccess._releaseDbClientIfNecessary(conversion, (<PoolConnection>client), shouldReturnClient);
+            (client as PoolConnection).query(sql, async (error: NodeJS.ErrnoException | null, data: any): Promise<void> => {
+                await DBAccess._releaseDbClientIfNecessary(conversion, (<PoolConnection>client), shouldReturnClient);
 
                 if (error) {
-                    generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
+                    await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
                     return processExitOnError ? process.exit(1) : reject({ client, error });
                 }
 
@@ -258,11 +272,11 @@ export default class DBAccess {
 
             return { client, data };
         } catch (error) {
-            generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
+            await generateError(conversion, `\t--[${ caller }] ${ error }`, sql);
             return processExitOnError ? process.exit(1) : { client, error };
         } finally {
             // Sets the client undefined.
-            DBAccess._releaseDbClientIfNecessary(conversion, client as PoolClient, shouldReturnClient);
+            await DBAccess._releaseDbClientIfNecessary(conversion, client as PoolClient, shouldReturnClient);
         }
     };
 }

@@ -23,7 +23,12 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { mapDataTypes } from './TableProcessor';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    Table,
+} from './Types';
 
 /**
  * Defines which columns of the given table have default value.
@@ -33,7 +38,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
     const logTitle: string = 'DefaultProcessor::default';
     const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
     const msg: string = `\t--[${ logTitle }] Defines default values for table: ${ fullTableName }`;
-    log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
+    await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const pgSqlBitTypes: string[] = ['bit', 'bit varying'];
     const pgSqlBinaryTypes: string[] = ['bytea'];
@@ -95,7 +100,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         const result: DBAccessQueryResult = await DBAccess.query(params);
 
         if (!result.error) {
-            log(
+            await log(
                 conversion,
                 `\t--[${ logTitle }] Set default value for ${ fullTableName }."${ columnName }"...`,
                 (conversion._dicTables.get(tableName) as Table).tableLogPath,
@@ -103,6 +108,9 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         }
     };
 
-    const promises: Promise<void>[] = (conversion._dicTables.get(tableName) as Table).arrTableColumns.map(_cb);
+    const promises: Promise<void>[] = (conversion._dicTables.get(tableName) as Table).arrTableColumns
+        .filter((column: any): boolean => column.Default !== null)
+        .map(_cb);
+
     await Promise.all(promises);
 };

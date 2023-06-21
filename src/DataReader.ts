@@ -19,212 +19,118 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as path from 'node:path';
-import { ChildProcess, spawn } from 'node:child_process';
-import { Readable, Writable, Duplex as DuplexStream, promises as streamPromises } from 'node:stream';
+import {
+    ChildProcess,
+    spawn,
+} from 'node:child_process';
+import {
+    Readable,
+    Writable,
+    Duplex as DuplexStream,
+    promises as streamPromises,
+} from 'node:stream';
 
-import { PoolClient, QueryResult } from 'pg';
+import { PoolClient } from 'pg';
 import { PoolConnection } from 'mysql2';
-const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
 const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
 
-import { log, generateError } from './FsOps';
-import { CopyStreamSerializableParams, MessageToDataWriter, MessageToDataReader } from './Types';
+import { log } from './FsOps';
+import { dataTransferred } from './ConsistencyEnforcer';
+import * as extraConfigProcessor from './ExtraConfigProcessor';
+import DataPipeManager from './DataPipeManager';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { dataTransferred } from './ConsistencyEnforcer';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, MessageToMaster } from './Types';
-import * as extraConfigProcessor from './ExtraConfigProcessor';
-import { getDataPoolTableName } from './DataPoolManager';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    MessageToMaster,
+    MessageToDataReader,
+    MessageToDataWriter,
+    CopyStreamSerializableParams,
+} from './Types';
 
 /**
  * Processes incoming messages from the DataPipeManager.
  */
 process.on('message', async (signal: MessageToDataReader): Promise<void> => {
-    const { config, chunk } = signal;
-    const conv: Conversion = new Conversion(config);
-    log(conv, `\t--[NMIG loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`);
+    const {
+        config,
+        chunk,
+    } = signal;
+
+    // Create Conversion instance, but avoid creating a separate logger process.
+    const avoidLogger: boolean = true;
+    const conv: Conversion = new Conversion(config, avoidLogger);
+    await log(
+        conv,
+        `\t--[NMIG loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`,
+    );
 
     const isRecoveryMode: boolean = await dataTransferred(conv, chunk._id);
 
     if (!isRecoveryMode) {
-        await populateTableWorker(conv, chunk);
+        await populateTable(conv, chunk);
         return;
     }
 
     const client: PoolClient = await DBAccess.getPgClient(conv);
-    return deleteChunk(conv, chunk._id, client);
+    return DataPipeManager.deleteChunk(conv, chunk._id, client);
 });
 
 /**
- * Wraps "process.send" method to avoid "cannot invoke an object which is possibly undefined" warning.
+ * Initializes data transfer for the table, related to given "chunk".
  */
-const processSend = (x: any): void => {
-    if (process.send) {
-        process.send(x);
-    }
-};
-
-/**
- * Deletes given record from the data-pool.
- */
-export const deleteChunk = async (
-    conversion: Conversion,
-    dataPoolId: number,
-    client: PoolClient,
-    originalSessionReplicationRole: string | null = null,
-): Promise<void> => {
-    const sql: string = `DELETE FROM ${ getDataPoolTableName(conversion) } WHERE id = ${ dataPoolId };`;
-
-    try {
-        await client.query(sql);
-
-        if (originalSessionReplicationRole) {
-            await enableTriggers(conversion, client, originalSessionReplicationRole as string);
-        }
-    } catch (error) {
-        generateError(conversion, `\t--[DataReader::deleteChunk] ${ error }`, sql);
-    } finally {
-        DBAccess.releaseDbClient(conversion, client);
-    }
-};
-
-/**
- * Processes data-loading error.
- */
-export const processDataError = async (
-    conv: Conversion,
-    streamError: string,
-    sql: string,
-    sqlCopy: string,
-    tableName: string,
-    dataPoolId: number,
-    client: PoolClient,
-    originalSessionReplicationRole: string | null,
-): Promise<void> => {
-    generateError(conv, `\t--[populateTableWorker] ${ streamError }`, sqlCopy);
-    const rejectedData: string = `\t--[populateTableWorker] Error loading table data:\n${ sql }\n`;
-    log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
-    await deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
-    const messageToMaster: MessageToMaster = {
-        tableName: tableName,
-        totalRowsToInsert: 0,
-    };
-
-    processSend(messageToMaster);
-};
-
-/**
- * Loads a chunk of data using "PostgreSQL COPY".
- */
-const populateTableWorker = async (conv: Conversion, chunk: any): Promise<void> => {
+const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
     const tableName: string = chunk._tableName;
     const strSelectFieldList: string = chunk._selectFieldList;
     const rowsCnt: number = chunk._rowsCnt;
     const dataPoolId: number = chunk._id;
-
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
     const sql: string = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
     const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
-    const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN DELIMITER '${ conv._delimiter }' CSV;`;
+    const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN 
+                             WITH(FORMAT csv, DELIMITER '${ conv._delimiter }',
+                             ENCODING '${ conv._targetConString.charset }');`;
+
     const client: PoolClient = await DBAccess.getPgClient(conv);
     let originalSessionReplicationRole: string | null = null;
 
     if (conv.shouldMigrateOnlyData()) {
-        originalSessionReplicationRole = await disableTriggers(conv, client);
+        originalSessionReplicationRole = await DataPipeManager.disablePgTriggers(conv, client);
     }
 
-    const json2csvStream: DuplexStream = await getJson2csvStream(
-        conv,
-        originalTableName,
-        dataPoolId,
-        client,
-        originalSessionReplicationRole,
-    );
-
-    const mysqlClientErrorHandler = async (err: string): Promise<void> => {
-        await processDataError(conv, err, sql, sqlCopy, tableName, dataPoolId, client, originalSessionReplicationRole);
-    };
-
-    const cliArgs: string[] = [path.join(__dirname, 'DataWriter.js')];
-
-    if (conv._readerMaxOldSpaceSize !== 'DEFAULT') {
-        // Note, all the child-process params are equally applicable to both "DataReader" and "DataWriter" processes.
-        cliArgs.push(`--max-old-space-size=${ conv._readerMaxOldSpaceSize }`);
-    }
-
-    const dataWriter: ChildProcess = spawn(process.execPath, cliArgs, { stdio: ['pipe', 1, 2, 'ipc'] });
-    const messageToDataWriter: MessageToDataWriter = {
-        config: conv._config,
-        chunk: chunk,
-        copyStreamSerializableParams: {
-            sqlCopy,
-            sql,
-            tableName,
-            dataPoolId,
-            originalSessionReplicationRole,
-        },
-    };
-
-    const _dataWriterOnExitCallback = async (code: number): Promise<void> => {
-        // Note, no need to "kill" the DataWriter, since it has already exited successfully.
-        log(
-            conv,
-            `\t--[NMIG loadData] DataWriter process (table "${ tableName }") exited with code ${ code }`,
-        );
-
-        // COPY FROM STDIN does not return the number of rows inserted.
-        // But the transactional behavior still applies, meaning no records inserted if at least one failed.
-        // That is why in case of 'on finish' the rowsCnt value is actually the number of records inserted.
-        await deleteChunk(conv, dataPoolId, client);
-        const messageToMaster: MessageToMaster = {
-            tableName: tableName,
-            totalRowsToInsert: rowsCnt,
-        };
-
-        processSend(messageToMaster);
-    };
-
-    dataWriter
-        .on('exit', _dataWriterOnExitCallback)
-        .send(messageToDataWriter);
-
-    const dataReaderStream: Readable = mysqlClient
-        .query(sql)
-        .on('error', mysqlClientErrorHandler)
-        .stream({ highWaterMark: conv._streamsHighWaterMark });
-
-    // TODO: should I apply errors-handling using "catch"?
-    await streamPromises.pipeline(dataReaderStream, json2csvStream, dataWriter.stdin as Writable);
-    // mysqlClient
-    //     .query(sql)
-    //     .on('error', mysqlClientErrorHandler)
-    //     .stream({ highWaterMark: conv._streamsHighWaterMark })
-    //     .pipe(json2csvStream)
-    //     .pipe(dataWriter.stdin as Writable);
-};
-
-/**
- * Returns new PostgreSQL copy stream object.
- */
-export const getCopyStream = (
-    conv: Conversion,
-    client: PoolClient,
-    copyStreamSerializableParams: CopyStreamSerializableParams,
-): Writable => {
-    const {
+    const json2csvStream: DuplexStream = await getJson2csvStream(conv, originalTableName);
+    const dataWriter: ChildProcess = getDataWriter(conv);
+    const copyStreamSerializableParams: CopyStreamSerializableParams = {
         sqlCopy,
         sql,
         tableName,
         dataPoolId,
         originalSessionReplicationRole,
-    } = copyStreamSerializableParams;
+    };
 
-    const copyStream: Writable = client.query(from(sqlCopy));
+    const messageToDataWriter: MessageToDataWriter = {
+        config: conv._config,
+        chunk: chunk,
+        copyStreamSerializableParams: copyStreamSerializableParams,
+    };
 
-    copyStream.on('error', async (copyStreamError: string): Promise<void> => {
-        await processDataError(
+    dataWriter
+        .on('exit', getDataWriterOnExitCallback(conv, tableName, dataPoolId, client, rowsCnt))
+        .send(messageToDataWriter);
+
+    const dataReaderStream: Readable = mysqlClient
+        .query(sql)
+        .stream({ highWaterMark: conv._streamsHighWaterMark });
+
+    try {
+        await streamPromises.pipeline(dataReaderStream, json2csvStream, dataWriter.stdin as Writable);
+    } catch (pipelineError) {
+        await DataPipeManager.processDataError(
             conv,
-            copyStreamError,
+            // @ts-ignore
+            pipelineError,
             sql,
             sqlCopy,
             tableName,
@@ -232,9 +138,57 @@ export const getCopyStream = (
             client,
             originalSessionReplicationRole,
         );
-    });
+    }
+};
 
-    return copyStream;
+/**
+ * Spawns the data-writer child-process and returns its instance.
+ */
+const getDataWriter = (conv: Conversion): ChildProcess => {
+    const cliArgs: string[] = [path.join(__dirname, 'DataWriter.js')];
+
+    if (conv._readerMaxOldSpaceSize !== 'DEFAULT') {
+        // Note, all the child-process params are equally applicable to both "DataReader" and "DataWriter" processes.
+        cliArgs.push(`--max-old-space-size=${ conv._readerMaxOldSpaceSize }`);
+    }
+
+    return spawn(
+        process.execPath,
+        cliArgs,
+        {
+            stdio: ['pipe', 1, 2, 'ipc']
+        },
+    );
+};
+
+/**
+ * Returns data-writer on-exit callback.
+ */
+const getDataWriterOnExitCallback = (
+    conv: Conversion,
+    tableName: string,
+    dataPoolId: number,
+    client: PoolClient,
+    rowsCnt: number,
+): (code: number) => Promise<void> => {
+    return async (code: number): Promise<void> => {
+        // Note, no need to "kill" the DataWriter, since it has already exited successfully.
+        await log(
+            conv,
+            `\t--[NMIG loadData] DataWriter process (table "${ tableName }") exited with code ${ code }`,
+        );
+
+        // COPY FROM STDIN does not return the number of rows inserted.
+        // But the transactional behavior still applies, meaning no records inserted if at least one failed.
+        // That is why in case of 'on finish' the rowsCnt value is actually the number of records inserted.
+        await DataPipeManager.deleteChunk(conv, dataPoolId, client);
+        const messageToMaster: MessageToMaster = {
+            tableName: tableName,
+            totalRowsToInsert: rowsCnt,
+        };
+
+        DataPipeManager.processSend(messageToMaster);
+    };
 };
 
 /**
@@ -243,13 +197,10 @@ export const getCopyStream = (
 const getJson2csvStream = async (
     conversion: Conversion,
     originalTableName: string,
-    dataPoolId: number,
-    client: PoolClient,
-    originalSessionReplicationRole: string | null,
 ): Promise<DuplexStream> => {
     const params: DBAccessQueryParams = {
         conversion: conversion,
-        caller: 'DataReader::populateTableWorker',
+        caller: 'DataReader::populateTable',
         sql: `SHOW COLUMNS FROM \`${ originalTableName }\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: true,
@@ -270,58 +221,5 @@ const getJson2csvStream = async (
         encoding: conversion._encoding,
     };
 
-    const json2CsvTransformStream = new Json2CsvTransform(options, streamTransformOptions);
-
-    json2CsvTransformStream.on('error', async (transformError: string): Promise<void> => {
-        await processDataError(
-            conversion,
-            transformError,
-            '',
-            '',
-            originalTableName,
-            dataPoolId,
-            client,
-            originalSessionReplicationRole,
-        );
-    });
-
-    return json2CsvTransformStream;
-};
-
-/**
- * Disables all triggers and rules for current database session.
- * !!!DO NOT release the client, it will be released after current data-chunk deletion.
- */
-const disableTriggers = async (conversion: Conversion, client: PoolClient): Promise<string> => {
-    let sql: string = `SHOW session_replication_role;`;
-    let originalSessionReplicationRole: string = 'origin';
-
-    try {
-        const queryResult: QueryResult = await client.query(sql);
-        originalSessionReplicationRole = queryResult.rows[0].session_replication_role;
-        sql = 'SET session_replication_role = replica;';
-        await client.query(sql);
-    } catch (error) {
-        generateError(conversion, `\t--[DataReader::disableTriggers] ${ error }`, sql);
-    }
-
-    return originalSessionReplicationRole;
-};
-
-/**
- * Enables all triggers and rules for current database session.
- * !!!DO NOT release the client, it will be released after current data-chunk deletion.
- */
-const enableTriggers = async (
-    conversion: Conversion,
-    client: PoolClient,
-    originalSessionReplicationRole: string,
-): Promise<void> => {
-    const sql: string = `SET session_replication_role = ${ originalSessionReplicationRole };`;
-
-    try {
-        await client.query(sql);
-    } catch (error) {
-        generateError(conversion, `\t--[DataReader::enableTriggers] ${ error }`, sql);
-    }
+    return new Json2CsvTransform(options, streamTransformOptions);
 };

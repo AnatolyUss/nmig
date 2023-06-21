@@ -19,9 +19,13 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import { log } from './FsOps';
 import Conversion from './Conversion';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 /**
  * Returns the state logs table name.
@@ -99,7 +103,7 @@ export const createStateLogsTable = async (conversion: Conversion): Promise<Conv
         return conversion;
     }
 
-    log(conversion, `\t--[${ logTitle }] table ${ getStateLogsTableName(conversion) } is created...`);
+    await log(conversion, `\t--[${ logTitle }] table ${ getStateLogsTableName(conversion) } is created...`);
     return conversion;
 };
 

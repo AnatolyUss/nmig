@@ -18,25 +18,37 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { Writable, promises as streamPromises } from 'node:stream';
+import {
+    Writable,
+    promises as streamPromises,
+} from 'node:stream';
 
 import { PoolClient } from 'pg';
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
 
 import { log } from './FsOps';
-// import { getCopyStream } from './DataReader'; // TODO: DO NOT import DataReader!!!
-import { MessageToDataWriter, CopyStreamSerializableParams } from './Types';
+import { MessageToDataWriter } from './Types';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
+import DataPipeManager from './DataPipeManager';
 
 /**
- * Returns new PostgreSQL copy stream object.
+ * TODO: add description.
  */
-export const getCopyStream = (
-    conv: Conversion,
-    client: PoolClient,
-    copyStreamSerializableParams: CopyStreamSerializableParams,
-): Writable => {
+process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
+    const {
+        config,
+        chunk,
+        copyStreamSerializableParams,
+    } = signal;
+
+    // Create Conversion instance, but avoid creating a separate logger process.
+    const avoidLogger: boolean = true;
+    const conv: Conversion = new Conversion(config, avoidLogger);
+
+    const fullTableName: string = `"${ conv._schema }"."${ chunk._tableName }"`;
+    await log(conv, `\t--[NMIG DataWriter] Loading the data into ${ fullTableName } table...`);
+
     const {
         sqlCopy,
         sql,
@@ -45,36 +57,24 @@ export const getCopyStream = (
         originalSessionReplicationRole,
     } = copyStreamSerializableParams;
 
+    const client: PoolClient = await DBAccess.getPgClient(conv);
     const copyStream: Writable = client.query(from(sqlCopy));
 
-    // copyStream.on('error', async (copyStreamError: string): Promise<void> => {
-    //     await processDataError(
-    //         conv,
-    //         copyStreamError,
-    //         sql,
-    //         sqlCopy,
-    //         tableName,
-    //         dataPoolId,
-    //         client,
-    //         originalSessionReplicationRole,
-    //     );
-    // });
+    try {
+        await streamPromises.pipeline(process.stdin, copyStream);
+    } catch (pipelineError) {
+        await DataPipeManager.processDataError(
+            conv,
+            // @ts-ignore
+            pipelineError,
+            sql,
+            sqlCopy,
+            tableName,
+            dataPoolId,
+            client,
+            originalSessionReplicationRole,
+        );
+    }
 
-    return copyStream;
-};
-
-/**
- * TODO: add description.
- */
-process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
-    const { config, chunk, copyStreamSerializableParams } = signal;
-    const conv: Conversion = new Conversion(config);
-    const fullTableName: string = `"${ conv._schema }"."${ chunk._tableName }"`;
-    log(conv, `\t--[NMIG DataWriter] Loading the data into ${ fullTableName } table...`);
-    const client: PoolClient = await DBAccess.getPgClient(conv);
-    const copyStream: Writable = getCopyStream(conv, client, copyStreamSerializableParams);
-    // process.stdin.pipe(copyStream);
-    // TODO: should I apply errors-handling using "catch"?
-    await streamPromises.pipeline(process.stdin, copyStream);
-    process.exit(0); // TODO: probably unnecessary...
+    process.exit(0);
 });

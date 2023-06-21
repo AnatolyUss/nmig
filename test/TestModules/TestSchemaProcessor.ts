@@ -24,17 +24,31 @@ import { EventEmitter } from 'node:events';
 
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 import createSchema from '../../src/SchemaProcessor';
 import loadStructureToMigrate from '../../src/StructureLoader';
-import pipeData from '../../src/DataPipeManager';
+import DataPipeManager from '../../src/DataPipeManager';
 import decodeBinaryData from '../../src/BinaryDataDecoder';
 import generateReport from '../../src/ReportGenerator';
 import { dropDataPoolTable } from '../../src/DataPoolManager';
 import { processConstraints } from '../../src/ConstraintsProcessor';
-import { createStateLogsTable, dropStateLogsTable } from '../../src/MigrationStateManager';
-import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
-import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/BootProcessor';
+import {
+    createStateLogsTable,
+    dropStateLogsTable,
+} from '../../src/MigrationStateManager';
+import {
+    createDataPoolTable,
+    readDataPool,
+} from '../../src/DataPoolManager';
+import {
+    checkConnection,
+    getLogo,
+    getConfAndLogsPaths,
+} from '../../src/BootProcessor';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from '../../src/Types';
 import {
     createLogsDirectory,
     generateError,
@@ -134,7 +148,7 @@ export default class TestSchemaProcessor {
         }
 
         if (msg) {
-            log(this.conversion as Conversion, msg);
+            await log(this.conversion as Conversion, msg);
             process.exit(0);
         }
 
@@ -308,7 +322,7 @@ export default class TestSchemaProcessor {
             .then(createDataPoolTable)
             .then(loadStructureToMigrate)
             .then(readDataPool)
-            .then(pipeData)
+            .then(DataPipeManager.runDataPipe)
             .then(decodeBinaryData)
             .then(processConstraints)
             .then(dropDataPoolTable)

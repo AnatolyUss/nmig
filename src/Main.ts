@@ -21,18 +21,35 @@
 import Conversion from './Conversion';
 import createSchema from './SchemaProcessor';
 import loadStructureToMigrate from './StructureLoader';
-import pipeData from './DataPipeManager';
+import DataPipeManager from './DataPipeManager';
 import decodeBinaryData from './BinaryDataDecoder';
 import generateReport from './ReportGenerator';
 import DBAccess from './DBAccess';
 import { dropDataPoolTable } from './DataPoolManager';
 import { processConstraints } from './ConstraintsProcessor';
-import { getConfAndLogsPaths, boot } from './BootProcessor';
-import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
-import { createDataPoolTable, readDataPool } from './DataPoolManager';
-import { readConfig, readExtraConfig, createLogsDirectory, readDataAndIndexTypesMap } from './FsOps';
+import {
+    getConfAndLogsPaths,
+    boot,
+} from './BootProcessor';
+import {
+    createStateLogsTable,
+    dropStateLogsTable,
+} from './MigrationStateManager';
+import {
+    createDataPoolTable,
+    readDataPool,
+} from './DataPoolManager';
+import {
+    readConfig,
+    readExtraConfig,
+    createLogsDirectory,
+    readDataAndIndexTypesMap,
+} from './FsOps';
 
-const { confPath, logsPath } = getConfAndLogsPaths();
+const {
+    confPath,
+    logsPath,
+} = getConfAndLogsPaths();
 
 readConfig(confPath, logsPath)
     .then(config => readExtraConfig(config, confPath))
@@ -45,7 +62,7 @@ readConfig(confPath, logsPath)
     .then(createDataPoolTable)
     .then(loadStructureToMigrate)
     .then(readDataPool)
-    .then(pipeData)
+    .then(DataPipeManager.runDataPipe)
     .then(decodeBinaryData)
     .then(processConstraints)
     .then(dropDataPoolTable)

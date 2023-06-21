@@ -45,6 +45,6 @@ export default async (conversion: Conversion): Promise<void> => {
         \n\t--[generateReport] Total time: ${ formattedHours }:${ formattedMinutes }:${ formattedSeconds }
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
-    log(conversion, output, undefined, true);
+    await log(conversion, output, undefined, true);
     process.exit(0);
 };

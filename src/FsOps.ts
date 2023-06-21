@@ -23,37 +23,133 @@ import * as path from 'node:path';
 import { ChildProcess } from 'node:child_process';
 
 import Conversion from './Conversion';
-import { LogMessage, LogMessageType } from './Types';
+import {
+    LogMessage,
+    LogMessageType,
+} from './Types';
 
 /**
  * Sends error-log to dedicated logger process.
  */
-export const generateError = (
+export const generateError = async (
     conversion: Conversion,
     message: string,
     sql: string = '',
-): void => {
-    const logMessage: LogMessage = {
-        type: LogMessageType.ERROR,
-        message: message,
-        sql: sql,
-    };
+): Promise<void> => {
+    if (conversion.logger) {
+        const logMessage: LogMessage = {
+            type: LogMessageType.ERROR,
+            message: message,
+            sql: sql,
+        };
 
-    (conversion.logger as ChildProcess).send(logMessage);
+        (conversion.logger as ChildProcess).send(logMessage);
+        return;
+    }
+
+    await generateErrorInBackground(conversion, message, sql);
 };
 
 /**
  * Sends log to dedicated logger process.
  */
-export const log = (
+export const log = async (
     conversion: Conversion,
     message: string | NodeJS.ErrnoException,
     tableLogPath?: string,
     isConcluding: boolean = false,
-): void => {
-    const type: LogMessageType = isConcluding ? LogMessageType.EXIT : LogMessageType.LOG;
-    const logMessage: LogMessage = { type, message, tableLogPath };
-    (conversion.logger as ChildProcess).send(logMessage);
+): Promise<void> => {
+    if (conversion.logger) {
+        const type: LogMessageType = isConcluding ? LogMessageType.EXIT : LogMessageType.LOG;
+        const logMessage: LogMessage = { type, message, tableLogPath };
+        (conversion.logger as ChildProcess).send(logMessage);
+        return;
+    }
+
+    await logInBackground(conversion, message, tableLogPath);
+};
+
+/**
+ * Writes a detailed error message to the "/errors-only.log" file.
+ */
+export const generateErrorInBackground = (
+    conversion: Conversion,
+    message: string,
+    sql: string = '',
+): Promise<void> => {
+    return new Promise<void>(async resolve => {
+        message += sql !== '' ? `\n\n\tSQL: ${sql}\n\n` : sql;
+        const buffer: Buffer = Buffer.from(message, conversion._encoding);
+        await logInBackground(conversion, message);
+
+        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: NodeJS.ErrnoException | null, fd: number) => {
+            if (error) {
+                console.error(error);
+                return resolve();
+            }
+
+            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
+                if (fsWriteError) {
+                    console.error(fsWriteError);
+                    // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                }
+
+                fs.close(fd, () => resolve());
+            });
+        });
+    });
+};
+
+/**
+ * Outputs given log.
+ * Writes given log to the "/all.log" file.
+ * If necessary, writes given log to the "/{tableName}.log" file.
+ */
+export const logInBackground = (
+    conversion: Conversion,
+    log: string | NodeJS.ErrnoException,
+    tableLogPath?: string,
+): Promise<void> => {
+    return new Promise<void>(resolve => {
+        console.log(log);
+        const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
+
+        fs.open(conversion._allLogsPath, 'a', conversion._0777, (err: NodeJS.ErrnoException | null, fd: number) => {
+            if (err) {
+                console.error(err);
+                return resolve();
+            }
+
+            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
+                if (fsWriteError) {
+                    console.error(fsWriteError);
+                    // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                }
+
+                fs.close(fd, () => {
+                    if (tableLogPath) {
+                        fs.open(tableLogPath, 'a', conversion._0777, (error: NodeJS.ErrnoException | null, fd: number) => {
+                            if (error) {
+                                console.error(error);
+                                return resolve();
+                            } else {
+                                fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
+                                    if (fsWriteError) {
+                                        console.error(fsWriteError);
+                                        // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                                    }
+
+                                    fs.close(fd, () => resolve());
+                                });
+                            }
+                        });
+                    } else {
+                        return resolve();
+                    }
+                });
+            });
+        });
+    });
 };
 
 /**
@@ -115,7 +211,7 @@ export const readDataAndIndexTypesMap = async (conversion: Conversion): Promise<
     const logTitle: string = 'FsOps::readDataAndIndexTypesMap';
     conversion._dataTypesMap = await readAndParseJsonFile(conversion._dataTypesMapAddr);
     conversion._indexTypesMap = await readAndParseJsonFile(conversion._indexTypesMapAddr);
-    log(conversion, `\t--[${ logTitle }] Data and Index Types Maps are loaded...`);
+    await log(conversion, `\t--[${ logTitle }] Data and Index Types Maps are loaded...`);
     return conversion;
 };
 
@@ -140,16 +236,16 @@ const createDirectory = (
     return new Promise<void>(resolve => {
         console.log(`\t--[${ logTitle }] Creating directory ${ directoryPath }...`);
 
-        fs.stat(directoryPath, (directoryDoesNotExist: NodeJS.ErrnoException | null, stat: fs.Stats) => {
+        fs.stat(directoryPath, async (directoryDoesNotExist: NodeJS.ErrnoException | null, stat: fs.Stats) => {
             if (directoryDoesNotExist) {
-                fs.mkdir(directoryPath, conversion._0777, e => {
+                fs.mkdir(directoryPath, conversion._0777, async e => {
                     if (e) {
                         console.log(`\t--[${ logTitle }] Cannot perform migration.`);
                         console.log(`\t--[${ logTitle }] Failed to create directory ${ directoryPath }`);
                         process.exit(1);
                     }
 
-                    log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } is created...`);
+                    await log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } is created...`);
                     resolve();
                 });
 
@@ -161,7 +257,7 @@ const createDirectory = (
                 process.exit(1);
             }
 
-            log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
+            await log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
             resolve();
         });
     });

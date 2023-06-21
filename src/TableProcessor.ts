@@ -21,8 +21,13 @@
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    Table,
+} from './Types';
 
 /**
  * Converts MySQL data types to corresponding PostgreSQL data types.
@@ -79,7 +84,7 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
  */
 export const createTable = async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'TableProcessor::createTable';
-    log(
+    await log(
         conversion,
         `\t--[${ logTitle }] Currently creating table: \`${ tableName }\``,
         (conversion._dicTables.get(tableName) as Table).tableLogPath,
@@ -127,7 +132,7 @@ export const createTable = async (conversion: Conversion, tableName: string): Pr
     const createTableResult: DBAccessQueryResult = await DBAccess.query(params);
 
     if (!createTableResult.error) {
-        log(
+        await log(
             conversion,
             `\t--[${ logTitle }] Table "${ conversion._schema }"."${ tableName }" is created...`,
             (conversion._dicTables.get(tableName) as Table).tableLogPath,

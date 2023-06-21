@@ -22,7 +22,12 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    Table,
+} from './Types';
 
 /**
  * Defines which columns of the given table are of type "enum".
@@ -32,7 +37,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
     const logTitle: string = 'EnumProcessor::default';
     const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
     const msg: string = `\t--[${ logTitle }] Defines "ENUMs" for table ${ fullTableName }`;
-    log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
+    await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 
     const _cb = async (column: any): Promise<void> => {
@@ -59,7 +64,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
                 const result: DBAccessQueryResult = await DBAccess.query(params);
 
                 if (!result.error) {
-                    log(
+                    await log(
                         conversion,
                         `\t--[${ logTitle }] Set "ENUM" for ${ fullTableName }."${ columnName }"...`,
                         (conversion._dicTables.get(tableName) as Table).tableLogPath,

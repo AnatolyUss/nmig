@@ -22,9 +22,17 @@ import * as path from 'node:path';
 
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { ConfAndLogsPaths, DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import { getStateLogsTableName } from './MigrationStateManager';
-import { generateError, log } from './FsOps';
+import {
+    generateError,
+    log,
+} from './FsOps';
+import {
+    ConfAndLogsPaths,
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 /**
  * Checks correctness of connection details of both MySQL and PostgreSQL.
@@ -72,7 +80,7 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle: string = 'BootProcessor::boot';
 
     if (connectionErrorMessage) {
-        generateError(conversion, `\t--[${ logTitle }]\n ${ logo } \n ${ connectionErrorMessage }`);
+        await generateError(conversion, `\t--[${ logTitle }]\n ${ logo } \n ${ connectionErrorMessage }`);
         process.exit(1);
     }
 
@@ -96,7 +104,7 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
           + '\t--[boot] Consider checking log files at the end of migration.\n'
         : '\n\t--[boot] NMIG is starting.') } \n`;
 
-    log(conversion, `\t--[${ logTitle }] ${ logo }${ message }`);
+    await log(conversion, `\t--[${ logTitle }] ${ logo }${ message }`);
     return conversion;
 };
 

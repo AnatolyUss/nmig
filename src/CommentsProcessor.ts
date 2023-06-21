@@ -22,7 +22,12 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    Table,
+} from './Types';
 
 /**
  * Escapes quotes inside given string.
@@ -65,7 +70,7 @@ const processTableComments = async (conversion: Conversion, tableName: string): 
         return;
     }
 
-    log(
+    await log(
         conversion,
         `\t--[${ logTitle }] Successfully set comment for table "${ conversion._schema }"."${ tableName }"`,
         (conversion._dicTables.get(tableName) as Table).tableLogPath,
@@ -108,7 +113,7 @@ const processColumnsComments = async (conversion: Conversion, tableName: string)
             return;
         }
 
-        log(
+        await log(
             conversion,
             `\t--[${ logTitle }] Set comment for ${ fullTableName } column: "${ columnName }"...`,
             (conversion._dicTables.get(tableName) as Table).tableLogPath,
@@ -125,7 +130,7 @@ const processColumnsComments = async (conversion: Conversion, tableName: string)
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle: string = 'CommentsProcessor::default';
     const msg: string = `\t--[${ logTitle }] Creates comments for table "${ conversion._schema }"."${ tableName }"...`;
-    log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
+    await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
     await Promise.all([
         processTableComments(conversion, tableName),
         processColumnsComments(conversion, tableName),

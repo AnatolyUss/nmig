@@ -23,8 +23,13 @@ import arrangeColumnsData from './ColumnsDataArranger';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 import { getDataPoolTableName } from './DataPoolManager';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    Table,
+} from './Types';
 
 /**
  * Prepares an array of tables metadata.
@@ -60,7 +65,7 @@ export default async (
     const rowsCnt: number = countResult.data[0].rows_count;
     const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
 
-    log(
+    await log(
         conversion,
         `\t--[${ logTitle }] Total rows to insert into ${ fullTableName }: ${ rowsCnt }`,
         (conversion._dicTables.get(tableName) as Table).tableLogPath,

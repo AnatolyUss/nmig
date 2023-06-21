@@ -23,7 +23,11 @@ import { Test } from 'tape';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from '../../src/Types';
 
 /**
  * Checks if the schema exists.

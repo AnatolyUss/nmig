@@ -21,9 +21,15 @@
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table, Index } from './Types';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getUniqueIdentifier } from './Utils';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+    Table,
+    Index,
+} from './Types';
 
 /**
  * Returns PostgreSQL index type, that correlates to given MySQL index type.
@@ -104,7 +110,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
 
     const addIndexPromises: Promise<void>[] = Array.from(pgIndices.keys()).map(_cb);
     await Promise.all(addIndexPromises);
-    log(
+    await log(
         conversion,
         `\t--[${ logTitle }] "${ conversion._schema }"."${ tableName }": PK/indices are successfully set...`,
         (conversion._dicTables.get(tableName) as Table).tableLogPath,

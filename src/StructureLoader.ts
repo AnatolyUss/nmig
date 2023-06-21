@@ -19,13 +19,17 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import { createTable } from './TableProcessor';
 import prepareDataChunks from './DataChunksProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 /**
  * Processes current table before data loading.
@@ -127,7 +131,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         \t--[${ logTitle }] Tables to migrate: ${ tablesCnt }\n
         \t--[${ logTitle }] Views to migrate: ${ viewsCnt }`;
 
-    log(conversion, message);
+    await log(conversion, message);
     await Promise.all(processTablePromises);
     await migrationStateManager.set(conversion, 'tables_loaded');
     return conversion;

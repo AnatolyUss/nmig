@@ -20,8 +20,12 @@
  */
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 import { getDataPoolTableName } from './DataPoolManager';
+import {
+    DBAccessQueryParams,
+    DBAccessQueryResult,
+    DBVendors,
+} from './Types';
 
 /**
  * Enforces consistency before processing a chunk of data.
