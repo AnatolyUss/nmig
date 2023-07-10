@@ -35,7 +35,7 @@ import {
  * './config/data_types_map.json' can be customized.
  */
 export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): string => {
-    let retVal: string = '';
+    let retVal = '';
     const arrDataTypeDetails: string[] = mySqlDataType.split(' ');
     mySqlDataType = arrDataTypeDetails[0].toLowerCase();
     const increaseOriginalSize: boolean = arrDataTypeDetails.indexOf('unsigned') !== -1
@@ -83,7 +83,7 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
  * Migrates structure of a single table to PostgreSql server.
  */
 export const createTable = async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle: string = 'TableProcessor::createTable';
+    const logTitle = 'TableProcessor::createTable';
     await log(
         conversion,
         `\t--[${ logTitle }] Currently creating table: \`${ tableName }\``,

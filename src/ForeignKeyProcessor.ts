@@ -39,7 +39,7 @@ const processForeignKeyWorker = async (
 ): Promise<void> => {
     const objConstraints: any = Object.create(null);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const logTitle: string = 'ForeignKeyProcessor::processForeignKeyWorker';
+    const logTitle = 'ForeignKeyProcessor::processForeignKeyWorker';
 
     rows.forEach((row: any) => {
         const currentColumnName: string = extraConfigProcessor.getColumnName(
@@ -113,7 +113,7 @@ const processForeignKeyWorker = async (
  * Starts a process of foreign keys creation.
  */
 export default async (conversion: Conversion): Promise<void> => {
-    const logTitle: string = 'ForeignKeyProcessor::default';
+    const logTitle = 'ForeignKeyProcessor::default';
     const isForeignKeysProcessed: boolean = await migrationStateManager.get(conversion, 'foreign_keys_loaded');
 
     if (isForeignKeysProcessed) {

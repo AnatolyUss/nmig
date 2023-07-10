@@ -38,7 +38,7 @@ import {
  * Checks correctness of connection details of both MySQL and PostgreSQL.
  */
 export const checkConnection = async (conversion: Conversion): Promise<string> => {
-    let resultMessage: string = '';
+    let resultMessage = '';
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'BootProcessor::checkConnection',
@@ -77,7 +77,7 @@ export const getLogo = (): string => {
 export const boot = async (conversion: Conversion): Promise<Conversion> => {
     const connectionErrorMessage = await checkConnection(conversion);
     const logo: string = getLogo();
-    const logTitle: string = 'BootProcessor::boot';
+    const logTitle = 'BootProcessor::boot';
 
     if (connectionErrorMessage) {
         await generateError(conversion, `\t--[${ logTitle }]\n ${ logo } \n ${ connectionErrorMessage }`);
@@ -98,8 +98,8 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
-    const isExists: boolean = !!result.data.rows[0].exists;
-    const message: string = `${ (isExists
+    const isExists = !!result.data.rows[0].exists;
+    const message = `${ (isExists
         ? '\n\t--[boot] NMIG is restarting after some failure.\n'
           + '\t--[boot] Consider checking log files at the end of migration.\n'
         : '\n\t--[boot] NMIG is starting.') } \n`;

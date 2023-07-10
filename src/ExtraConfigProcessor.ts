@@ -29,7 +29,7 @@ export const getTableName = (
     shouldGetOriginal: boolean,
 ): string => {
     if (conversion._extraConfig !== null && 'tables' in conversion._extraConfig) {
-        for (let i: number = 0; i < conversion._extraConfig.tables.length; ++i) {
+        for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
             const tableName: string = shouldGetOriginal
                 ? conversion._extraConfig.tables[i].name.new
                 : conversion._extraConfig.tables[i].name.original;
@@ -58,13 +58,13 @@ export const getColumnName = (
 
     if (conversion._extraConfig !== null) {
         if ('tables' in conversion._extraConfig) {
-            for (let i: number = 0; i < conversion._extraConfig.tables.length; ++i) {
+            for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
                 const isOriginal: boolean = conversion._extraConfig.tables[i].name.original === originalTableName
                     && 'columns' in conversion._extraConfig.tables[i];
 
                 if (isOriginal) {
                     for (
-                        let columnsCount: number = 0;
+                        let columnsCount = 0;
                         columnsCount < conversion._extraConfig.tables[i].columns.length;
                         ++columnsCount
                     ) {
@@ -97,7 +97,7 @@ export const parseForeignKeys = (
     const retVal: any[] = [];
 
     if (conversion._extraConfig !== null && 'foreign_keys' in conversion._extraConfig) {
-        for (let i: number = 0; i < conversion._extraConfig.foreign_keys.length; ++i) {
+        for (let i = 0; i < conversion._extraConfig.foreign_keys.length; ++i) {
             if (conversion._extraConfig.foreign_keys[i].table_name === tableName) {
                 // There may be several FKs in a single table.
                 const objFk: any = Object.create(null);

@@ -27,8 +27,11 @@ import { generateError } from './FsOps';
  * PostgreSQL has a limit of 63 characters for identifier names.
  * This function substitutes a postfix of possibly long identifiers with UUID string to ensure identifier uniqueness.
  */
-export const getUniqueIdentifier = (identifier: string, mandatoryPostfix: string = ''): string => {
-    const MAX_PG_IDENTIFIER_LENGTH: number = 63;
+export const getUniqueIdentifier = (
+    identifier: string,
+    mandatoryPostfix: string = '', // eslint-disable-line @typescript-eslint/no-inferrable-types
+): string => {
+    const MAX_PG_IDENTIFIER_LENGTH = 63;
 
     if (identifier.length > MAX_PG_IDENTIFIER_LENGTH) {
         const mandatoryPostfixLength: number = mandatoryPostfix.length;

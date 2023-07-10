@@ -35,7 +35,7 @@ import {
  */
 export const dataTransferred = async (conversion: Conversion, dataPoolId: number): Promise<boolean> => {
     const dataPoolTable: string = getDataPoolTableName(conversion);
-    const sqlGetMetadata: string = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
+    const sqlGetMetadata = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'ConsistencyEnforcer::dataTransferred',
@@ -47,7 +47,7 @@ export const dataTransferred = async (conversion: Conversion, dataPoolId: number
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
     const metadata: any = JSON.parse(result.data.rows[0].metadata);
-    const targetTableName: string = `"${ conversion._schema }"."${ metadata._tableName }"`;
+    const targetTableName = `"${ conversion._schema }"."${ metadata._tableName }"`;
 
     params.sql = `SELECT * FROM ${ targetTableName } LIMIT 1 OFFSET 0;`;
     params.shouldReturnClient = false;

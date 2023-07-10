@@ -51,23 +51,23 @@ export default class DataPipeManager {
     /**
      * A number of currently running reader processes.
      */
-    private static readerProcessesCount: number = 0;
+    private static readerProcessesCount = 0;
 
     /**
      * "tableLoadingFinished" event.
      */
-    private static readonly tableLoadingFinishedEvent: string = 'tableLoadingFinished';
+    private static readonly tableLoadingFinishedEvent = 'tableLoadingFinished';
 
     /**
      * An EventEmitter instance.
      */
-    private static readonly eventEmitter: EventEmitter = new EventEmitter();
+    private static readonly eventEmitter = new EventEmitter();
 
     /**
      * A path to the DataReader.js file.
      * !!!Notice, in runtime it points to ../dist/src/DataReader.js and not DataReader.ts
      */
-    private static readonly dataReaderPath: string = path.join(__dirname, 'DataReader.js');
+    private static readonly dataReaderPath = path.join(__dirname, 'DataReader.js');
 
     /**
      * Returns the options object, which intended to be used upon creation of the data reader process.
@@ -102,7 +102,7 @@ export default class DataPipeManager {
             );
         }
 
-        const DEFAULT_NUMBER_OF_DATA_READER_PROCESSES: number = 2;
+        const DEFAULT_NUMBER_OF_DATA_READER_PROCESSES = 2;
         return Math.min(
             DEFAULT_NUMBER_OF_DATA_READER_PROCESSES,
             (os.cpus().length || 1),
@@ -148,7 +148,7 @@ export default class DataPipeManager {
         // Sends a message to current data reader process,
         // which contains configuration info and a metadata of the next data-chunk.
         const chunk: any = conversion._dataPool.pop();
-        const fullTableName: string = `"${ conversion._schema }"."${ chunk._tableName }"`;
+        const fullTableName = `"${ conversion._schema }"."${ chunk._tableName }"`;
         const msg: string = `\n\t--[NMIG data transfer] ${ fullTableName } DATA TRANSFER IN PROGRESS...`
             + `\n\t--[NMIG data transfer] TIME REQUIRED FOR TRANSFER DEPENDS ON AMOUNT OF DATA...\n`;
 
@@ -189,7 +189,7 @@ export default class DataPipeManager {
 
             // !!!Note, invoke the "DataPipeManager.runDataReaderProcess" method sequentially.
             // DO NOT use ".map(async _ => await DataPipeManager.runDataReaderProcess(..." to avoid race condition.
-            for (let i: number = 0; i < numberOfReaderProcesses; ++i) {
+            for (let i = 0; i < numberOfReaderProcesses; ++i) {
                 await DataPipeManager.runDataReaderProcess(conversion);
             }
         });
@@ -204,7 +204,7 @@ export default class DataPipeManager {
         client: PoolClient,
         originalSessionReplicationRole: string,
     ): Promise<void> => {
-        const sql: string = `SET session_replication_role = ${ originalSessionReplicationRole };`;
+        const sql = `SET session_replication_role = ${ originalSessionReplicationRole };`;
 
         try {
             await client.query(sql);
@@ -218,8 +218,8 @@ export default class DataPipeManager {
      * !!!DO NOT release the client, it will be released after current data-chunk deletion.
      */
     public static disablePgTriggers = async (conversion: Conversion, client: PoolClient): Promise<string> => {
-        let sql: string = `SHOW session_replication_role;`;
-        let originalSessionReplicationRole: string = 'origin';
+        let sql = `SHOW session_replication_role;`;
+        let originalSessionReplicationRole = 'origin';
 
         try {
             const queryResult: QueryResult = await client.query(sql);
@@ -242,7 +242,7 @@ export default class DataPipeManager {
         client: PoolClient,
         originalSessionReplicationRole: string | null = null,
     ): Promise<void> => {
-        const sql: string = `DELETE FROM ${ getDataPoolTableName(conversion) } WHERE id = ${ dataPoolId };`;
+        const sql = `DELETE FROM ${ getDataPoolTableName(conversion) } WHERE id = ${ dataPoolId };`;
 
         try {
             await client.query(sql);
@@ -280,7 +280,7 @@ export default class DataPipeManager {
         originalSessionReplicationRole: string | null,
     ): Promise<void> => {
         await generateError(conv, `\t--[populateTable] ${ streamError }`, sqlCopy);
-        const rejectedData: string = `\t--[populateTable] Error loading table data:\n${ sql }\n`;
+        const rejectedData = `\t--[populateTable] Error loading table data:\n${ sql }\n`;
         await log(conv, rejectedData, path.join(conv._logsDirPath, `${ tableName }.log`));
         await DataPipeManager.deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
         const messageToMaster: MessageToMaster = {

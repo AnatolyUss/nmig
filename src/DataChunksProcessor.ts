@@ -44,14 +44,14 @@ export default async (
     }
 
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const logTitle: string = 'DataChunksProcessor::default';
+    const logTitle = 'DataChunksProcessor::default';
     const selectFieldList: string = arrangeColumnsData(
         (conversion._dicTables.get(tableName) as Table).arrTableColumns,
         +(conversion._mysqlVersion.split(".").slice(0, 2).join(".")),
         conversion._encoding,
     );
 
-    const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
+    const sqlRowsCnt = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'DataChunksProcessor::default',
@@ -63,7 +63,7 @@ export default async (
 
     const countResult: DBAccessQueryResult = await DBAccess.query(params);
     const rowsCnt: number = countResult.data[0].rows_count;
-    const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
+    const fullTableName = `"${ conversion._schema }"."${ tableName }"`;
 
     await log(
         conversion,

@@ -38,9 +38,9 @@ export const getDataPoolTableName = (conversion: Conversion): string => {
  * Creates the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
 export const createDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'DataPoolManager::createDataPoolTable';
+    const logTitle = 'DataPoolManager::createDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
-    const sql: string = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
+    const sql = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
@@ -59,7 +59,7 @@ export const createDataPoolTable = async (conversion: Conversion): Promise<Conve
  * Drops the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
 export const dropDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'DataPoolManager::dropDataPoolTable';
+    const logTitle = 'DataPoolManager::dropDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
     const params: DBAccessQueryParams = {
         conversion: conversion,
@@ -79,7 +79,7 @@ export const dropDataPoolTable = async (conversion: Conversion): Promise<Convers
  * Reads temporary table, and generates Data-pool.
  */
 export const readDataPool = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'DataPoolManager::readDataPool';
+    const logTitle = 'DataPoolManager::readDataPool';
     const table: string = getDataPoolTableName(conversion);
     const params: DBAccessQueryParams = {
         conversion: conversion,

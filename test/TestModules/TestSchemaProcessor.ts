@@ -88,8 +88,8 @@ export default class TestSchemaProcessor {
             return;
         }
 
-        const logTitle: string = 'TestSchemaProcessor::removeTestResources';
-        const sqlDropMySqlDatabase: string = `DROP DATABASE ${ (this.conversion as Conversion)._mySqlDbName };`;
+        const logTitle = 'TestSchemaProcessor::removeTestResources';
+        const sqlDropMySqlDatabase = `DROP DATABASE ${ (this.conversion as Conversion)._mySqlDbName };`;
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
             caller: logTitle,
@@ -110,9 +110,9 @@ export default class TestSchemaProcessor {
      * Prevents tests from running if test dbs (both MySQL and PostgreSQL) already exist.
      */
     private _checkResources = async (conversion: Conversion): Promise<Conversion> => {
-        const logTitle: string = 'TestSchemaProcessor::_checkResources';
+        const logTitle = 'TestSchemaProcessor::_checkResources';
 
-        const sqlIsMySqlDbExist: string = `SELECT EXISTS (SELECT schema_name FROM information_schema.schemata 
+        const sqlIsMySqlDbExist = `SELECT EXISTS (SELECT schema_name FROM information_schema.schemata 
             WHERE schema_name = '${ (this.conversion as Conversion)._mySqlDbName }') AS \`exists\`;`;
 
         const params: DBAccessQueryParams = {
@@ -126,7 +126,7 @@ export default class TestSchemaProcessor {
 
         const mySqlResult: DBAccessQueryResult = await DBAccess.query(params);
 
-        const mySqlExists: boolean = !!mySqlResult.data[0].exists;
+        const mySqlExists = !!mySqlResult.data[0].exists;
 
         params.vendor = DBVendors.PG;
         params.sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
@@ -134,8 +134,8 @@ export default class TestSchemaProcessor {
 
         const pgResult: DBAccessQueryResult = await DBAccess.query(params);
 
-        const pgExists: boolean = !!pgResult.data.rows[0].exists;
-        let msg: string = '';
+        const pgExists = !!pgResult.data.rows[0].exists;
+        let msg = '';
 
         if (mySqlExists) {
             msg += `Please, remove '${ (this.conversion as Conversion)._mySqlDbName }' 
@@ -143,7 +143,7 @@ export default class TestSchemaProcessor {
         }
 
         if (pgExists) {
-            const schemaName: string = `'${ (this.conversion as Conversion)._targetConString.database }.${ (this.conversion as Conversion)._schema }'`;
+            const schemaName = `'${ (this.conversion as Conversion)._targetConString.database }.${ (this.conversion as Conversion)._schema }'`;
             msg += `Please, remove ${ schemaName } schema from your PostgreSQL server prior to running tests.`;
         }
 
@@ -264,8 +264,9 @@ export default class TestSchemaProcessor {
         };
 
         const insertParamsKeys: string[] = Object.keys(insertParams).map((k: string): string => `\`${ k }\``);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const valuesToInsert: string = insertParamsKeys.map((_: string): string => '?').join(',');
-        const sql: string = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ valuesToInsert });`;
+        const sql = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ valuesToInsert });`;
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
             caller: 'TestSchemaProcessor::_loadTestData',

@@ -41,7 +41,7 @@ process.on('message', async (logMessage: LogMessage): Promise<void> => {
         if (logMessage.type === LogMessageType.CONFIG) {
             // Create Conversion instance, but avoid recursion,
             // which might lead to redundant logger processes creation.
-            const avoidLogger: boolean = true;
+            const avoidLogger = true;
             conv = conv || new Conversion(logMessage.config, avoidLogger);
         } else if (logMessage.type === LogMessageType.LOG) {
             await logInBackground(conv, logMessage.message as string, logMessage.tableLogPath);

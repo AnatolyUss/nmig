@@ -69,8 +69,8 @@ const getSanitizedType = (type: string): string => type.split('(')[0];
  * Arranges columns data before loading.
  */
 export default (arrTableColumns: any[], mysqlVersion: number, encoding: Encoding): string => {
-    let strRetVal: string = '';
-    const wkbFunc: string = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
+    let strRetVal = '';
+    const wkbFunc = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
     arrTableColumns.forEach((column: any) => {
         const field: string = column.Field;

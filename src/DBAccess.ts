@@ -175,14 +175,14 @@ export default class DBAccess {
      */
     public static query = async (queryParams: DBAccessQueryParams): Promise<DBAccessQueryResult> => {
         let {
-            conversion,
-            caller,
-            sql,
-            vendor,
-            processExitOnError,
-            shouldReturnClient,
+            conversion, // eslint-disable-line prefer-const
+            caller, // eslint-disable-line prefer-const
+            sql, // eslint-disable-line prefer-const
+            vendor, // eslint-disable-line prefer-const
+            processExitOnError, // eslint-disable-line prefer-const
+            shouldReturnClient, // eslint-disable-line prefer-const
             client,
-            bindings,
+            bindings, // eslint-disable-line prefer-const
         } = queryParams;
 
         // Checks if there is an available client.

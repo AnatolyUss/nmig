@@ -42,7 +42,7 @@ const getIndexType = (conversion: Conversion, indexType: string): string => {
  * Creates primary key and indices.
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle: string = 'IndexAndKeyProcessor::default';
+    const logTitle = 'IndexAndKeyProcessor::default';
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
     const params: DBAccessQueryParams = {
         conversion: conversion,
@@ -59,7 +59,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         return;
     }
 
-    const pgIndices: Map<string, Index> = new Map<string, Index>();
+    const pgIndices = new Map<string, Index>();
 
     showIndexResult.data.forEach((index: any) => {
         const pgColumnName: string = extraConfigProcessor.getColumnName(
@@ -82,7 +82,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
     });
 
     const _cb = async (index: string): Promise<void> => {
-        let sqlAddIndex: string = '';
+        let sqlAddIndex = '';
         const currentIndex: Index = pgIndices.get(index) as Index;
 
         if (index.toLowerCase() === 'primary') {

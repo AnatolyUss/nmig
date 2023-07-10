@@ -33,7 +33,7 @@ import DBAccess from './DBAccess';
 import DataPipeManager from './DataPipeManager';
 
 /**
- * TODO: add description.
+ * After accepting the message, initializes data streaming from current process stdin into PostgreSQL (via COPY).
  */
 process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
     const {
@@ -43,10 +43,10 @@ process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
     } = signal;
 
     // Create Conversion instance, but avoid creating a separate logger process.
-    const avoidLogger: boolean = true;
+    const avoidLogger = true;
     const conv: Conversion = new Conversion(config, avoidLogger);
 
-    const fullTableName: string = `"${ conv._schema }"."${ chunk._tableName }"`;
+    const fullTableName = `"${ conv._schema }"."${ chunk._tableName }"`;
     await log(conv, `\t--[NMIG DataWriter] Loading the data into ${ fullTableName } table...`);
 
     const {
@@ -65,8 +65,7 @@ process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
     } catch (pipelineError) {
         await DataPipeManager.processDataError(
             conv,
-            // @ts-ignore
-            pipelineError,
+            pipelineError as string,
             sql,
             sqlCopy,
             tableName,

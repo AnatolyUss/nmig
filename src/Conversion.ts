@@ -226,7 +226,10 @@ export default class Conversion {
     /**
      * Constructor.
      */
-    public constructor(config: any, avoidLogger: boolean = false) {
+    public constructor(
+        config: any,
+        avoidLogger: boolean = false, // eslint-disable-line @typescript-eslint/no-inferrable-types
+    ) {
         this._config = config;
         this.logger = avoidLogger ? undefined : this._setLogger();
         this._sourceConString = this._config.source;

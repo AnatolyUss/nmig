@@ -35,19 +35,19 @@ import {
  * Sets default values, if needed.
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle: string = 'DefaultProcessor::default';
-    const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
-    const msg: string = `\t--[${ logTitle }] Defines default values for table: ${ fullTableName }`;
+    const logTitle = 'DefaultProcessor::default';
+    const fullTableName = `"${ conversion._schema }"."${ tableName }"`;
+    const msg = `\t--[${ logTitle }] Defines default values for table: ${ fullTableName }`;
     await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const pgSqlBitTypes: string[] = ['bit', 'bit varying'];
-    const pgSqlBinaryTypes: string[] = ['bytea'];
-    const pgSqlNumericTypes: string[] = [
+    const pgSqlBitTypes = ['bit', 'bit varying'];
+    const pgSqlBinaryTypes = ['bytea'];
+    const pgSqlNumericTypes = [
         'smallint', 'integer', 'bigint', 'decimal', 'numeric', 'int',
         'real', 'double precision', 'smallserial', 'serial', 'bigserial',
     ];
 
-    const sqlReservedValues: Map<string, string> = new Map<string, string>([
+    const sqlReservedValues = new Map<string, string>([
         ['CURRENT_DATE', 'CURRENT_DATE'],
         ['0000-00-00', "'-INFINITY'"],
         ['CURRENT_TIME', 'CURRENT_TIME'],
@@ -73,8 +73,8 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
             false,
         );
 
-        let sql: string = `ALTER TABLE ${ fullTableName } ALTER COLUMN "${ columnName }" SET DEFAULT `;
-        const isOfBitType: boolean = !!(pgSqlBitTypes.find((bitType: string) => pgSqlDataType.startsWith(bitType)));
+        let sql = `ALTER TABLE ${ fullTableName } ALTER COLUMN "${ columnName }" SET DEFAULT `;
+        const isOfBitType = !!(pgSqlBitTypes.find((bitType: string) => pgSqlDataType.startsWith(bitType)));
 
         if (sqlReservedValues.has(column.Default)) {
             sql += sqlReservedValues.get(column.Default);

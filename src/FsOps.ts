@@ -34,7 +34,7 @@ import {
 export const generateError = async (
     conversion: Conversion,
     message: string,
-    sql: string = '',
+    sql: string = '', // eslint-disable-line @typescript-eslint/no-inferrable-types
 ): Promise<void> => {
     if (conversion.logger) {
         const logMessage: LogMessage = {
@@ -57,7 +57,7 @@ export const log = async (
     conversion: Conversion,
     message: string | NodeJS.ErrnoException,
     tableLogPath?: string,
-    isConcluding: boolean = false,
+    isConcluding: boolean = false, // eslint-disable-line @typescript-eslint/no-inferrable-types
 ): Promise<void> => {
     if (conversion.logger) {
         const type: LogMessageType = isConcluding ? LogMessageType.EXIT : LogMessageType.LOG;
@@ -75,7 +75,7 @@ export const log = async (
 export const generateErrorInBackground = (
     conversion: Conversion,
     message: string,
-    sql: string = '',
+    sql: string = '', // eslint-disable-line @typescript-eslint/no-inferrable-types
 ): Promise<void> => {
     return new Promise<void>(async resolve => {
         message += sql !== '' ? `\n\n\tSQL: ${sql}\n\n` : sql;
@@ -175,7 +175,7 @@ const readAndParseJsonFile = (pathToFile: string): Promise<any> => {
 export const readConfig = async (
     confPath: string,
     logsPath: string,
-    configFileName: string = 'config.json',
+    configFileName: string = 'config.json', // eslint-disable-line @typescript-eslint/no-inferrable-types
 ): Promise<any> => {
     const pathToConfig: string = path.join(confPath, configFileName);
     const config: any = await readAndParseJsonFile(pathToConfig);
@@ -191,7 +191,7 @@ export const readConfig = async (
 export const readExtraConfig = async (
     config: any,
     confPath: string,
-    extraConfigFileName: string = 'extra_config.json',
+    extraConfigFileName: string = 'extra_config.json', // eslint-disable-line @typescript-eslint/no-inferrable-types
 ): Promise<any> => {
     if (config.enable_extra_config !== true) {
         config.extraConfig = null;
@@ -208,7 +208,7 @@ export const readExtraConfig = async (
  * and converts its json content to js object.
  */
 export const readDataAndIndexTypesMap = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'FsOps::readDataAndIndexTypesMap';
+    const logTitle = 'FsOps::readDataAndIndexTypesMap';
     conversion._dataTypesMap = await readAndParseJsonFile(conversion._dataTypesMapAddr);
     conversion._indexTypesMap = await readAndParseJsonFile(conversion._indexTypesMapAddr);
     await log(conversion, `\t--[${ logTitle }] Data and Index Types Maps are loaded...`);
@@ -219,7 +219,7 @@ export const readDataAndIndexTypesMap = async (conversion: Conversion): Promise<
  * Creates logs directory.
  */
 export const createLogsDirectory = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'FsOps::createLogsDirectory';
+    const logTitle = 'FsOps::createLogsDirectory';
     await createDirectory(conversion, conversion._logsDirPath, logTitle);
     await createDirectory(conversion, conversion._notCreatedViewsPath, logTitle);
     return conversion;

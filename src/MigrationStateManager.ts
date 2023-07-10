@@ -30,8 +30,11 @@ import {
 /**
  * Returns the state logs table name.
  */
-export const getStateLogsTableName = (conversion: Conversion, getRowName: boolean = false): string => {
-    const rowName: string = `state_logs_${ conversion._schema }${ conversion._mySqlDbName }`;
+export const getStateLogsTableName = (
+    conversion: Conversion,
+    getRowName: boolean = false, // eslint-disable-line @typescript-eslint/no-inferrable-types
+): string => {
+    const rowName = `state_logs_${ conversion._schema }${ conversion._mySqlDbName }`;
     return getRowName ? rowName : `"${ conversion._schema }"."${ rowName }"`;
 };
 
@@ -73,8 +76,8 @@ export const set = async (conversion: Conversion, ...states: string[]): Promise<
  * Creates the "{schema}"."state_logs_{self._schema + self._mySqlDbName}" temporary table.
  */
 export const createStateLogsTable = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'MigrationStateManager::createStateLogsTable';
-    const sql: string = `CREATE TABLE IF NOT EXISTS ${ getStateLogsTableName(conversion) }(
+    const logTitle = 'MigrationStateManager::createStateLogsTable';
+    const sql = `CREATE TABLE IF NOT EXISTS ${ getStateLogsTableName(conversion) }(
         "tables_loaded" BOOLEAN,
         "per_table_constraints_loaded" BOOLEAN,
         "foreign_keys_loaded" BOOLEAN,

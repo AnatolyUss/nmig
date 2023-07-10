@@ -34,9 +34,9 @@ import {
  * Sets an appropriate constraint, if needed.
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle: string = 'NullProcessor::default';
-    const fullTableName: string = `"${ conversion._schema }"."${ tableName }"`;
-    const msg: string = `\t--[${ logTitle }] Defines "NOT NULLs" for table: ${ fullTableName }`;
+    const logTitle = 'NullProcessor::default';
+    const fullTableName = `"${ conversion._schema }"."${ tableName }"`;
+    const msg = `\t--[${ logTitle }] Defines "NOT NULLs" for table: ${ fullTableName }`;
     await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
     const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 

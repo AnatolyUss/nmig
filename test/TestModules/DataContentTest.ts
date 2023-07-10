@@ -33,7 +33,7 @@ import {
  * Retrieves a data from `table_a`.
  */
 const retrieveData = async (testSchemaProcessor: TestSchemaProcessor): Promise<any> => {
-    const sql: string = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
+    const sql = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
         FROM ${ (testSchemaProcessor.conversion as Conversion)._schema }.table_a AS table_a;`;
 
     const params: DBAccessQueryParams = {
@@ -62,8 +62,8 @@ export default async (
     tape: Test,
 ): Promise<void> => {
     const data: any = await retrieveData(testSchemaProcessor);
-    const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
-    const numberOfPlannedAssertions: number = 24;
+    const autoTimeoutMs = 3 * 1000; // 3 seconds.
+    const numberOfPlannedAssertions = 24;
     const originalTestBlobText: string = testSchemaProcessor
         .getTestBlob(testSchemaProcessor.conversion as Conversion)
         .toString();
@@ -143,8 +143,8 @@ export default async (
     tape.comment('Test set column value');
     tape.equal(data.set, 's2');
 
-    const date: string = `${ data.timestamp.getFullYear() }-${ data.timestamp.getMonth() + 1 }-${ data.timestamp.getDate() }`;
-    const time: string = `${ data.timestamp.getHours() }:${ data.timestamp.getMinutes() }:${ data.timestamp.getSeconds() }`;
+    const date = `${ data.timestamp.getFullYear() }-${ data.timestamp.getMonth() + 1 }-${ data.timestamp.getDate() }`;
+    const time = `${ data.timestamp.getHours() }:${ data.timestamp.getMinutes() }:${ data.timestamp.getSeconds() }`;
     tape.comment('Test timestamp column value');
     tape.equal(`${ date } ${ time }`, '2018-11-11 22:21:20');
 };

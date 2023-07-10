@@ -33,7 +33,7 @@ import {
  * Returns `table_a` column types.
  */
 const getColumnTypes = async (testSchemaProcessor: TestSchemaProcessor): Promise<any[]> => {
-    const sql: string = `SELECT column_name, data_type  
+    const sql = `SELECT column_name, data_type  
         FROM information_schema.columns
         WHERE table_catalog = '${ (testSchemaProcessor.conversion as Conversion)._targetConString.database }' 
             AND table_schema = '${ (testSchemaProcessor.conversion as Conversion)._schema }' 
@@ -120,7 +120,7 @@ export default async (
     tape.plan(numberOfPlannedAssertions);
     tape.timeoutAfter(autoTimeoutMs);
 
-    for (let i: number = 0; i < numberOfPlannedAssertions; ++i) {
+    for (let i = 0; i < numberOfPlannedAssertions; ++i) {
         const columnName: string = data[i].column_name;
         const actualColumnType: string = data[i].data_type;
         const expectedColumnType: string = expectedColumnTypesMap.get(columnName) as string;

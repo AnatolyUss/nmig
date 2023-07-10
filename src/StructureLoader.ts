@@ -72,10 +72,10 @@ const setMySqlVersion = async (conversion: Conversion): Promise<void> => {
  * Loads source tables and views, that need to be migrated.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'StructureLoader::default';
+    const logTitle = 'StructureLoader::default';
     await setMySqlVersion(conversion);
     const haveTablesLoaded: boolean = await migrationStateManager.get(conversion, 'tables_loaded');
-    let sql: string = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\` WHERE 1 = 1`;
+    let sql = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\` WHERE 1 = 1`;
 
     if (conversion._includeTables.length !== 0) {
         const tablesToInclude: string = conversion._includeTables
@@ -103,8 +103,8 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
-    let tablesCnt: number = 0;
-    let viewsCnt: number = 0;
+    let tablesCnt = 0;
+    let viewsCnt = 0;
     const processTablePromises: Promise<void>[] = [];
 
     result.data.forEach((row: any) => {
@@ -127,7 +127,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         }
     });
 
-    const message: string = `\t--[${ logTitle }] Source DB structure is loaded...\n
+    const message = `\t--[${ logTitle }] Source DB structure is loaded...\n
         \t--[${ logTitle }] Tables to migrate: ${ tablesCnt }\n
         \t--[${ logTitle }] Views to migrate: ${ viewsCnt }`;
 

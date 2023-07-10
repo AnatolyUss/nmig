@@ -81,7 +81,7 @@ export default async (conversion: Conversion): Promise<void> => {
         return;
     }
 
-    const logTitle: string = 'ViewGenerator::default';
+    const logTitle = 'ViewGenerator::default';
 
     const _cb = async (view: string): Promise<void> => {
         const params: DBAccessQueryParams = {

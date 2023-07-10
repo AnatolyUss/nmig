@@ -60,7 +60,7 @@ process.on('message', async (signal: MessageToDataReader): Promise<void> => {
     } = signal;
 
     // Create Conversion instance, but avoid creating a separate logger process.
-    const avoidLogger: boolean = true;
+    const avoidLogger = true;
     const conv: Conversion = new Conversion(config, avoidLogger);
     await log(
         conv,
@@ -87,9 +87,9 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
     const rowsCnt: number = chunk._rowsCnt;
     const dataPoolId: number = chunk._id;
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
-    const sql: string = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
+    const sql = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
     const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
-    const sqlCopy: string = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN 
+    const sqlCopy = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN 
                              WITH(FORMAT csv, DELIMITER '${ conv._delimiter }',
                              ENCODING '${ conv._targetConString.charset }');`;
 
@@ -129,8 +129,7 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
     } catch (pipelineError) {
         await DataPipeManager.processDataError(
             conv,
-            // @ts-ignore
-            pipelineError,
+            pipelineError as string,
             sql,
             sqlCopy,
             tableName,
