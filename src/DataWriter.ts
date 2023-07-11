@@ -18,10 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import {
-    Writable,
-    promises as streamPromises,
-} from 'node:stream';
+import { Writable, promises as streamPromises } from 'node:stream';
 
 import { PoolClient } from 'pg';
 const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
@@ -36,26 +33,17 @@ import DataPipeManager from './DataPipeManager';
  * After accepting the message, initializes data streaming from current process stdin into PostgreSQL (via COPY).
  */
 process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
-    const {
-        config,
-        chunk,
-        copyStreamSerializableParams,
-    } = signal;
+    const { config, chunk, copyStreamSerializableParams } = signal;
 
     // Create Conversion instance, but avoid creating a separate logger process.
     const avoidLogger = true;
     const conv: Conversion = new Conversion(config, avoidLogger);
 
-    const fullTableName = `"${ conv._schema }"."${ chunk._tableName }"`;
-    await log(conv, `\t--[NMIG DataWriter] Loading the data into ${ fullTableName } table...`);
+    const fullTableName = `"${conv._schema}"."${chunk._tableName}"`;
+    await log(conv, `\t--[NMIG DataWriter] Loading the data into ${fullTableName} table...`);
 
-    const {
-        sqlCopy,
-        sql,
-        tableName,
-        dataPoolId,
-        originalSessionReplicationRole,
-    } = copyStreamSerializableParams;
+    const { sqlCopy, sql, tableName, dataPoolId, originalSessionReplicationRole } =
+        copyStreamSerializableParams;
 
     const client: PoolClient = await DBAccess.getPgClient(conv);
     const copyStream: Writable = client.query(from(sqlCopy));

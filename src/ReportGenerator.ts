@@ -32,17 +32,17 @@ export default async (conversion: Conversion): Promise<void> => {
         return;
     }
 
-    let differenceSec = ((new Date()).getTime() - (conversion._timeBegin as Date).getTime()) / 1000;
+    let differenceSec = (new Date().getTime() - (conversion._timeBegin as Date).getTime()) / 1000;
     const seconds = Math.floor(differenceSec % 60);
     differenceSec = differenceSec / 60;
     const minutes = Math.floor(differenceSec % 60);
     const hours = Math.floor(differenceSec / 60);
-    const formattedHours = hours < 10 ? `0${ hours }` : `${ hours }`;
-    const formattedMinutes = minutes < 10 ? `0${ minutes }` : `${ minutes }`;
-    const formattedSeconds = seconds < 10 ? `0${ seconds }` : `${ seconds }`;
+    const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+    const formattedSeconds = seconds < 10 ? `0${seconds}` : `${seconds}`;
     const endMsg = 'NMIG migration is accomplished.';
-    const output = `\t--[generateReport] ${ endMsg }
-        \n\t--[generateReport] Total time: ${ formattedHours }:${ formattedMinutes }:${ formattedSeconds }
+    const output = `\t--[generateReport] ${endMsg}
+        \n\t--[generateReport] Total time: ${formattedHours}:${formattedMinutes}:${formattedSeconds}
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
     await log(conversion, output, undefined, true);

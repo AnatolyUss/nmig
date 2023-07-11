@@ -21,11 +21,7 @@
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import { getDataPoolTableName } from './DataPoolManager';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Enforces consistency before processing a chunk of data.
@@ -33,9 +29,12 @@ import {
  * In case of normal execution - it is a good practice.
  * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
-export const dataTransferred = async (conversion: Conversion, dataPoolId: number): Promise<boolean> => {
+export const dataTransferred = async (
+    conversion: Conversion,
+    dataPoolId: number,
+): Promise<boolean> => {
     const dataPoolTable: string = getDataPoolTableName(conversion);
-    const sqlGetMetadata = `SELECT metadata AS metadata FROM ${ dataPoolTable } WHERE id = ${ dataPoolId };`;
+    const sqlGetMetadata = `SELECT metadata AS metadata FROM ${dataPoolTable} WHERE id = ${dataPoolId};`;
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'ConsistencyEnforcer::dataTransferred',
@@ -47,9 +46,9 @@ export const dataTransferred = async (conversion: Conversion, dataPoolId: number
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
     const metadata: any = JSON.parse(result.data.rows[0].metadata);
-    const targetTableName = `"${ conversion._schema }"."${ metadata._tableName }"`;
+    const targetTableName = `"${conversion._schema}"."${metadata._tableName}"`;
 
-    params.sql = `SELECT * FROM ${ targetTableName } LIMIT 1 OFFSET 0;`;
+    params.sql = `SELECT * FROM ${targetTableName} LIMIT 1 OFFSET 0;`;
     params.shouldReturnClient = false;
     params.client = result.client;
 

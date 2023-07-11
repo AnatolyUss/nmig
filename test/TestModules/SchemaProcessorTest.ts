@@ -23,18 +23,14 @@ import { Test } from 'tape';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from '../../src/Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 
 /**
  * Checks if the schema exists.
  */
 const hasSchemaCreated = async (testSchemaProcessor: TestSchemaProcessor): Promise<boolean> => {
     const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
-         WHERE schema_name = '${ (testSchemaProcessor.conversion as Conversion)._schema }');`;
+         WHERE schema_name = '${(testSchemaProcessor.conversion as Conversion)._schema}');`;
 
     const params: DBAccessQueryParams = {
         conversion: testSchemaProcessor.conversion as Conversion,
@@ -57,10 +53,7 @@ const hasSchemaCreated = async (testSchemaProcessor: TestSchemaProcessor): Promi
 /**
  * Tests schema creation.
  */
-export default async (
-    testSchemaProcessor: TestSchemaProcessor,
-    tape: Test,
-): Promise<void> => {
+export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
     const schemaExists: boolean = await hasSchemaCreated(testSchemaProcessor);
     const numberOfPlannedAssertions = 1;
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.

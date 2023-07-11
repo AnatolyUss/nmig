@@ -31,7 +31,7 @@ import testColumnTypes from './TestModules/ColumnTypesTest';
 /**
  * Runs test suites.
  */
-const runTestSuites = (testSchemaProcessor: TestSchemaProcessor): () => void => {
+const runTestSuites = (testSchemaProcessor: TestSchemaProcessor): (() => void) => {
     return (): void => {
         test.onFinish(async (): Promise<void> => {
             await testSchemaProcessor.removeTestResources();

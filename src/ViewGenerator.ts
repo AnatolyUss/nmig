@@ -25,11 +25,7 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
@@ -41,33 +37,45 @@ const generateView = (schema: string, viewName: string, mysqlViewCode: string): 
     const arrMysqlViewCode: string[] = mysqlViewCode.split(' ');
 
     arrMysqlViewCode.forEach((str: string, index: number) => {
-        if (str.toLowerCase() === 'from' || str.toLowerCase() === 'join' && index + 1 < arrMysqlViewCode.length) {
-            arrMysqlViewCode[index + 1] = `"${ schema }".${ arrMysqlViewCode[index + 1] }`;
+        if (
+            str.toLowerCase() === 'from' ||
+            (str.toLowerCase() === 'join' && index + 1 < arrMysqlViewCode.length)
+        ) {
+            arrMysqlViewCode[index + 1] = `"${schema}".${arrMysqlViewCode[index + 1]}`;
         }
     });
 
-    return `CREATE OR REPLACE VIEW "${ schema }"."${ viewName }" ${ arrMysqlViewCode.join(' ') };`;
+    return `CREATE OR REPLACE VIEW "${schema}"."${viewName}" ${arrMysqlViewCode.join(' ')};`;
 };
 
 /**
  * Writes a log, containing a view code.
  */
-const logNotCreatedView = (conversion: Conversion, viewName: string, sql: string): Promise<void> => {
+const logNotCreatedView = (
+    conversion: Conversion,
+    viewName: string,
+    sql: string,
+): Promise<void> => {
     return new Promise<void>(resolve => {
-        const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${ viewName }.sql`);
-        fs.open(viewFilePath,'w', conversion._0777, async (error: NodeJS.ErrnoException | null, fd: number): Promise<void> => {
-            if (error) {
-                await log(conversion, error);
-                return resolve();
-            }
-
-            const buffer: Buffer = Buffer.from(sql, conversion._encoding);
-            fs.write(fd, buffer, 0, buffer.length, null, () => {
-                fs.close(fd, () => {
+        const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${viewName}.sql`);
+        fs.open(
+            viewFilePath,
+            'w',
+            conversion._0777,
+            async (error: NodeJS.ErrnoException | null, fd: number): Promise<void> => {
+                if (error) {
+                    await log(conversion, error);
                     return resolve();
+                }
+
+                const buffer: Buffer = Buffer.from(sql, conversion._encoding);
+                fs.write(fd, buffer, 0, buffer.length, null, () => {
+                    fs.close(fd, () => {
+                        return resolve();
+                    });
                 });
-            });
-        });
+            },
+        );
     });
 };
 
@@ -87,7 +95,7 @@ export default async (conversion: Conversion): Promise<void> => {
         const params: DBAccessQueryParams = {
             conversion: conversion,
             caller: logTitle,
-            sql: `SHOW CREATE VIEW \`${ view }\`;`,
+            sql: `SHOW CREATE VIEW \`${view}\`;`,
             vendor: DBVendors.MYSQL,
             processExitOnError: false,
             shouldReturnClient: false,
@@ -99,7 +107,11 @@ export default async (conversion: Conversion): Promise<void> => {
             return;
         }
 
-        params.sql = generateView(conversion._schema, view, showCreateViewResult.data[0]['Create View']);
+        params.sql = generateView(
+            conversion._schema,
+            view,
+            showCreateViewResult.data[0]['Create View'],
+        );
         params.vendor = DBVendors.PG;
         const createPgViewResult: DBAccessQueryResult = await DBAccess.query(params);
 
@@ -108,7 +120,10 @@ export default async (conversion: Conversion): Promise<void> => {
             return;
         }
 
-        await log(conversion, `\t--[${ logTitle }] View "${ conversion._schema }"."${ view }" is created...`);
+        await log(
+            conversion,
+            `\t--[${logTitle}] View "${conversion._schema}"."${view}" is created...`,
+        );
     };
 
     const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(_cb);

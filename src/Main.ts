@@ -27,18 +27,9 @@ import generateReport from './ReportGenerator';
 import DBAccess from './DBAccess';
 import { dropDataPoolTable } from './DataPoolManager';
 import { processConstraints } from './ConstraintsProcessor';
-import {
-    getConfAndLogsPaths,
-    boot,
-} from './BootProcessor';
-import {
-    createStateLogsTable,
-    dropStateLogsTable,
-} from './MigrationStateManager';
-import {
-    createDataPoolTable,
-    readDataPool,
-} from './DataPoolManager';
+import { getConfAndLogsPaths, boot } from './BootProcessor';
+import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
+import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import {
     readConfig,
     readExtraConfig,
@@ -46,10 +37,7 @@ import {
     readDataAndIndexTypesMap,
 } from './FsOps';
 
-const {
-    confPath,
-    logsPath,
-} = getConfAndLogsPaths();
+const { confPath, logsPath } = getConfAndLogsPaths();
 
 readConfig(confPath, logsPath)
     .then(config => readExtraConfig(config, confPath))

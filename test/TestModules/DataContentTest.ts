@@ -23,18 +23,14 @@ import { Test } from 'tape';
 import Conversion from '../../src/Conversion';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import DBAccess from '../../src/DBAccess';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from '../../src/Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 
 /**
  * Retrieves a data from `table_a`.
  */
 const retrieveData = async (testSchemaProcessor: TestSchemaProcessor): Promise<any> => {
     const sql = `SELECT ENCODE(table_a.blob, 'escape') AS blob_text, table_a.* 
-        FROM ${ (testSchemaProcessor.conversion as Conversion)._schema }.table_a AS table_a;`;
+        FROM ${(testSchemaProcessor.conversion as Conversion)._schema}.table_a AS table_a;`;
 
     const params: DBAccessQueryParams = {
         conversion: testSchemaProcessor.conversion as Conversion,
@@ -57,10 +53,7 @@ const retrieveData = async (testSchemaProcessor: TestSchemaProcessor): Promise<a
 /**
  * The data content testing.
  */
-export default async (
-    testSchemaProcessor: TestSchemaProcessor,
-    tape: Test,
-): Promise<void> => {
+export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
     const data: any = await retrieveData(testSchemaProcessor);
     const autoTimeoutMs = 3 * 1000; // 3 seconds.
     const numberOfPlannedAssertions = 24;
@@ -127,7 +120,7 @@ export default async (
 
     tape.comment('Test date column value');
     tape.equal(
-        `${ data.date.getFullYear() }-${ data.date.getMonth() + 1 }-${ data.date.getDate() }`,
+        `${data.date.getFullYear()}-${data.date.getMonth() + 1}-${data.date.getDate()}`,
         '1984-11-30',
     );
 
@@ -143,8 +136,10 @@ export default async (
     tape.comment('Test set column value');
     tape.equal(data.set, 's2');
 
-    const date = `${ data.timestamp.getFullYear() }-${ data.timestamp.getMonth() + 1 }-${ data.timestamp.getDate() }`;
-    const time = `${ data.timestamp.getHours() }:${ data.timestamp.getMinutes() }:${ data.timestamp.getSeconds() }`;
+    const date = `${data.timestamp.getFullYear()}-${
+        data.timestamp.getMonth() + 1
+    }-${data.timestamp.getDate()}`;
+    const time = `${data.timestamp.getHours()}:${data.timestamp.getMinutes()}:${data.timestamp.getSeconds()}`;
     tape.comment('Test timestamp column value');
-    tape.equal(`${ date } ${ time }`, '2018-11-11 22:21:20');
+    tape.equal(`${date} ${time}`, '2018-11-11 22:21:20');
 };

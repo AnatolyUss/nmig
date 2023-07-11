@@ -22,12 +22,7 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-    Table,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Converts MySQL data types to corresponding PostgreSQL data types.
@@ -38,8 +33,9 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
     let retVal = '';
     const arrDataTypeDetails: string[] = mySqlDataType.split(' ');
     mySqlDataType = arrDataTypeDetails[0].toLowerCase();
-    const increaseOriginalSize: boolean = arrDataTypeDetails.indexOf('unsigned') !== -1
-        || arrDataTypeDetails.indexOf('zerofill') !== -1;
+    const increaseOriginalSize: boolean =
+        arrDataTypeDetails.indexOf('unsigned') !== -1 ||
+        arrDataTypeDetails.indexOf('zerofill') !== -1;
 
     if (mySqlDataType.indexOf('(') === -1) {
         // No parentheses detected.
@@ -55,8 +51,11 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
         if ('enum' === strDataType || 'set' === strDataType) {
             retVal = 'character varying(255)';
         } else if ('decimal' === strDataType || 'numeric' === strDataType) {
-            retVal = `${ objDataTypesMap[strDataType].type }(${ strDataTypeDisplayWidth }`;
-        } else if ('decimal(19,2)' === mySqlDataType || objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen) {
+            retVal = `${objDataTypesMap[strDataType].type}(${strDataTypeDisplayWidth}`;
+        } else if (
+            'decimal(19,2)' === mySqlDataType ||
+            objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen
+        ) {
             // Should be converted without a length definition.
             retVal = increaseOriginalSize
                 ? objDataTypesMap[strDataType].increased_size
@@ -64,8 +63,8 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
         } else {
             // Should be converted with a length definition.
             retVal = increaseOriginalSize
-                ? `${ objDataTypesMap[strDataType].increased_size }(${ strDataTypeDisplayWidth }`
-                : `${ objDataTypesMap[strDataType].type }(${ strDataTypeDisplayWidth }`;
+                ? `${objDataTypesMap[strDataType].increased_size}(${strDataTypeDisplayWidth}`
+                : `${objDataTypesMap[strDataType].type}(${strDataTypeDisplayWidth}`;
         }
     }
 
@@ -86,15 +85,19 @@ export const createTable = async (conversion: Conversion, tableName: string): Pr
     const logTitle = 'TableProcessor::createTable';
     await log(
         conversion,
-        `\t--[${ logTitle }] Currently creating table: \`${ tableName }\``,
+        `\t--[${logTitle}] Currently creating table: \`${tableName}\``,
         (conversion._dicTables.get(tableName) as Table).tableLogPath,
     );
 
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
-        sql: `SHOW FULL COLUMNS FROM \`${ originalTableName }\`;`,
+        sql: `SHOW FULL COLUMNS FROM \`${originalTableName}\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
         shouldReturnClient: false,
@@ -122,11 +125,11 @@ export const createTable = async (conversion: Conversion, tableName: string): Pr
             );
 
             const colType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
-            return `"${ colName }" ${ colType }`;
+            return `"${colName}" ${colType}`;
         })
         .join(',');
 
-    params.sql = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(${ columnsDefinition });`;
+    params.sql = `CREATE TABLE IF NOT EXISTS "${conversion._schema}"."${tableName}"(${columnsDefinition});`;
     params.processExitOnError = true;
     params.vendor = DBVendors.PG;
     const createTableResult: DBAccessQueryResult = await DBAccess.query(params);
@@ -134,7 +137,7 @@ export const createTable = async (conversion: Conversion, tableName: string): Pr
     if (!createTableResult.error) {
         await log(
             conversion,
-            `\t--[${ logTitle }] Table "${ conversion._schema }"."${ tableName }" is created...`,
+            `\t--[${logTitle}] Table "${conversion._schema}"."${tableName}" is created...`,
             (conversion._dicTables.get(tableName) as Table).tableLogPath,
         );
     }

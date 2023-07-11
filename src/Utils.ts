@@ -35,12 +35,11 @@ export const getUniqueIdentifier = (
 
     if (identifier.length > MAX_PG_IDENTIFIER_LENGTH) {
         const mandatoryPostfixLength: number = mandatoryPostfix.length;
-        const uuidSliceStart: number = mandatoryPostfixLength === 0
-            ? mandatoryPostfixLength
-            : mandatoryPostfixLength - 1;
+        const uuidSliceStart: number =
+            mandatoryPostfixLength === 0 ? mandatoryPostfixLength : mandatoryPostfixLength - 1;
 
         const uuid: string = uuidV4().slice(uuidSliceStart) + mandatoryPostfix;
-        return identifier.slice(0, (MAX_PG_IDENTIFIER_LENGTH - uuid.length)) + uuid;
+        return identifier.slice(0, MAX_PG_IDENTIFIER_LENGTH - uuid.length) + uuid;
     }
 
     return identifier;
@@ -53,6 +52,6 @@ export const killProcess = async (pid: number, conversion: Conversion): Promise<
     try {
         process.kill(pid);
     } catch (killError) {
-        await generateError(conversion, `\t--[killProcess] pid: ${ pid } killError: ${ killError }`);
+        await generateError(conversion, `\t--[killProcess] pid: ${pid} killError: ${killError}`);
     }
 };

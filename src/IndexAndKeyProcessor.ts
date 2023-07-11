@@ -23,13 +23,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getUniqueIdentifier } from './Utils';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-    Table,
-    Index,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table, Index } from './Types';
 
 /**
  * Returns PostgreSQL index type, that correlates to given MySQL index type.
@@ -43,11 +37,15 @@ const getIndexType = (conversion: Conversion, indexType: string): string => {
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle = 'IndexAndKeyProcessor::default';
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
-        sql: `SHOW INDEX FROM \`${ originalTableName }\`;`,
+        sql: `SHOW INDEX FROM \`${originalTableName}\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
         shouldReturnClient: false,
@@ -70,14 +68,14 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         );
 
         if (pgIndices.has(index.Key_name)) {
-            (pgIndices.get(index.Key_name) as Index).column_name.push(`"${ pgColumnName }"`);
+            (pgIndices.get(index.Key_name) as Index).column_name.push(`"${pgColumnName}"`);
             return; // Continue to the next iteration.
         }
 
         pgIndices.set(index.Key_name, {
             is_unique: index.Non_unique === 0,
-            column_name: [`"${ pgColumnName }"`],
-            index_type: ` USING ${ getIndexType(conversion, index.Index_type) }`,
+            column_name: [`"${pgColumnName}"`],
+            index_type: ` USING ${getIndexType(conversion, index.Index_type)}`,
         });
     });
 
@@ -86,21 +84,18 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         const currentIndex: Index = pgIndices.get(index) as Index;
 
         if (index.toLowerCase() === 'primary') {
-            sqlAddIndex = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
-                ADD PRIMARY KEY(${ currentIndex.column_name.join(',') });`;
+            sqlAddIndex = `ALTER TABLE "${conversion._schema}"."${tableName}" 
+                ADD PRIMARY KEY(${currentIndex.column_name.join(',')});`;
         } else {
             const columnName: string = currentIndex.column_name
                 .map((colName: string) => colName.slice(1, -1))
                 .join('_');
 
-            const indexName: string = getUniqueIdentifier(
-                `${ tableName }_${ columnName }_idx`,
-                '_idx',
-            );
+            const indexName: string = getUniqueIdentifier(`${tableName}_${columnName}_idx`, '_idx');
 
-            sqlAddIndex = `CREATE ${ (currentIndex.is_unique ? 'UNIQUE' : '') } INDEX "${ indexName }" 
-            ON "${ conversion._schema }"."${ tableName }" 
-            ${ currentIndex.index_type } (${ currentIndex.column_name.join(',') });`;
+            sqlAddIndex = `CREATE ${currentIndex.is_unique ? 'UNIQUE' : ''} INDEX "${indexName}" 
+            ON "${conversion._schema}"."${tableName}" 
+            ${currentIndex.index_type} (${currentIndex.column_name.join(',')});`;
         }
 
         params.vendor = DBVendors.PG;
@@ -112,7 +107,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
     await Promise.all(addIndexPromises);
     await log(
         conversion,
-        `\t--[${ logTitle }] "${ conversion._schema }"."${ tableName }": PK/indices are successfully set...`,
+        `\t--[${logTitle}] "${conversion._schema}"."${tableName}": PK/indices are successfully set...`,
         (conversion._dicTables.get(tableName) as Table).tableLogPath,
     );
 };

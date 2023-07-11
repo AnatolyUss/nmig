@@ -31,24 +31,10 @@ import decodeBinaryData from '../../src/BinaryDataDecoder';
 import generateReport from '../../src/ReportGenerator';
 import { dropDataPoolTable } from '../../src/DataPoolManager';
 import { processConstraints } from '../../src/ConstraintsProcessor';
-import {
-    createStateLogsTable,
-    dropStateLogsTable,
-} from '../../src/MigrationStateManager';
-import {
-    createDataPoolTable,
-    readDataPool,
-} from '../../src/DataPoolManager';
-import {
-    checkConnection,
-    getLogo,
-    getConfAndLogsPaths,
-} from '../../src/BootProcessor';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from '../../src/Types';
+import { createStateLogsTable, dropStateLogsTable } from '../../src/MigrationStateManager';
+import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
+import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/BootProcessor';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 import {
     createLogsDirectory,
     generateError,
@@ -78,7 +64,7 @@ export default class TestSchemaProcessor {
         console.log(error);
         await generateError(this.conversion as Conversion, error);
         process.exit(1);
-    }
+    };
 
     /**
      * Removes resources created by test scripts.
@@ -89,7 +75,9 @@ export default class TestSchemaProcessor {
         }
 
         const logTitle = 'TestSchemaProcessor::removeTestResources';
-        const sqlDropMySqlDatabase = `DROP DATABASE ${ (this.conversion as Conversion)._mySqlDbName };`;
+        const sqlDropMySqlDatabase = `DROP DATABASE ${
+            (this.conversion as Conversion)._mySqlDbName
+        };`;
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
             caller: logTitle,
@@ -101,10 +89,10 @@ export default class TestSchemaProcessor {
 
         await DBAccess.query(params);
 
-        params.sql = `DROP SCHEMA ${ (this.conversion as Conversion)._schema } CASCADE;`;
+        params.sql = `DROP SCHEMA ${(this.conversion as Conversion)._schema} CASCADE;`;
         params.vendor = DBVendors.PG;
         await DBAccess.query(params);
-    }
+    };
 
     /**
      * Prevents tests from running if test dbs (both MySQL and PostgreSQL) already exist.
@@ -113,7 +101,7 @@ export default class TestSchemaProcessor {
         const logTitle = 'TestSchemaProcessor::_checkResources';
 
         const sqlIsMySqlDbExist = `SELECT EXISTS (SELECT schema_name FROM information_schema.schemata 
-            WHERE schema_name = '${ (this.conversion as Conversion)._mySqlDbName }') AS \`exists\`;`;
+            WHERE schema_name = '${(this.conversion as Conversion)._mySqlDbName}') AS \`exists\`;`;
 
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
@@ -130,7 +118,7 @@ export default class TestSchemaProcessor {
 
         params.vendor = DBVendors.PG;
         params.sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
-            WHERE schema_name = '${ (this.conversion as Conversion)._schema }');`;
+            WHERE schema_name = '${(this.conversion as Conversion)._schema}');`;
 
         const pgResult: DBAccessQueryResult = await DBAccess.query(params);
 
@@ -138,13 +126,15 @@ export default class TestSchemaProcessor {
         let msg = '';
 
         if (mySqlExists) {
-            msg += `Please, remove '${ (this.conversion as Conversion)._mySqlDbName }' 
+            msg += `Please, remove '${(this.conversion as Conversion)._mySqlDbName}' 
                 database from your MySQL server prior to running tests.\n`;
         }
 
         if (pgExists) {
-            const schemaName = `'${ (this.conversion as Conversion)._targetConString.database }.${ (this.conversion as Conversion)._schema }'`;
-            msg += `Please, remove ${ schemaName } schema from your PostgreSQL server prior to running tests.`;
+            const schemaName = `'${(this.conversion as Conversion)._targetConString.database}.${
+                (this.conversion as Conversion)._schema
+            }'`;
+            msg += `Please, remove ${schemaName} schema from your PostgreSQL server prior to running tests.`;
         }
 
         if (msg) {
@@ -153,7 +143,7 @@ export default class TestSchemaProcessor {
         }
 
         return conversion;
-    }
+    };
 
     /**
      * Creates test source database.
@@ -162,7 +152,7 @@ export default class TestSchemaProcessor {
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
             caller: 'TestSchemaProcessor::_createTestSourceDb',
-            sql: `CREATE DATABASE IF NOT EXISTS ${ (this.conversion as Conversion)._mySqlDbName };`,
+            sql: `CREATE DATABASE IF NOT EXISTS ${(this.conversion as Conversion)._mySqlDbName};`,
             vendor: DBVendors.MYSQL,
             processExitOnError: true,
             shouldReturnClient: false,
@@ -170,7 +160,7 @@ export default class TestSchemaProcessor {
 
         await DBAccess.query(params);
         return conversion;
-    }
+    };
 
     /**
      * Updates the "database" part of MySQL connection.
@@ -181,7 +171,7 @@ export default class TestSchemaProcessor {
             conversion._sourceConString.database = conversion._mySqlDbName;
             resolve(conversion);
         });
-    }
+    };
 
     /**
      * Reads contents from the specified resource.
@@ -190,22 +180,29 @@ export default class TestSchemaProcessor {
         return new Promise<Buffer>(resolve => {
             fs.readFile(filePath, (error: NodeJS.ErrnoException | null, data: Buffer) => {
                 if (error) {
-                    console.log(`\t--[_readFile] Cannot read file from ${ filePath }`);
+                    console.log(`\t--[_readFile] Cannot read file from ${filePath}`);
                     process.exit(1);
                 }
 
                 resolve(data);
             });
         });
-    }
+    };
 
     /**
      * Reads test schema sql file.
      */
     private _readTestSchema = async (): Promise<Buffer> => {
-        const testSchemaFilePath: string = path.join(__dirname, '..', '..', '..', 'test', 'test_schema.sql');
+        const testSchemaFilePath: string = path.join(
+            __dirname,
+            '..',
+            '..',
+            '..',
+            'test',
+            'test_schema.sql',
+        );
         return await this._readFile(testSchemaFilePath);
-    }
+    };
 
     /**
      * Loads test schema into MySQL test database.
@@ -223,14 +220,14 @@ export default class TestSchemaProcessor {
 
         await DBAccess.query(params);
         return conversion;
-    }
+    };
 
     /**
      * Provides a blob for a sake of testing.
      */
     public getTestBlob = (conversion: Conversion): Buffer => {
         return Buffer.from('Automated tests development is in progress.', conversion._encoding);
-    }
+    };
 
     /**
      * Loads test data into MySQL test database.
@@ -263,10 +260,14 @@ export default class TestSchemaProcessor {
             blob: this.getTestBlob(conversion),
         };
 
-        const insertParamsKeys: string[] = Object.keys(insertParams).map((k: string): string => `\`${ k }\``);
+        const insertParamsKeys: string[] = Object.keys(insertParams).map(
+            (k: string): string => `\`${k}\``,
+        );
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const valuesToInsert: string = insertParamsKeys.map((_: string): string => '?').join(',');
-        const sql = `INSERT INTO \`table_a\`(${ insertParamsKeys.join(',') }) VALUES(${ valuesToInsert });`;
+        const sql = `INSERT INTO \`table_a\`(${insertParamsKeys.join(
+            ',',
+        )}) VALUES(${valuesToInsert});`;
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
             caller: 'TestSchemaProcessor::_loadTestData',
@@ -280,7 +281,7 @@ export default class TestSchemaProcessor {
 
         await DBAccess.query(params);
         return conversion;
-    }
+    };
 
     /**
      * Initializes Conversion instance.
@@ -296,7 +297,7 @@ export default class TestSchemaProcessor {
         console.log(logo);
         delete this.conversion._sourceConString.database;
         return this.conversion;
-    }
+    };
 
     /**
      * Arranges test migration.
@@ -330,5 +331,5 @@ export default class TestSchemaProcessor {
             .then(dropStateLogsTable)
             .then(DBAccess.closeConnectionPools)
             .then(generateReport);
-    }
+    };
 }

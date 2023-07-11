@@ -22,12 +22,7 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-    Table,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Defines which columns of the given table can contain the "NULL" value.
@@ -35,10 +30,14 @@ import {
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle = 'NullProcessor::default';
-    const fullTableName = `"${ conversion._schema }"."${ tableName }"`;
-    const msg = `\t--[${ logTitle }] Defines "NOT NULLs" for table: ${ fullTableName }`;
+    const fullTableName = `"${conversion._schema}"."${tableName}"`;
+    const msg = `\t--[${logTitle}] Defines "NOT NULLs" for table: ${fullTableName}`;
     await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
 
     const _cb = async (column: any): Promise<void> => {
         if (column.Null.toLowerCase() === 'no') {
@@ -52,7 +51,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
             const params: DBAccessQueryParams = {
                 conversion: conversion,
                 caller: logTitle,
-                sql: `ALTER TABLE ${ fullTableName } ALTER COLUMN "${ columnName }" SET NOT NULL;`,
+                sql: `ALTER TABLE ${fullTableName} ALTER COLUMN "${columnName}" SET NOT NULL;`,
                 vendor: DBVendors.PG,
                 processExitOnError: false,
                 shouldReturnClient: false,
@@ -63,13 +62,15 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
             if (!result.error) {
                 await log(
                     conversion,
-                    `\t--[${ logTitle }] Set NOT NULL for ${ fullTableName }."${ columnName }"...`,
+                    `\t--[${logTitle}] Set NOT NULL for ${fullTableName}."${columnName}"...`,
                     (conversion._dicTables.get(tableName) as Table).tableLogPath,
                 );
             }
         }
     };
 
-    const promises: Promise<void>[] = (conversion._dicTables.get(tableName) as Table).arrTableColumns.map(_cb);
+    const promises: Promise<void>[] = (
+        conversion._dicTables.get(tableName) as Table
+    ).arrTableColumns.map(_cb);
     await Promise.all(promises);
 };

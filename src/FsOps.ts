@@ -23,10 +23,7 @@ import * as path from 'node:path';
 import { ChildProcess } from 'node:child_process';
 
 import Conversion from './Conversion';
-import {
-    LogMessage,
-    LogMessageType,
-} from './Types';
+import { LogMessage, LogMessageType } from './Types';
 
 /**
  * Sends error-log to dedicated logger process.
@@ -79,24 +76,36 @@ export const generateErrorInBackground = (
 ): Promise<void> => {
     return new Promise<void>(async resolve => {
         message += sql !== '' ? `\n\n\tSQL: ${sql}\n\n` : sql;
-        const buffer: Buffer = Buffer.from(message, conversion._encoding);
+        const buffer = Buffer.from(message, conversion._encoding);
         await logInBackground(conversion, message);
 
-        fs.open(conversion._errorLogsPath, 'a', conversion._0777, (error: NodeJS.ErrnoException | null, fd: number) => {
-            if (error) {
-                console.error(error);
-                return resolve();
-            }
-
-            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
-                if (fsWriteError) {
-                    console.error(fsWriteError);
-                    // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+        fs.open(
+            conversion._errorLogsPath,
+            'a',
+            conversion._0777,
+            (error: NodeJS.ErrnoException | null, fd: number) => {
+                if (error) {
+                    console.error(error);
+                    return resolve();
                 }
 
-                fs.close(fd, () => resolve());
-            });
-        });
+                fs.write(
+                    fd,
+                    buffer,
+                    0,
+                    buffer.length,
+                    null,
+                    (fsWriteError: NodeJS.ErrnoException | null): void => {
+                        if (fsWriteError) {
+                            console.error(fsWriteError);
+                            // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                        }
+
+                        fs.close(fd, () => resolve());
+                    },
+                );
+            },
+        );
     });
 };
 
@@ -112,43 +121,70 @@ export const logInBackground = (
 ): Promise<void> => {
     return new Promise<void>(resolve => {
         console.log(log);
-        const buffer: Buffer = Buffer.from(`${ log }\n\n`, conversion._encoding);
+        const buffer = Buffer.from(`${log}\n\n`, conversion._encoding);
 
-        fs.open(conversion._allLogsPath, 'a', conversion._0777, (err: NodeJS.ErrnoException | null, fd: number) => {
-            if (err) {
-                console.error(err);
-                return resolve();
-            }
-
-            fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
-                if (fsWriteError) {
-                    console.error(fsWriteError);
-                    // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+        fs.open(
+            conversion._allLogsPath,
+            'a',
+            conversion._0777,
+            (err: NodeJS.ErrnoException | null, fd: number) => {
+                if (err) {
+                    console.error(err);
+                    return resolve();
                 }
 
-                fs.close(fd, () => {
-                    if (tableLogPath) {
-                        fs.open(tableLogPath, 'a', conversion._0777, (error: NodeJS.ErrnoException | null, fd: number) => {
-                            if (error) {
-                                console.error(error);
-                                return resolve();
-                            } else {
-                                fs.write(fd, buffer, 0, buffer.length, null, (fsWriteError: NodeJS.ErrnoException | null): void => {
-                                    if (fsWriteError) {
-                                        console.error(fsWriteError);
-                                        // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
-                                    }
+                fs.write(
+                    fd,
+                    buffer,
+                    0,
+                    buffer.length,
+                    null,
+                    (fsWriteError: NodeJS.ErrnoException | null): void => {
+                        if (fsWriteError) {
+                            console.error(fsWriteError);
+                            // !!!Note, still must close current "fd", since recent "fs.open" has definitely succeeded.
+                        }
 
-                                    fs.close(fd, () => resolve());
-                                });
+                        fs.close(fd, () => {
+                            if (tableLogPath) {
+                                fs.open(
+                                    tableLogPath,
+                                    'a',
+                                    conversion._0777,
+                                    (error: NodeJS.ErrnoException | null, fd: number) => {
+                                        if (error) {
+                                            console.error(error);
+                                            return resolve();
+                                        } else {
+                                            fs.write(
+                                                fd,
+                                                buffer,
+                                                0,
+                                                buffer.length,
+                                                null,
+                                                (
+                                                    fsWriteError: NodeJS.ErrnoException | null,
+                                                ): void => {
+                                                    if (fsWriteError) {
+                                                        console.error(fsWriteError);
+                                                        // !!!Note, still must close current "fd",
+                                                        // since recent "fs.open" has definitely succeeded.
+                                                    }
+
+                                                    fs.close(fd, () => resolve());
+                                                },
+                                            );
+                                        }
+                                    },
+                                );
+                            } else {
+                                return resolve();
                             }
                         });
-                    } else {
-                        return resolve();
-                    }
-                });
-            });
-        });
+                    },
+                );
+            },
+        );
     });
 };
 
@@ -159,7 +195,9 @@ const readAndParseJsonFile = (pathToFile: string): Promise<any> => {
     return new Promise<any>(resolve => {
         fs.readFile(pathToFile, (error: NodeJS.ErrnoException | null, data: Buffer) => {
             if (error) {
-                console.log(`\n\t--Cannot run migration\nCannot read configuration info from  ${ pathToFile }`);
+                console.log(
+                    `\n\t--Cannot run migration\nCannot read configuration info from  ${pathToFile}`,
+                );
                 process.exit(1);
             }
 
@@ -211,7 +249,7 @@ export const readDataAndIndexTypesMap = async (conversion: Conversion): Promise<
     const logTitle = 'FsOps::readDataAndIndexTypesMap';
     conversion._dataTypesMap = await readAndParseJsonFile(conversion._dataTypesMapAddr);
     conversion._indexTypesMap = await readAndParseJsonFile(conversion._indexTypesMapAddr);
-    await log(conversion, `\t--[${ logTitle }] Data and Index Types Maps are loaded...`);
+    await log(conversion, `\t--[${logTitle}] Data and Index Types Maps are loaded...`);
     return conversion;
 };
 
@@ -234,31 +272,44 @@ const createDirectory = (
     logTitle: string,
 ): Promise<void> => {
     return new Promise<void>(resolve => {
-        console.log(`\t--[${ logTitle }] Creating directory ${ directoryPath }...`);
+        console.log(`\t--[${logTitle}] Creating directory ${directoryPath}...`);
 
-        fs.stat(directoryPath, async (directoryDoesNotExist: NodeJS.ErrnoException | null, stat: fs.Stats) => {
-            if (directoryDoesNotExist) {
-                fs.mkdir(directoryPath, conversion._0777, async e => {
-                    if (e) {
-                        console.log(`\t--[${ logTitle }] Cannot perform migration.`);
-                        console.log(`\t--[${ logTitle }] Failed to create directory ${ directoryPath }`);
-                        process.exit(1);
-                    }
+        fs.stat(
+            directoryPath,
+            async (directoryDoesNotExist: NodeJS.ErrnoException | null, stat: fs.Stats) => {
+                if (directoryDoesNotExist) {
+                    fs.mkdir(directoryPath, conversion._0777, async e => {
+                        if (e) {
+                            console.log(`\t--[${logTitle}] Cannot perform migration.`);
+                            console.log(
+                                `\t--[${logTitle}] Failed to create directory ${directoryPath}`,
+                            );
+                            process.exit(1);
+                        }
 
-                    await log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } is created...`);
-                    resolve();
-                });
+                        await log(
+                            conversion,
+                            `\t--[${logTitle}] Directory ${directoryPath} is created...`,
+                        );
+                        resolve();
+                    });
 
-                return;
-            }
+                    return;
+                }
 
-            if (!stat.isDirectory()) {
-                console.log(`\t--[${ logTitle }] Cannot perform a migration due to unexpected error`);
-                process.exit(1);
-            }
+                if (!stat.isDirectory()) {
+                    console.log(
+                        `\t--[${logTitle}] Cannot perform a migration due to unexpected error`,
+                    );
+                    process.exit(1);
+                }
 
-            await log(conversion, `\t--[${ logTitle }] Directory ${ directoryPath } already exists...`);
-            resolve();
-        });
+                await log(
+                    conversion,
+                    `\t--[${logTitle}] Directory ${directoryPath} already exists...`,
+                );
+                resolve();
+            },
+        );
     });
 };

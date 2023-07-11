@@ -23,12 +23,7 @@ import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { mapDataTypes } from './TableProcessor';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-    Table,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Defines which columns of the given table have default value.
@@ -36,15 +31,28 @@ import {
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
     const logTitle = 'DefaultProcessor::default';
-    const fullTableName = `"${ conversion._schema }"."${ tableName }"`;
-    const msg = `\t--[${ logTitle }] Defines default values for table: ${ fullTableName }`;
+    const fullTableName = `"${conversion._schema}"."${tableName}"`;
+    const msg = `\t--[${logTitle}] Defines default values for table: ${fullTableName}`;
     await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
     const pgSqlBitTypes = ['bit', 'bit varying'];
     const pgSqlBinaryTypes = ['bytea'];
     const pgSqlNumericTypes = [
-        'smallint', 'integer', 'bigint', 'decimal', 'numeric', 'int',
-        'real', 'double precision', 'smallserial', 'serial', 'bigserial',
+        'smallint',
+        'integer',
+        'bigint',
+        'decimal',
+        'numeric',
+        'int',
+        'real',
+        'double precision',
+        'smallserial',
+        'serial',
+        'bigserial',
     ];
 
     const sqlReservedValues = new Map<string, string>([
@@ -73,19 +81,21 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
             false,
         );
 
-        let sql = `ALTER TABLE ${ fullTableName } ALTER COLUMN "${ columnName }" SET DEFAULT `;
-        const isOfBitType = !!(pgSqlBitTypes.find((bitType: string) => pgSqlDataType.startsWith(bitType)));
+        let sql = `ALTER TABLE ${fullTableName} ALTER COLUMN "${columnName}" SET DEFAULT `;
+        const isOfBitType = !!pgSqlBitTypes.find((bitType: string) =>
+            pgSqlDataType.startsWith(bitType),
+        );
 
         if (sqlReservedValues.has(column.Default)) {
             sql += sqlReservedValues.get(column.Default);
         } else if (isOfBitType) {
-            sql += `${ column.Default };`; // bit varying
+            sql += `${column.Default};`; // bit varying
         } else if (pgSqlBinaryTypes.indexOf(pgSqlDataType) !== -1) {
-            sql += `'\\x${ column.Default }';`; // bytea
+            sql += `'\\x${column.Default}';`; // bytea
         } else if (pgSqlNumericTypes.indexOf(pgSqlDataType) === -1) {
-            sql += `'${ column.Default }';`;
+            sql += `'${column.Default}';`;
         } else {
-            sql += `${ column.Default };`;
+            sql += `${column.Default};`;
         }
 
         const params: DBAccessQueryParams = {
@@ -102,13 +112,15 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         if (!result.error) {
             await log(
                 conversion,
-                `\t--[${ logTitle }] Set default value for ${ fullTableName }."${ columnName }"...`,
+                `\t--[${logTitle}] Set default value for ${fullTableName}."${columnName}"...`,
                 (conversion._dicTables.get(tableName) as Table).tableLogPath,
             );
         }
     };
 
-    const promises: Promise<void>[] = (conversion._dicTables.get(tableName) as Table).arrTableColumns
+    const promises: Promise<void>[] = (
+        conversion._dicTables.get(tableName) as Table
+    ).arrTableColumns
         .filter((column: any): boolean => column.Default !== null)
         .map(_cb);
 

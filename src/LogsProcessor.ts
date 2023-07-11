@@ -19,14 +19,8 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import Conversion from './Conversion';
-import {
-    logInBackground,
-    generateErrorInBackground,
-} from './FsOps';
-import {
-    LogMessage,
-    LogMessageType,
-} from './Types';
+import { logInBackground, generateErrorInBackground } from './FsOps';
+import { LogMessage, LogMessageType } from './Types';
 
 /**
  * Conversion instance, used in a context of logger process.
@@ -54,6 +48,6 @@ process.on('message', async (logMessage: LogMessage): Promise<void> => {
             process.exit(0);
         }
     } catch (error) {
-        console.log(`\n\t--[LogsProcessor] Logger error: ${ JSON.stringify(error) }\n`);
+        console.log(`\n\t--[LogsProcessor] Logger error: ${JSON.stringify(error)}\n`);
     }
 });

@@ -23,8 +23,17 @@ import { PoolClient } from 'pg';
 
 import Conversion from './Conversion';
 
-export type Encoding = 'ascii' | 'utf8' | 'utf-8' | 'utf16le' | 'ucs2' | 'ucs-2'
-    | 'base64' | 'latin1' | 'binary' | 'hex';
+export type Encoding =
+    | 'ascii'
+    | 'utf8'
+    | 'utf-8'
+    | 'utf16le'
+    | 'ucs2'
+    | 'ucs-2'
+    | 'base64'
+    | 'latin1'
+    | 'binary'
+    | 'hex';
 
 export enum DBVendors {
     MYSQL,
@@ -39,68 +48,68 @@ export enum LogMessageType {
 }
 
 export type LogMessage = {
-    readonly type: LogMessageType,
-    readonly message?: string | NodeJS.ErrnoException,
-    readonly sql?: string,
-    readonly tableLogPath?: string,
-    readonly config?: any,
+    readonly type: LogMessageType;
+    readonly message?: string | NodeJS.ErrnoException;
+    readonly sql?: string;
+    readonly tableLogPath?: string;
+    readonly config?: any;
 };
 
 export type CopyStreamSerializableParams = {
-    readonly sqlCopy: string,
-    readonly sql: string,
-    readonly tableName: string,
-    readonly dataPoolId: number,
-    readonly originalSessionReplicationRole: string | null,
+    readonly sqlCopy: string;
+    readonly sql: string;
+    readonly tableName: string;
+    readonly dataPoolId: number;
+    readonly originalSessionReplicationRole: string | null;
 };
 
 type MessageToDataLoader = {
-    readonly config: any,
+    readonly config: any;
 };
 
 export type MessageToDataReader = MessageToDataLoader & {
-    readonly chunk: any,
+    readonly chunk: any;
 };
 
 export type MessageToDataWriter = MessageToDataLoader & {
-    readonly chunk: any,
-    readonly copyStreamSerializableParams: CopyStreamSerializableParams,
+    readonly chunk: any;
+    readonly copyStreamSerializableParams: CopyStreamSerializableParams;
 };
 
 export type MessageToMaster = {
-    readonly tableName: string,
-    readonly totalRowsToInsert: number,
+    readonly tableName: string;
+    readonly totalRowsToInsert: number;
 };
 
 export type DBAccessQueryParams = {
-    conversion: Conversion,
-    caller: string,
-    sql: string,
-    vendor: DBVendors,
-    processExitOnError: boolean,
-    shouldReturnClient: boolean,
-    client?: PoolConnection | PoolClient,
-    bindings?: any[],
+    conversion: Conversion;
+    caller: string;
+    sql: string;
+    vendor: DBVendors;
+    processExitOnError: boolean;
+    shouldReturnClient: boolean;
+    client?: PoolConnection | PoolClient;
+    bindings?: any[];
 };
 
 export type DBAccessQueryResult = {
-    readonly client?: PoolConnection | PoolClient,
-    readonly data?: any,
-    readonly error?: any,
+    readonly client?: PoolConnection | PoolClient;
+    readonly data?: any;
+    readonly error?: any;
 };
 
 export type ConfAndLogsPaths = {
-    readonly confPath: string,
-    readonly logsPath: string,
+    readonly confPath: string;
+    readonly logsPath: string;
 };
 
 export type Table = {
-    readonly tableLogPath: string,
-    arrTableColumns: any[],
+    readonly tableLogPath: string;
+    arrTableColumns: any[];
 };
 
 export type Index = {
-    readonly is_unique: boolean,
-    readonly column_name: string[],
-    readonly index_type: string,
+    readonly is_unique: boolean;
+    readonly column_name: string[];
+    readonly index_type: string;
 };

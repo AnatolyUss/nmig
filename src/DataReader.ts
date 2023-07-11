@@ -19,10 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import * as path from 'node:path';
-import {
-    ChildProcess,
-    spawn,
-} from 'node:child_process';
+import { ChildProcess, spawn } from 'node:child_process';
 import {
     Readable,
     Writable,
@@ -54,17 +51,14 @@ import {
  * Processes incoming messages from the DataPipeManager.
  */
 process.on('message', async (signal: MessageToDataReader): Promise<void> => {
-    const {
-        config,
-        chunk,
-    } = signal;
+    const { config, chunk } = signal;
 
     // Create Conversion instance, but avoid creating a separate logger process.
     const avoidLogger = true;
     const conv: Conversion = new Conversion(config, avoidLogger);
     await log(
         conv,
-        `\t--[NMIG loadData] Loading the data into "${ conv._schema }"."${ chunk._tableName }" table...`,
+        `\t--[NMIG loadData] Loading the data into "${conv._schema}"."${chunk._tableName}" table...`,
     );
 
     const isRecoveryMode: boolean = await dataTransferred(conv, chunk._id);
@@ -87,11 +81,11 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
     const rowsCnt: number = chunk._rowsCnt;
     const dataPoolId: number = chunk._id;
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
-    const sql = `SELECT ${ strSelectFieldList } FROM \`${ originalTableName }\`;`;
+    const sql = `SELECT ${strSelectFieldList} FROM \`${originalTableName}\`;`;
     const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
-    const sqlCopy = `COPY "${ conv._schema }"."${ tableName }" FROM STDIN 
-                             WITH(FORMAT csv, DELIMITER '${ conv._delimiter }',
-                             ENCODING '${ conv._targetConString.charset }');`;
+    const sqlCopy = `COPY "${conv._schema}"."${tableName}" FROM STDIN 
+                             WITH(FORMAT csv, DELIMITER '${conv._delimiter}',
+                             ENCODING '${conv._targetConString.charset}');`;
 
     const client: PoolClient = await DBAccess.getPgClient(conv);
     let originalSessionReplicationRole: string | null = null;
@@ -125,7 +119,11 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
         .stream({ highWaterMark: conv._streamsHighWaterMark });
 
     try {
-        await streamPromises.pipeline(dataReaderStream, json2csvStream, dataWriter.stdin as Writable);
+        await streamPromises.pipeline(
+            dataReaderStream,
+            json2csvStream,
+            dataWriter.stdin as Writable,
+        );
     } catch (pipelineError) {
         await DataPipeManager.processDataError(
             conv,
@@ -148,16 +146,12 @@ const getDataWriter = (conv: Conversion): ChildProcess => {
 
     if (conv._readerMaxOldSpaceSize !== 'DEFAULT') {
         // Note, all the child-process params are equally applicable to both "DataReader" and "DataWriter" processes.
-        cliArgs.push(`--max-old-space-size=${ conv._readerMaxOldSpaceSize }`);
+        cliArgs.push(`--max-old-space-size=${conv._readerMaxOldSpaceSize}`);
     }
 
-    return spawn(
-        process.execPath,
-        cliArgs,
-        {
-            stdio: ['pipe', 1, 2, 'ipc']
-        },
-    );
+    return spawn(process.execPath, cliArgs, {
+        stdio: ['pipe', 1, 2, 'ipc'],
+    });
 };
 
 /**
@@ -169,12 +163,12 @@ const getDataWriterOnExitCallback = (
     dataPoolId: number,
     client: PoolClient,
     rowsCnt: number,
-): (code: number) => Promise<void> => {
+): ((code: number) => Promise<void>) => {
     return async (code: number): Promise<void> => {
         // Note, no need to "kill" the DataWriter, since it has already exited successfully.
         await log(
             conv,
-            `\t--[NMIG loadData] DataWriter process (table "${ tableName }") exited with code ${ code }`,
+            `\t--[NMIG loadData] DataWriter process (table "${tableName}") exited with code ${code}`,
         );
 
         // COPY FROM STDIN does not return the number of rows inserted.
@@ -200,7 +194,7 @@ const getJson2csvStream = async (
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'DataReader::populateTable',
-        sql: `SHOW COLUMNS FROM \`${ originalTableName }\`;`,
+        sql: `SHOW COLUMNS FROM \`${originalTableName}\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: true,
         shouldReturnClient: false,

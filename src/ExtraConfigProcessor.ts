@@ -59,8 +59,9 @@ export const getColumnName = (
     if (conversion._extraConfig !== null) {
         if ('tables' in conversion._extraConfig) {
             for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
-                const isOriginal: boolean = conversion._extraConfig.tables[i].name.original === originalTableName
-                    && 'columns' in conversion._extraConfig.tables[i];
+                const isOriginal: boolean =
+                    conversion._extraConfig.tables[i].name.original === originalTableName &&
+                    'columns' in conversion._extraConfig.tables[i];
 
                 if (isOriginal) {
                     for (
@@ -68,7 +69,10 @@ export const getColumnName = (
                         columnsCount < conversion._extraConfig.tables[i].columns.length;
                         ++columnsCount
                     ) {
-                        if (conversion._extraConfig.tables[i].columns[columnsCount].original === currentColumnName) {
+                        if (
+                            conversion._extraConfig.tables[i].columns[columnsCount].original ===
+                            currentColumnName
+                        ) {
                             retVal = shouldGetOriginal
                                 ? conversion._extraConfig.tables[i].columns[columnsCount].original
                                 : conversion._extraConfig.tables[i].columns[columnsCount].new;
@@ -90,10 +94,7 @@ export const getColumnName = (
  * Parses the extra_config foreign_keys attributes and generate
  * an output array required by ForeignKeyProcessor::processForeignKeyWorker.
  */
-export const parseForeignKeys = (
-    conversion: Conversion,
-    tableName: string,
-): any[] => {
+export const parseForeignKeys = (conversion: Conversion, tableName: string): any[] => {
     const retVal: any[] = [];
 
     if (conversion._extraConfig !== null && 'foreign_keys' in conversion._extraConfig) {
@@ -103,7 +104,8 @@ export const parseForeignKeys = (
                 const objFk: any = Object.create(null);
 
                 for (const attribute of conversion._extraConfig.foreign_keys[i]) {
-                    objFk[attribute.toUpperCase()] = conversion._extraConfig.foreign_keys[i][attribute];
+                    objFk[attribute.toUpperCase()] =
+                        conversion._extraConfig.foreign_keys[i][attribute];
                 }
 
                 retVal.push(objFk);

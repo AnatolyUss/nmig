@@ -20,20 +20,12 @@
  */
 import * as path from 'node:path';
 import { EventEmitter } from 'node:events';
-import {
-    ChildProcess,
-    fork,
-} from 'node:child_process';
+import { ChildProcess, fork } from 'node:child_process';
 
 import { Pool as MySQLPool } from 'mysql2';
 import { Pool as PgPool } from 'pg';
 
-import {
-    LogMessage,
-    LogMessageType,
-    Encoding,
-    Table,
-} from './Types';
+import { LogMessage, LogMessageType, Encoding, Table } from './Types';
 
 export default class Conversion {
     /**
@@ -240,61 +232,71 @@ export default class Conversion {
         this._allLogsPath = path.join(this._logsDirPath, 'all.log');
         this._errorLogsPath = path.join(this._logsDirPath, 'errors-only.log');
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
-        this._excludeTables = this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
-        this._includeTables = this._config.include_tables === undefined ? [] : this._config.include_tables;
+        this._excludeTables =
+            this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
+        this._includeTables =
+            this._config.include_tables === undefined ? [] : this._config.include_tables;
         this._timeBegin = new Date();
         this._encoding = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
         this._0777 = '0777';
         this._mysqlVersion = '5.6.21'; // Simply a default value.
-        this._extraConfig = this._config.extraConfig === undefined ? false : this._config.extraConfig;
+        this._extraConfig =
+            this._config.extraConfig === undefined ? false : this._config.extraConfig;
         this._tablesToMigrate = [];
         this._viewsToMigrate = [];
         this._dataPool = [];
         this._dicTables = new Map<string, Table>();
         this._mySqlDbName = this._sourceConString.database;
 
-        this._streamsHighWaterMark = this._config.streams_high_water_mark === undefined
-            ? 16384
-            : +this._config.streams_high_water_mark;
+        this._streamsHighWaterMark =
+            this._config.streams_high_water_mark === undefined
+                ? 16384
+                : +this._config.streams_high_water_mark;
 
-        this._schema = this._config.schema === undefined || this._config.schema === ''
-            ? this._mySqlDbName
-            : this._config.schema;
+        this._schema =
+            this._config.schema === undefined || this._config.schema === ''
+                ? this._mySqlDbName
+                : this._config.schema;
 
-        const isValidMaxEachDbConnectionPoolSize: boolean = this._config.max_each_db_connection_pool_size !== undefined
-            && Conversion._isIntNumeric(this._config.max_each_db_connection_pool_size);
+        const isValidMaxEachDbConnectionPoolSize: boolean =
+            this._config.max_each_db_connection_pool_size !== undefined &&
+            Conversion._isIntNumeric(this._config.max_each_db_connection_pool_size);
 
         this._maxEachDbConnectionPoolSize = isValidMaxEachDbConnectionPoolSize
             ? +this._config.max_each_db_connection_pool_size
             : 20;
 
-        this._maxEachDbConnectionPoolSize = this._maxEachDbConnectionPoolSize > 0
-            ? this._maxEachDbConnectionPoolSize
-            : 20;
+        this._maxEachDbConnectionPoolSize =
+            this._maxEachDbConnectionPoolSize > 0 ? this._maxEachDbConnectionPoolSize : 20;
 
         this._runsInTestMode = false;
         this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
 
-        this._removeTestResources = this._config.remove_test_resources === undefined
-            ? true
-            : this._config.remove_test_resources;
+        this._removeTestResources =
+            this._config.remove_test_resources === undefined
+                ? true
+                : this._config.remove_test_resources;
 
         this._numberOfSimultaneouslyRunningReaderProcesses = Conversion._isIntNumeric(
-            this._config.number_of_simultaneously_running_loader_processes
+            this._config.number_of_simultaneously_running_loader_processes,
         )
             ? +this._config.number_of_simultaneously_running_loader_processes
             : 'DEFAULT';
 
-        this._readerMaxOldSpaceSize = Conversion._isIntNumeric(this._config.loader_max_old_space_size)
+        this._readerMaxOldSpaceSize = Conversion._isIntNumeric(
+            this._config.loader_max_old_space_size,
+        )
             ? +this._config.loader_max_old_space_size
             : 'DEFAULT';
 
-        this._migrateOnlyData = this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
+        this._migrateOnlyData =
+            this._config.migrate_only_data === undefined ? false : this._config.migrate_only_data;
 
-        this._delimiter = this._config.delimiter !== undefined && this._config.delimiter.length === 1
-            ? this._config.delimiter
-            : ',';
+        this._delimiter =
+            this._config.delimiter !== undefined && this._config.delimiter.length === 1
+                ? this._config.delimiter
+                : ',';
     }
 
     /**
@@ -305,12 +307,14 @@ export default class Conversion {
     /**
      * Checks if given value is integer number.
      */
-    private static _isIntNumeric = (value: any): boolean => !isNaN(parseInt(value)) && isFinite(value);
+    private static _isIntNumeric = (value: any): boolean =>
+        !isNaN(parseInt(value)) && isFinite(value);
 
     /**
      * Initializes Conversion instance.
      */
-    public static initializeConversion = (config: any): Promise<Conversion> => Promise.resolve(new Conversion(config));
+    public static initializeConversion = (config: any): Promise<Conversion> =>
+        Promise.resolve(new Conversion(config));
 
     /**
      * Starts a new logger process.
@@ -321,9 +325,13 @@ export default class Conversion {
         const loggerPath: string = path.join(__dirname, 'LogsProcessor.js');
 
         const logger: ChildProcess = fork(loggerPath)
-            .on('error', (err: Error) => console.log(`\t--[_setLogger] Error: ${ JSON.stringify(err) }`))
+            .on('error', (err: Error) =>
+                console.log(`\t--[_setLogger] Error: ${JSON.stringify(err)}`),
+            )
             .on('exit', (code: number | null): void => {
-                console.log(`\t--[_setLogger] Process exited with code: ${ code || 'exit-code unknown' }`);
+                console.log(
+                    `\t--[_setLogger] Process exited with code: ${code || 'exit-code unknown'}`,
+                );
 
                 if (code !== 0) {
                     console.log('\t--[_setLogger] Restarting logging process...');

@@ -23,16 +23,8 @@ import * as path from 'node:path';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import { getStateLogsTableName } from './MigrationStateManager';
-import {
-    generateError,
-    log,
-} from './FsOps';
-import {
-    ConfAndLogsPaths,
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from './Types';
+import { generateError, log } from './FsOps';
+import { ConfAndLogsPaths, DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Checks correctness of connection details of both MySQL and PostgreSQL.
@@ -49,11 +41,15 @@ export const checkConnection = async (conversion: Conversion): Promise<string> =
     };
 
     const mySqlResult: DBAccessQueryResult = await DBAccess.query(params);
-    resultMessage += mySqlResult.error ? `\tMySQL connection error: ${ JSON.stringify(mySqlResult.error) }\n` : '';
+    resultMessage += mySqlResult.error
+        ? `\tMySQL connection error: ${JSON.stringify(mySqlResult.error)}\n`
+        : '';
 
     params.vendor = DBVendors.PG;
     const pgResult: DBAccessQueryResult = await DBAccess.query(params);
-    resultMessage += pgResult.error ? `\tPostgreSQL connection error: ${ JSON.stringify(pgResult.error) }` : '';
+    resultMessage += pgResult.error
+        ? `\tPostgreSQL connection error: ${JSON.stringify(pgResult.error)}`
+        : '';
     return resultMessage;
 };
 
@@ -61,14 +57,16 @@ export const checkConnection = async (conversion: Conversion): Promise<string> =
  * Returns Nmig's logo.
  */
 export const getLogo = (): string => {
-    return '\n\t/\\_  |\\  /\\/\\ /\\___'
-        + '\n\t|  \\ | |\\ | | | __'
-        + '\n\t| |\\\\| || | | | \\_ \\'
-        + '\n\t| | \\| || | | |__/ |'
-        + '\n\t\\|   \\/ /_|/______/'
-        + '\n\n\tNMIG - the database migration tool'
-        + '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n'
-        + '\t--[boot] Configuration has been just loaded.';
+    return (
+        '\n\t/\\_  |\\  /\\/\\ /\\___' +
+        '\n\t|  \\ | |\\ | | | __' +
+        '\n\t| |\\\\| || | | | \\_ \\' +
+        '\n\t| | \\| || | | |__/ |' +
+        '\n\t\\|   \\/ /_|/______/' +
+        '\n\n\tNMIG - the database migration tool' +
+        '\n\tCopyright (C) 2016 - present, Anatoly Khaytovich <anatolyuss@gmail.com>\n\n' +
+        '\t--[boot] Configuration has been just loaded.'
+    );
 };
 
 /**
@@ -80,13 +78,14 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle = 'BootProcessor::boot';
 
     if (connectionErrorMessage) {
-        await generateError(conversion, `\t--[${ logTitle }]\n ${ logo } \n ${ connectionErrorMessage }`);
+        await generateError(conversion, `\t--[${logTitle}]\n ${logo} \n ${connectionErrorMessage}`);
         process.exit(1);
     }
 
-    const sql: string = `SELECT EXISTS(SELECT 1 FROM information_schema.tables`
-        + ` WHERE table_schema = '${ conversion._schema }'`
-        + ` AND table_name = '${ getStateLogsTableName(conversion, true) }');`;
+    const sql: string =
+        `SELECT EXISTS(SELECT 1 FROM information_schema.tables` +
+        ` WHERE table_schema = '${conversion._schema}'` +
+        ` AND table_name = '${getStateLogsTableName(conversion, true)}');`;
 
     const params: DBAccessQueryParams = {
         conversion: conversion,
@@ -99,12 +98,14 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
     const isExists = !!result.data.rows[0].exists;
-    const message = `${ (isExists
-        ? '\n\t--[boot] NMIG is restarting after some failure.\n'
-          + '\t--[boot] Consider checking log files at the end of migration.\n'
-        : '\n\t--[boot] NMIG is starting.') } \n`;
+    const message = `${
+        isExists
+            ? '\n\t--[boot] NMIG is restarting after some failure.\n' +
+              '\t--[boot] Consider checking log files at the end of migration.\n'
+            : '\n\t--[boot] NMIG is starting.'
+    } \n`;
 
-    await log(conversion, `\t--[${ logTitle }] ${ logo }${ message }`);
+    await log(conversion, `\t--[${logTitle}] ${logo}${message}`);
     return conversion;
 };
 
@@ -119,7 +120,9 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
 export const getConfAndLogsPaths = (): ConfAndLogsPaths => {
     const baseDir: string = path.join(__dirname, '..', '..');
     const _parseInputArguments = (paramName: string): string | undefined => {
-        const _path: string | undefined = process.argv.find((arg: string) => arg.startsWith(paramName));
+        const _path: string | undefined = process.argv.find((arg: string) =>
+            arg.startsWith(paramName),
+        );
         return _path ? _path.split('=')[1] : undefined;
     };
 

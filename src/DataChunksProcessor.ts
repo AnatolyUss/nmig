@@ -24,12 +24,7 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import { getDataPoolTableName } from './DataPoolManager';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-    Table,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Prepares an array of tables metadata.
@@ -43,15 +38,19 @@ export default async (
         return;
     }
 
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
     const logTitle = 'DataChunksProcessor::default';
     const selectFieldList: string = arrangeColumnsData(
         (conversion._dicTables.get(tableName) as Table).arrTableColumns,
-        +(conversion._mysqlVersion.split(".").slice(0, 2).join(".")),
+        +conversion._mysqlVersion.split('.').slice(0, 2).join('.'),
         conversion._encoding,
     );
 
-    const sqlRowsCnt = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
+    const sqlRowsCnt = `SELECT COUNT(1) AS rows_count FROM \`${originalTableName}\`;`;
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'DataChunksProcessor::default',
@@ -63,11 +62,11 @@ export default async (
 
     const countResult: DBAccessQueryResult = await DBAccess.query(params);
     const rowsCnt: number = countResult.data[0].rows_count;
-    const fullTableName = `"${ conversion._schema }"."${ tableName }"`;
+    const fullTableName = `"${conversion._schema}"."${tableName}"`;
 
     await log(
         conversion,
-        `\t--[${ logTitle }] Total rows to insert into ${ fullTableName }: ${ rowsCnt }`,
+        `\t--[${logTitle}] Total rows to insert into ${fullTableName}: ${rowsCnt}`,
         (conversion._dicTables.get(tableName) as Table).tableLogPath,
     );
 
@@ -77,7 +76,7 @@ export default async (
         _rowsCnt: rowsCnt,
     });
 
-    params.sql = `INSERT INTO ${ getDataPoolTableName(conversion) }("metadata") VALUES ($1);`;
+    params.sql = `INSERT INTO ${getDataPoolTableName(conversion)}("metadata") VALUES ($1);`;
     params.vendor = DBVendors.PG;
     params.client = undefined;
     params.bindings = [metadata];

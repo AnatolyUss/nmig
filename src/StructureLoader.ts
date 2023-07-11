@@ -25,11 +25,7 @@ import { createTable } from './TableProcessor';
 import prepareDataChunks from './DataChunksProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Processes current table before data loading.
@@ -65,7 +61,7 @@ const setMySqlVersion = async (conversion: Conversion): Promise<void> => {
     const arrVersion: string[] = result.data[0].mysql_version.split('.');
     const majorVersion: string = arrVersion[0];
     const minorVersion: string = arrVersion.slice(1).join('');
-    conversion._mysqlVersion = `${ majorVersion }.${ minorVersion }`;
+    conversion._mysqlVersion = `${majorVersion}.${minorVersion}`;
 };
 
 /**
@@ -75,14 +71,14 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     const logTitle = 'StructureLoader::default';
     await setMySqlVersion(conversion);
     const haveTablesLoaded: boolean = await migrationStateManager.get(conversion, 'tables_loaded');
-    let sql = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\` WHERE 1 = 1`;
+    let sql = `SHOW FULL TABLES IN \`${conversion._mySqlDbName}\` WHERE 1 = 1`;
 
     if (conversion._includeTables.length !== 0) {
         const tablesToInclude: string = conversion._includeTables
             .map((table: string): string => `"${table}"`)
             .join(',');
 
-        sql += ` AND Tables_in_${ conversion._mySqlDbName } IN(${ tablesToInclude })`;
+        sql += ` AND Tables_in_${conversion._mySqlDbName} IN(${tablesToInclude})`;
     }
 
     if (conversion._excludeTables.length !== 0) {
@@ -90,13 +86,13 @@ export default async (conversion: Conversion): Promise<Conversion> => {
             .map((table: string): string => `"${table}"`)
             .join(',');
 
-        sql += ` AND Tables_in_${ conversion._mySqlDbName } NOT IN(${ tablesToExclude })`;
+        sql += ` AND Tables_in_${conversion._mySqlDbName} NOT IN(${tablesToExclude})`;
     }
 
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
-        sql: `${ sql };`,
+        sql: `${sql};`,
         vendor: DBVendors.MYSQL,
         processExitOnError: true,
         shouldReturnClient: false,
@@ -108,18 +104,23 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     const processTablePromises: Promise<void>[] = [];
 
     result.data.forEach((row: any) => {
-        let relationName: string = row[`Tables_in_${ conversion._mySqlDbName }`];
+        let relationName: string = row[`Tables_in_${conversion._mySqlDbName}`];
 
-        if (row.Table_type === 'BASE TABLE' && conversion._excludeTables.indexOf(relationName) === -1) {
+        if (
+            row.Table_type === 'BASE TABLE' &&
+            conversion._excludeTables.indexOf(relationName) === -1
+        ) {
             relationName = extraConfigProcessor.getTableName(conversion, relationName, false);
             conversion._tablesToMigrate.push(relationName);
 
             conversion._dicTables.set(relationName, {
-                tableLogPath: `${ conversion._logsDirPath }/${ relationName }.log`,
+                tableLogPath: `${conversion._logsDirPath}/${relationName}.log`,
                 arrTableColumns: [],
             });
 
-            processTablePromises.push(processTableBeforeDataLoading(conversion, relationName, haveTablesLoaded));
+            processTablePromises.push(
+                processTableBeforeDataLoading(conversion, relationName, haveTablesLoaded),
+            );
             tablesCnt++;
         } else if (row.Table_type === 'VIEW') {
             conversion._viewsToMigrate.push(relationName);
@@ -127,9 +128,9 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         }
     });
 
-    const message = `\t--[${ logTitle }] Source DB structure is loaded...\n
-        \t--[${ logTitle }] Tables to migrate: ${ tablesCnt }\n
-        \t--[${ logTitle }] Views to migrate: ${ viewsCnt }`;
+    const message = `\t--[${logTitle}] Source DB structure is loaded...\n
+        \t--[${logTitle}] Tables to migrate: ${tablesCnt}\n
+        \t--[${logTitle}] Views to migrate: ${viewsCnt}`;
 
     await log(conversion, message);
     await Promise.all(processTablePromises);

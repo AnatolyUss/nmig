@@ -23,11 +23,7 @@ import { Test } from 'tape';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from '../../src/Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 
 /**
  * Returns `table_a` column types.
@@ -35,8 +31,10 @@ import {
 const getColumnTypes = async (testSchemaProcessor: TestSchemaProcessor): Promise<any[]> => {
     const sql = `SELECT column_name, data_type  
         FROM information_schema.columns
-        WHERE table_catalog = '${ (testSchemaProcessor.conversion as Conversion)._targetConString.database }' 
-            AND table_schema = '${ (testSchemaProcessor.conversion as Conversion)._schema }' 
+        WHERE table_catalog = '${
+            (testSchemaProcessor.conversion as Conversion)._targetConString.database
+        }' 
+            AND table_schema = '${(testSchemaProcessor.conversion as Conversion)._schema}' 
             AND table_name = 'table_a';`;
 
     const params: DBAccessQueryParams = {
@@ -92,7 +90,7 @@ const getExpectedColumnTypes = (): Map<string, string> => {
         ['enum', 'character varying'],
         ['set', 'character varying'],
         ['tinytext', 'text'],
-        ['mediumtext',  'text'],
+        ['mediumtext', 'text'],
         ['longtext', 'text'],
         ['text', 'text'],
         ['blob', 'bytea'],
@@ -108,10 +106,7 @@ const getExpectedColumnTypes = (): Map<string, string> => {
 /**
  * The data content testing.
  */
-export default async (
-    testSchemaProcessor: TestSchemaProcessor,
-    tape: Test,
-): Promise<void> => {
+export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
     const data: any[] = await getColumnTypes(testSchemaProcessor);
     const expectedColumnTypesMap: Map<string, string> = getExpectedColumnTypes();
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
@@ -125,7 +120,7 @@ export default async (
         const actualColumnType: string = data[i].data_type;
         const expectedColumnType: string = expectedColumnTypesMap.get(columnName) as string;
 
-        tape.comment(`Test ${ columnName } column type`);
+        tape.comment(`Test ${columnName} column type`);
         tape.equal(actualColumnType, expectedColumnType);
     }
 };

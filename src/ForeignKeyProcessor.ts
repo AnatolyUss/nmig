@@ -23,11 +23,7 @@ import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Creates foreign keys for given table.
@@ -38,7 +34,11 @@ const processForeignKeyWorker = async (
     rows: any[],
 ): Promise<void> => {
     const objConstraints: any = Object.create(null);
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
     const logTitle = 'ForeignKeyProcessor::processForeignKeyWorker';
 
     rows.forEach((row: any) => {
@@ -49,7 +49,7 @@ const processForeignKeyWorker = async (
             false,
         );
 
-        const currentReferencedTableName: string  = extraConfigProcessor.getTableName(
+        const currentReferencedTableName: string = extraConfigProcessor.getTableName(
             conversion,
             row.REFERENCED_TABLE_NAME,
             false,
@@ -69,15 +69,19 @@ const processForeignKeyWorker = async (
         );
 
         if (row.CONSTRAINT_NAME in objConstraints) {
-            objConstraints[row.CONSTRAINT_NAME].column_name.add(`"${ currentColumnName }"`);
-            objConstraints[row.CONSTRAINT_NAME].referenced_column_name.add(`"${ currentReferencedColumnName }"`);
+            objConstraints[row.CONSTRAINT_NAME].column_name.add(`"${currentColumnName}"`);
+            objConstraints[row.CONSTRAINT_NAME].referenced_column_name.add(
+                `"${currentReferencedColumnName}"`,
+            );
             return;
         }
 
         objConstraints[row.CONSTRAINT_NAME] = Object.create(null);
-        objConstraints[row.CONSTRAINT_NAME].column_name = new Set<string>([`"${ currentColumnName }"`]);
+        objConstraints[row.CONSTRAINT_NAME].column_name = new Set<string>([
+            `"${currentColumnName}"`,
+        ]);
         objConstraints[row.CONSTRAINT_NAME].referenced_column_name = new Set<string>([
-            `"${ currentReferencedColumnName }"`,
+            `"${currentReferencedColumnName}"`,
         ]);
 
         objConstraints[row.CONSTRAINT_NAME].referenced_table_name = currentReferencedTableName;
@@ -95,12 +99,12 @@ const processForeignKeyWorker = async (
     };
 
     const _cb = async (attr: string): Promise<void> => {
-        params.sql = `ALTER TABLE "${ conversion._schema }"."${ tableName }" 
-            ADD FOREIGN KEY (${ [...objConstraints[attr].column_name].join(',') }) 
-            REFERENCES "${ conversion._schema }"."${ objConstraints[attr].referenced_table_name }" 
-            (${ [...objConstraints[attr].referenced_column_name].join(',') }) 
-            ON UPDATE ${ objConstraints[attr].update_rule } 
-            ON DELETE ${ objConstraints[attr].delete_rule };`;
+        params.sql = `ALTER TABLE "${conversion._schema}"."${tableName}" 
+            ADD FOREIGN KEY (${[...objConstraints[attr].column_name].join(',')}) 
+            REFERENCES "${conversion._schema}"."${objConstraints[attr].referenced_table_name}" 
+            (${[...objConstraints[attr].referenced_column_name].join(',')}) 
+            ON UPDATE ${objConstraints[attr].update_rule} 
+            ON DELETE ${objConstraints[attr].delete_rule};`;
 
         await DBAccess.query(params);
     };
@@ -114,7 +118,10 @@ const processForeignKeyWorker = async (
  */
 export default async (conversion: Conversion): Promise<void> => {
     const logTitle = 'ForeignKeyProcessor::default';
-    const isForeignKeysProcessed: boolean = await migrationStateManager.get(conversion, 'foreign_keys_loaded');
+    const isForeignKeysProcessed: boolean = await migrationStateManager.get(
+        conversion,
+        'foreign_keys_loaded',
+    );
 
     if (isForeignKeysProcessed) {
         return;
@@ -132,10 +139,14 @@ export default async (conversion: Conversion): Promise<void> => {
     const _cb = async (tableName: string): Promise<void> => {
         await log(
             conversion,
-            `\t--[${ logTitle }] Search foreign keys for table "${ conversion._schema }"."${ tableName }"...`,
+            `\t--[${logTitle}] Search foreign keys for table "${conversion._schema}"."${tableName}"...`,
         );
 
-        const colsTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+        const colsTableName: string = extraConfigProcessor.getTableName(
+            conversion,
+            tableName,
+            true,
+        );
 
         params.sql = `
             SELECT 
@@ -158,7 +169,7 @@ export default async (conversion: Conversion): Promise<void> => {
             LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS cLinks 
                 ON cLinks.CONSTRAINT_SCHEMA = cols.TABLE_SCHEMA 
                     AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME 
-            WHERE cols.TABLE_SCHEMA = '${ conversion._mySqlDbName }' AND cols.TABLE_NAME = '${ colsTableName }';`;
+            WHERE cols.TABLE_SCHEMA = '${conversion._mySqlDbName}' AND cols.TABLE_NAME = '${colsTableName}';`;
 
         const result: DBAccessQueryResult = await DBAccess.query(params);
 
@@ -171,7 +182,7 @@ export default async (conversion: Conversion): Promise<void> => {
         await processForeignKeyWorker(conversion, tableName, fullRows);
         await log(
             conversion,
-            `\t--[${ logTitle }] Foreign keys for table "${ conversion._schema }"."${ tableName }" are set...`,
+            `\t--[${logTitle}] Foreign keys for table "${conversion._schema}"."${tableName}" are set...`,
         );
     };
 

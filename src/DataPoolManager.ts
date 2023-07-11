@@ -21,17 +21,13 @@
 import DBAccess from './DBAccess';
 import { log } from './FsOps';
 import Conversion from './Conversion';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Returns the data pool table name.
  */
 export const getDataPoolTableName = (conversion: Conversion): string => {
-    return `"${ conversion._schema }"."data_pool_${ conversion._schema }${ conversion._mySqlDbName }"`;
+    return `"${conversion._schema}"."data_pool_${conversion._schema}${conversion._mySqlDbName}"`;
 };
 
 /**
@@ -40,7 +36,7 @@ export const getDataPoolTableName = (conversion: Conversion): string => {
 export const createDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
     const logTitle = 'DataPoolManager::createDataPoolTable';
     const table: string = getDataPoolTableName(conversion);
-    const sql = `CREATE TABLE IF NOT EXISTS ${ table }("id" BIGSERIAL, "metadata" TEXT);`;
+    const sql = `CREATE TABLE IF NOT EXISTS ${table}("id" BIGSERIAL, "metadata" TEXT);`;
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
@@ -51,7 +47,7 @@ export const createDataPoolTable = async (conversion: Conversion): Promise<Conve
     };
 
     await DBAccess.query(params);
-    await log(conversion, `\t--[${ logTitle }] table ${ table } is created...`);
+    await log(conversion, `\t--[${logTitle}] table ${table} is created...`);
     return conversion;
 };
 
@@ -64,14 +60,14 @@ export const dropDataPoolTable = async (conversion: Conversion): Promise<Convers
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
-        sql: `DROP TABLE ${ table };`,
+        sql: `DROP TABLE ${table};`,
         vendor: DBVendors.PG,
         processExitOnError: false,
         shouldReturnClient: false,
     };
 
     await DBAccess.query(params);
-    await log(conversion, `\t--[${ logTitle }] table ${ table } is dropped...`);
+    await log(conversion, `\t--[${logTitle}] table ${table} is dropped...`);
     return conversion;
 };
 
@@ -84,7 +80,7 @@ export const readDataPool = async (conversion: Conversion): Promise<Conversion> 
     const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
-        sql: `SELECT id AS id, metadata AS metadata FROM ${ table };`,
+        sql: `SELECT id AS id, metadata AS metadata FROM ${table};`,
         vendor: DBVendors.PG,
         processExitOnError: true,
         shouldReturnClient: false,
@@ -94,7 +90,7 @@ export const readDataPool = async (conversion: Conversion): Promise<Conversion> 
 
     result.data.rows.forEach((row: any) => {
         const obj: any = JSON.parse(row.metadata);
-        obj._id =  row.id;
+        obj._id = row.id;
         conversion._dataPool.push(obj);
     });
 

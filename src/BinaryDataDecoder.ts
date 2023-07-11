@@ -23,23 +23,22 @@ import { PoolClient } from 'pg';
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import {
-    DBAccessQueryParams,
-    DBAccessQueryResult,
-    DBVendors,
-} from './Types';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Decodes binary data from textual representation in string.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
     const logTitle = 'BinaryDataDecoder::decodeBinaryData';
-    await log(conversion, `\t--[${ logTitle }] Decodes binary data from textual representation in string.`);
+    await log(
+        conversion,
+        `\t--[${logTitle}] Decodes binary data from textual representation in string.`,
+    );
 
     const sql = `SELECT table_name, column_name 
         FROM information_schema.columns
-        WHERE table_catalog = '${ conversion._targetConString.database }' 
-          AND table_schema = '${ conversion._schema }' 
+        WHERE table_catalog = '${conversion._targetConString.database}' 
+          AND table_schema = '${conversion._schema}' 
           AND data_type IN ('bytea', 'geometry');`;
 
     const params: DBAccessQueryParams = {
@@ -62,8 +61,8 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     const _cb = async (row: any): Promise<void> => {
         const tableName: string = row.table_name;
         const columnName: string = row.column_name;
-        params.sql = `UPDATE ${ conversion._schema }."${ tableName }"
-                SET "${ columnName }" = DECODE(ENCODE("${ columnName }", 'escape'), 'hex');`;
+        params.sql = `UPDATE ${conversion._schema}."${tableName}"
+                SET "${columnName}" = DECODE(ENCODE("${columnName}", 'escape'), 'hex');`;
 
         await DBAccess.query(params);
     };
