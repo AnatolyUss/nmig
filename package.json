@@ -39,12 +39,15 @@
         "test": "node dist/test/Main.test.js"
     },
     "keywords": [
+        "db migration",
         "database migration",
-        "copy",
+        "databases migration",
         "mysql",
         "mariadb",
+        "copy",
         "postgresql",
         "postgres",
-        "postgre"
+        "postgre",
+        "pg"
     ]
 }
