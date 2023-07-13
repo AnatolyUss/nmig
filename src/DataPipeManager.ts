@@ -266,12 +266,14 @@ export default class DataPipeManager {
     /**
      * Wraps "process.send" method to avoid "cannot invoke an object which is possibly undefined" TypeScript warning.
      */
-    public static processSend = (x: any): void => {
+    public static processSend = async (message: any, conv: Conversion): Promise<void> => {
         if (process.send) {
-            process.send(x);
+            process.send(message);
+            return;
         }
 
-        throw new Error('Unable to send a message to parent process.');
+        await generateError(conv, '\t--[processSend] Unable to send a message to parent process.');
+        throw new Error();
     };
 
     /**
@@ -296,6 +298,6 @@ export default class DataPipeManager {
             totalRowsToInsert: 0,
         };
 
-        DataPipeManager.processSend(messageToMaster);
+        await DataPipeManager.processSend(messageToMaster, conv);
     };
 }

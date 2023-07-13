@@ -330,6 +330,7 @@ export default class TestSchemaProcessor {
             .then(dropDataPoolTable)
             .then(dropStateLogsTable)
             .then(DBAccess.closeConnectionPools)
-            .then(generateReport);
+            .then(generateReport)
+            .catch((error: Error) => console.log(`\t--[arrangeTestMigration] error: ${error}`));
     };
 }

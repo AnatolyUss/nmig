@@ -180,7 +180,7 @@ const getDataWriterOnExitCallback = (
             totalRowsToInsert: rowsCnt,
         };
 
-        DataPipeManager.processSend(messageToMaster);
+        await DataPipeManager.processSend(messageToMaster, conv);
     };
 };
 

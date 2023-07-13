@@ -38,21 +38,21 @@ const runTestSuites = (testSchemaProcessor: TestSchemaProcessor): (() => void) =
             process.exit(0);
         });
 
-        test('Test schema should be created', (tapeTestSchema: test.Test): void => {
-            testSchema(testSchemaProcessor, tapeTestSchema);
+        test('Test schema should be created', async (tapeTestSchema: test.Test): Promise<void> => {
+            await testSchema(testSchemaProcessor, tapeTestSchema);
         });
 
-        test('Test the data content', (tapeTestDataContent: test.Test): void => {
-            testDataContent(testSchemaProcessor, tapeTestDataContent);
+        test('Test the data content', async (tapeTestDataContent: test.Test): Promise<void> => {
+            await testDataContent(testSchemaProcessor, tapeTestDataContent);
         });
 
-        test('Test column types', (tapeTestColumnTypes: test.Test): void => {
-            testColumnTypes(testSchemaProcessor, tapeTestColumnTypes);
+        test('Test column types', async (tapeTestColumnTypes: test.Test): Promise<void> => {
+            await testColumnTypes(testSchemaProcessor, tapeTestColumnTypes);
         });
     };
 };
 
-const testSchemaProcessor: TestSchemaProcessor = new TestSchemaProcessor();
+const testSchemaProcessor = new TestSchemaProcessor();
 
 testSchemaProcessor
     .initializeConversion()
@@ -66,4 +66,5 @@ testSchemaProcessor
         // Continues the test database arrangement.
         return Promise.resolve(conversion);
     })
-    .then(testSchemaProcessor.arrangeTestMigration.bind(testSchemaProcessor));
+    .then(testSchemaProcessor.arrangeTestMigration.bind(testSchemaProcessor))
+    .catch((error: Error) => console.log(`\t--[Main.test] error: ${error}`));

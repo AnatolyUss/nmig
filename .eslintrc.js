@@ -10,11 +10,20 @@ module.exports = {
     ],
     parser: '@typescript-eslint/parser',
     plugins: ['@typescript-eslint'],
+    overrides: [
+        {
+            files: ['*.ts'],
+            parserOptions: {
+                project: ['./tsconfig.json'],
+            },
+        },
+    ],
     rules: {
-        // 0 means that the rule is turned off.
-        '@typescript-eslint/no-explicit-any': 0,
-        '@typescript-eslint/no-var-requires': 0,
-        'no-async-promise-executor': 0,
-        'no-useless-escape': 0,
+        // Acceptable values are 'off', 'warn' and 'error'.
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-var-requires': 'off',
+        '@typescript-eslint/no-floating-promises': 'warn',
+        'no-async-promise-executor': 'off',
+        'no-useless-escape': 'off',
     },
 };
