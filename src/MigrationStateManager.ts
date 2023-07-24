@@ -98,7 +98,7 @@ export const createStateLogsTable = async (conversion: Conversion): Promise<Conv
         params.sql = `INSERT INTO ${getStateLogsTableName(
             conversion,
         )} VALUES (FALSE, FALSE, FALSE, FALSE);`;
-        params.client = result.client; // !!!Notice, this line is not a mistake.
+        params.client = result.client; // !!!Note, this line is not a mistake.
         params.shouldReturnClient = false;
         await DBAccess.query(params);
         return conversion;

@@ -52,7 +52,7 @@ export default class DataPipeManager {
 
     /**
      * A path to the DataReader.js file.
-     * !!!Notice, in runtime it points to ../dist/src/DataReader.js and not DataReader.ts
+     * Note, in runtime it points to ../dist/src/DataReader.js and not DataReader.ts
      */
     private static readonly dataReaderPath = path.join(__dirname, 'DataReader.js');
 

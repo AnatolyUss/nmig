@@ -142,6 +142,7 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
  * Spawns the data-writer child-process and returns its instance.
  */
 const getDataWriter = (conv: Conversion): ChildProcess => {
+    // Note, in runtime it points to ../dist/src/DataWriter.js and not DataWriter.ts
     const cliArgs: string[] = [path.join(__dirname, 'DataWriter.js')];
 
     if (conv._readerMaxOldSpaceSize !== 'DEFAULT') {
