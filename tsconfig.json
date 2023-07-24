@@ -20,6 +20,8 @@
         "types": [
             "node",
             "pg",
+            "uuid",
+            "pg-copy-streams",
             "tape"
         ]
     },

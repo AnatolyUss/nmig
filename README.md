@@ -21,7 +21,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 
 <h3>SYSTEM REQUIREMENTS</h3>
 <ul>
-<li> <b>Node.js 10 or higher</b></li>
+<li> <b>Node.js 18.16.1 (the LTS version, upon Nmig's last major update) or higher</b></li>
 </ul>
 
 <h3>USAGE</h3>

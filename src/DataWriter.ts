@@ -18,10 +18,11 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { Writable, promises as streamPromises } from 'node:stream';
+import { Writable } from 'node:stream';
+import * as streamPromises from 'node:stream/promises';
 
 import { PoolClient } from 'pg';
-const { from } = require('pg-copy-streams'); // No declaration file for module "pg-copy-streams".
+import { from } from 'pg-copy-streams';
 
 import { log } from './FsOps';
 import { MessageToDataWriter } from './Types';

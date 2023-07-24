@@ -20,12 +20,8 @@
  */
 import * as path from 'node:path';
 import { ChildProcess, spawn } from 'node:child_process';
-import {
-    Readable,
-    Writable,
-    Duplex as DuplexStream,
-    promises as streamPromises,
-} from 'node:stream';
+import { Readable, Writable, Duplex as DuplexStream } from 'node:stream';
+import * as streamPromises from 'node:stream/promises';
 
 import { PoolClient } from 'pg';
 import { PoolConnection } from 'mysql2';
