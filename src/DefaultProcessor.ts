@@ -21,79 +21,108 @@
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { mapDataTypes } from './TableProcessor';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Defines which columns of the given table have default value.
- * Sets default values, if need.
+ * Sets default values, if needed.
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle: string = 'DefaultProcessor::default';
-    const msg: string = `\t--[${ logTitle }] Defines default values for table: "${ conversion._schema }"."${ tableName }"`;
-    log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const pgSqlBitTypes: string[] = ['bit', 'bit varying'];
-    const pgSqlBinaryTypes: string[] = ['bytea'];
-    const pgSqlNumericTypes: string[] = [
-        'smallint', 'integer', 'bigint', 'decimal', 'numeric', 'int',
-        'real', 'double precision', 'smallserial', 'serial', 'bigserial',
+    const logTitle = 'DefaultProcessor::default';
+    const fullTableName = `"${conversion._schema}"."${tableName}"`;
+    const msg = `\t--[${logTitle}] Defines default values for table: ${fullTableName}`;
+    await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
+    const pgSqlBitTypes = ['bit', 'bit varying'];
+    const pgSqlBinaryTypes = ['bytea'];
+    const pgSqlNumericTypes = [
+        'smallint',
+        'integer',
+        'bigint',
+        'decimal',
+        'numeric',
+        'int',
+        'real',
+        'double precision',
+        'smallserial',
+        'serial',
+        'bigserial',
     ];
 
-    const sqlReservedValues: any = {
-        'CURRENT_DATE': 'CURRENT_DATE',
-        '0000-00-00': "'-INFINITY'",
-        'CURRENT_TIME': 'CURRENT_TIME',
-        '00:00:00': "'00:00:00'",
-        'CURRENT_TIMESTAMP()': 'CURRENT_TIMESTAMP',
-        'CURRENT_TIMESTAMP': 'CURRENT_TIMESTAMP',
-        '0000-00-00 00:00:00': "'-INFINITY'",
-        'LOCALTIME': 'LOCALTIME',
-        'LOCALTIMESTAMP': 'LOCALTIMESTAMP',
-        'NULL': 'NULL',
-        'null': 'NULL',
-        'UTC_DATE': "(CURRENT_DATE AT TIME ZONE 'UTC')",
-        'UTC_TIME': "(CURRENT_TIME AT TIME ZONE 'UTC')",
-        'UTC_TIMESTAMP': "(NOW() AT TIME ZONE 'UTC')",
-    };
+    const sqlReservedValues = new Map<string, string>([
+        ['CURRENT_DATE', 'CURRENT_DATE'],
+        ['0000-00-00', "'-INFINITY'"],
+        ['CURRENT_TIME', 'CURRENT_TIME'],
+        ['00:00:00', "'00:00:00'"],
+        ['CURRENT_TIMESTAMP()', 'CURRENT_TIMESTAMP'],
+        ['CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP'],
+        ['0000-00-00 00:00:00', "'-INFINITY'"],
+        ['LOCALTIME', 'LOCALTIME'],
+        ['LOCALTIMESTAMP', 'LOCALTIMESTAMP'],
+        ['NULL', 'NULL'],
+        ['null', 'NULL'],
+        ['UTC_DATE', "(CURRENT_DATE AT TIME ZONE 'UTC')"],
+        ['UTC_TIME', "(CURRENT_TIME AT TIME ZONE 'UTC')"],
+        ['UTC_TIMESTAMP', "(NOW() AT TIME ZONE 'UTC')"],
+    ]);
 
-    const promises: Promise<void>[] = conversion._dicTables[tableName].arrTableColumns.map(async (column: any) => {
+    const _cb = async (column: any): Promise<void> => {
         const pgSqlDataType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
-        const columnName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
-        let sql: string = `ALTER TABLE "${ conversion._schema }"."${ tableName }" ALTER COLUMN "${ columnName }" SET DEFAULT `;
-        const isOfBitType: boolean = !!(pgSqlBitTypes.find((bitType: string) => pgSqlDataType.startsWith(bitType)));
+        const columnName: string = extraConfigProcessor.getColumnName(
+            conversion,
+            originalTableName,
+            column.Field,
+            false,
+        );
 
-        if (sqlReservedValues[column.Default]) {
-            sql += sqlReservedValues[column.Default];
+        let sql = `ALTER TABLE ${fullTableName} ALTER COLUMN "${columnName}" SET DEFAULT `;
+        const isOfBitType = !!pgSqlBitTypes.find((bitType: string) =>
+            pgSqlDataType.startsWith(bitType),
+        );
+
+        if (sqlReservedValues.has(column.Default)) {
+            sql += sqlReservedValues.get(column.Default);
         } else if (isOfBitType) {
-            sql += `${ column.Default };`; // bit varying
+            sql += `${column.Default};`; // bit varying
         } else if (pgSqlBinaryTypes.indexOf(pgSqlDataType) !== -1) {
-            sql += `'\\x${ column.Default }';`; // bytea
+            sql += `'\\x${column.Default}';`; // bytea
         } else if (pgSqlNumericTypes.indexOf(pgSqlDataType) === -1) {
-            sql += `'${ column.Default }';`;
+            sql += `'${column.Default}';`;
         } else {
-            sql += `${ column.Default };`;
+            sql += `${column.Default};`;
         }
 
-        const params: IDBAccessQueryParams = {
+        const params: DBAccessQueryParams = {
             conversion: conversion,
             caller: logTitle,
             sql: sql,
             vendor: DBVendors.PG,
             processExitOnError: false,
-            shouldReturnClient: false
+            shouldReturnClient: false,
         };
 
         const result: DBAccessQueryResult = await DBAccess.query(params);
 
         if (!result.error) {
-            const successMsg: string = `\t--[${ logTitle }] Set default value for "${ conversion._schema }"."${ tableName }"."${ columnName }"...`;
-            log(conversion, successMsg, conversion._dicTables[tableName].tableLogPath);
+            await log(
+                conversion,
+                `\t--[${logTitle}] Set default value for ${fullTableName}."${columnName}"...`,
+                (conversion._dicTables.get(tableName) as Table).tableLogPath,
+            );
         }
-    });
+    };
+
+    const promises: Promise<void>[] = (
+        conversion._dicTables.get(tableName) as Table
+    ).arrTableColumns
+        .filter((column: any): boolean => column.Default !== null)
+        .map(_cb);
 
     await Promise.all(promises);
 };

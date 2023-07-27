@@ -23,24 +23,22 @@ import { Test } from 'tape';
 import TestSchemaProcessor from './TestSchemaProcessor';
 import Conversion from '../../src/Conversion';
 import DBAccess from '../../src/DBAccess';
-import DBVendors from '../../src/DBVendors';
-import DBAccessQueryResult from '../../src/DBAccessQueryResult';
-import IDBAccessQueryParams from '../../src/IDBAccessQueryParams';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 
 /**
  * Checks if the schema exists.
  */
 const hasSchemaCreated = async (testSchemaProcessor: TestSchemaProcessor): Promise<boolean> => {
-    const sql: string = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
-         WHERE schema_name = '${ (<Conversion>testSchemaProcessor.conversion)._schema }');`;
+    const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
+         WHERE schema_name = '${(testSchemaProcessor.conversion as Conversion)._schema}');`;
 
-    const params: IDBAccessQueryParams = {
-        conversion: <Conversion>testSchemaProcessor.conversion,
+    const params: DBAccessQueryParams = {
+        conversion: testSchemaProcessor.conversion as Conversion,
         caller: 'SchemaProcessorTest::hasSchemaCreated',
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
@@ -57,7 +55,7 @@ const hasSchemaCreated = async (testSchemaProcessor: TestSchemaProcessor): Promi
  */
 export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
     const schemaExists: boolean = await hasSchemaCreated(testSchemaProcessor);
-    const numberOfPlannedAssertions: number = 1;
+    const numberOfPlannedAssertions = 1;
     const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
 
     tape.plan(numberOfPlannedAssertions);

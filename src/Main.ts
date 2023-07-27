@@ -21,7 +21,7 @@
 import Conversion from './Conversion';
 import createSchema from './SchemaProcessor';
 import loadStructureToMigrate from './StructureLoader';
-import pipeData from './DataPipeManager';
+import DataPipeManager from './DataPipeManager';
 import decodeBinaryData from './BinaryDataDecoder';
 import generateReport from './ReportGenerator';
 import DBAccess from './DBAccess';
@@ -30,7 +30,12 @@ import { processConstraints } from './ConstraintsProcessor';
 import { getConfAndLogsPaths, boot } from './BootProcessor';
 import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
-import { readConfig, readExtraConfig, createLogsDirectory, readDataAndIndexTypesMap } from './FsOps';
+import {
+    readConfig,
+    readExtraConfig,
+    createLogsDirectory,
+    readDataAndIndexTypesMap,
+} from './FsOps';
 
 const { confPath, logsPath } = getConfAndLogsPaths();
 
@@ -45,10 +50,11 @@ readConfig(confPath, logsPath)
     .then(createDataPoolTable)
     .then(loadStructureToMigrate)
     .then(readDataPool)
-    .then(pipeData)
+    .then(DataPipeManager.runDataPipe)
     .then(decodeBinaryData)
     .then(processConstraints)
     .then(dropDataPoolTable)
     .then(dropStateLogsTable)
     .then(DBAccess.closeConnectionPools)
-    .then(generateReport);
+    .then(generateReport)
+    .catch((error: Error) => console.log(`\t--[Main] error: ${error}`));

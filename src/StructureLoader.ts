@@ -19,21 +19,22 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
-import DBVendors from './DBVendors';
 import { log } from './FsOps';
 import Conversion from './Conversion';
-import Table from './Table';
 import { createTable } from './TableProcessor';
 import prepareDataChunks from './DataChunksProcessor';
 import * as migrationStateManager from './MigrationStateManager';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
  * Processes current table before data loading.
  */
-const processTableBeforeDataLoading = async (conversion: Conversion, tableName: string, stateLog: boolean): Promise<void> => {
+const processTableBeforeDataLoading = async (
+    conversion: Conversion,
+    tableName: string,
+    stateLog: boolean,
+): Promise<void> => {
     await createTable(conversion, tableName);
     await prepareDataChunks(conversion, tableName, stateLog);
 };
@@ -42,13 +43,13 @@ const processTableBeforeDataLoading = async (conversion: Conversion, tableName: 
  * Retrieves the source db (MySQL) version.
  */
 const setMySqlVersion = async (conversion: Conversion): Promise<void> => {
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'StructureLoader::setMySqlVersion',
         sql: 'SELECT VERSION() AS mysql_version;',
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
@@ -60,48 +61,66 @@ const setMySqlVersion = async (conversion: Conversion): Promise<void> => {
     const arrVersion: string[] = result.data[0].mysql_version.split('.');
     const majorVersion: string = arrVersion[0];
     const minorVersion: string = arrVersion.slice(1).join('');
-    conversion._mysqlVersion = `${ majorVersion }.${ minorVersion }`;
+    conversion._mysqlVersion = `${majorVersion}.${minorVersion}`;
 };
 
 /**
  * Loads source tables and views, that need to be migrated.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle: string = 'StructureLoader::default';
+    const logTitle = 'StructureLoader::default';
     await setMySqlVersion(conversion);
     const haveTablesLoaded: boolean = await migrationStateManager.get(conversion, 'tables_loaded');
-    let sql: string = `SHOW FULL TABLES IN \`${ conversion._mySqlDbName }\` WHERE 1 = 1`;
+    let sql = `SHOW FULL TABLES IN \`${conversion._mySqlDbName}\` WHERE 1 = 1`;
 
     if (conversion._includeTables.length !== 0) {
-        sql += ` AND Tables_in_${ conversion._mySqlDbName } IN(${ conversion._includeTables.map((table: string) => `"${table}"`).join(',') })`;
+        const tablesToInclude: string = conversion._includeTables
+            .map((table: string): string => `"${table}"`)
+            .join(',');
+
+        sql += ` AND Tables_in_${conversion._mySqlDbName} IN(${tablesToInclude})`;
     }
 
     if (conversion._excludeTables.length !== 0) {
-        sql += ` AND Tables_in_${ conversion._mySqlDbName } NOT IN(${ conversion._excludeTables.map((table: string) => `"${table}"`).join(',') })`;
+        const tablesToExclude: string = conversion._excludeTables
+            .map((table: string): string => `"${table}"`)
+            .join(',');
+
+        sql += ` AND Tables_in_${conversion._mySqlDbName} NOT IN(${tablesToExclude})`;
     }
 
-    const params: IDBAccessQueryParams = {
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
-        sql: `${ sql };`,
+        sql: `${sql};`,
         vendor: DBVendors.MYSQL,
         processExitOnError: true,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
-    let tablesCnt: number = 0;
-    let viewsCnt: number = 0;
+    let tablesCnt = 0;
+    let viewsCnt = 0;
     const processTablePromises: Promise<void>[] = [];
 
     result.data.forEach((row: any) => {
-        let relationName: string = row[`Tables_in_${ conversion._mySqlDbName }`];
+        let relationName: string = row[`Tables_in_${conversion._mySqlDbName}`];
 
-        if (row.Table_type === 'BASE TABLE' && conversion._excludeTables.indexOf(relationName) === -1) {
+        if (
+            row.Table_type === 'BASE TABLE' &&
+            conversion._excludeTables.indexOf(relationName) === -1
+        ) {
             relationName = extraConfigProcessor.getTableName(conversion, relationName, false);
             conversion._tablesToMigrate.push(relationName);
-            conversion._dicTables[relationName] = new Table(`${ conversion._logsDirPath }/${ relationName }.log`);
-            processTablePromises.push(processTableBeforeDataLoading(conversion, relationName, haveTablesLoaded));
+
+            conversion._dicTables.set(relationName, {
+                tableLogPath: `${conversion._logsDirPath}/${relationName}.log`,
+                arrTableColumns: [],
+            });
+
+            processTablePromises.push(
+                processTableBeforeDataLoading(conversion, relationName, haveTablesLoaded),
+            );
             tablesCnt++;
         } else if (row.Table_type === 'VIEW') {
             conversion._viewsToMigrate.push(relationName);
@@ -109,11 +128,11 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         }
     });
 
-    const message: string = `\t--[${ logTitle }] Source DB structure is loaded...\n
-        \t--[${ logTitle }] Tables to migrate: ${ tablesCnt }\n
-        \t--[${ logTitle }] Views to migrate: ${ viewsCnt }`;
+    const message = `\t--[${logTitle}] Source DB structure is loaded...\n
+        \t--[${logTitle}] Tables to migrate: ${tablesCnt}\n
+        \t--[${logTitle}] Views to migrate: ${viewsCnt}`;
 
-    log(conversion, message);
+    await log(conversion, message);
     await Promise.all(processTablePromises);
     await migrationStateManager.set(conversion, 'tables_loaded');
     return conversion;

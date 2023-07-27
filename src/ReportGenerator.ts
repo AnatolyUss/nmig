@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 import { log } from './FsOps';
 import Conversion from './Conversion';
@@ -28,23 +28,23 @@ import Conversion from './Conversion';
  */
 export default async (conversion: Conversion): Promise<void> => {
     if (conversion._runsInTestMode) {
-        (<EventEmitter>conversion._eventEmitter).emit(conversion._migrationCompletedEvent);
+        (conversion._eventEmitter as EventEmitter).emit(conversion._migrationCompletedEvent);
         return;
     }
 
-    let differenceSec: number = ((new Date()).getTime() - (<Date>conversion._timeBegin).getTime()) / 1000;
-    const seconds: number = Math.floor(differenceSec % 60);
+    let differenceSec = (new Date().getTime() - (conversion._timeBegin as Date).getTime()) / 1000;
+    const seconds = Math.floor(differenceSec % 60);
     differenceSec = differenceSec / 60;
-    const minutes: number = Math.floor(differenceSec % 60);
-    const hours: number = Math.floor(differenceSec / 60);
-    const formattedHours: string = hours < 10 ? `0${ hours }` : `${ hours }`;
-    const formattedMinutes: string = minutes < 10 ? `0${ minutes }` : `${ minutes }`;
-    const formattedSeconds: string = seconds < 10 ? `0${ seconds }` : `${ seconds }`;
-    const endMsg: string = 'NMIG migration is accomplished.';
-    const output: string = `\t--[generateReport] ${ endMsg }
-        \n\t--[generateReport] Total time: ${ formattedHours }:${ formattedMinutes }:${ formattedSeconds }
+    const minutes = Math.floor(differenceSec % 60);
+    const hours = Math.floor(differenceSec / 60);
+    const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+    const formattedSeconds = seconds < 10 ? `0${seconds}` : `${seconds}`;
+    const endMsg = 'NMIG migration is accomplished.';
+    const output = `\t--[generateReport] ${endMsg}
+        \n\t--[generateReport] Total time: ${formattedHours}:${formattedMinutes}:${formattedSeconds}
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
-    log(conversion, output, undefined, true);
+    await log(conversion, output, undefined, true);
     process.exit(0);
 };

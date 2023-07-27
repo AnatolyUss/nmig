@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 import * as test from 'tape';
 
@@ -31,36 +31,40 @@ import testColumnTypes from './TestModules/ColumnTypesTest';
 /**
  * Runs test suites.
  */
-const runTestSuites = (testSchemaProcessor: TestSchemaProcessor): () => void => {
-    return () => {
-        test.onFinish(async () => {
+const runTestSuites = (testSchemaProcessor: TestSchemaProcessor): (() => void) => {
+    return (): void => {
+        test.onFinish(async (): Promise<void> => {
             await testSchemaProcessor.removeTestResources();
             process.exit(0);
         });
 
-        test('Test schema should be created', (tapeTestSchema: test.Test) => {
-            testSchema(testSchemaProcessor, tapeTestSchema);
+        test('Test schema should be created', async (tapeTestSchema: test.Test): Promise<void> => {
+            await testSchema(testSchemaProcessor, tapeTestSchema);
         });
 
-        test('Test the data content', (tapeTestDataContent: test.Test) => {
-            testDataContent(testSchemaProcessor, tapeTestDataContent);
+        test('Test the data content', async (tapeTestDataContent: test.Test): Promise<void> => {
+            await testDataContent(testSchemaProcessor, tapeTestDataContent);
         });
 
-        test('Test column types', (tapeTestColumnTypes: test.Test) => {
-            testColumnTypes(testSchemaProcessor, tapeTestColumnTypes);
+        test('Test column types', async (tapeTestColumnTypes: test.Test): Promise<void> => {
+            await testColumnTypes(testSchemaProcessor, tapeTestColumnTypes);
         });
     };
 };
 
-const testSchemaProcessor: TestSchemaProcessor = new TestSchemaProcessor();
+const testSchemaProcessor = new TestSchemaProcessor();
 
 testSchemaProcessor
     .initializeConversion()
     .then((conversion: Conversion) => {
         // Registers callback, that will be invoked when the test database arrangement will be completed.
-        (<EventEmitter>conversion._eventEmitter).on(conversion._migrationCompletedEvent, runTestSuites(testSchemaProcessor));
+        (conversion._eventEmitter as EventEmitter).on(
+            conversion._migrationCompletedEvent,
+            runTestSuites(testSchemaProcessor),
+        );
 
         // Continues the test database arrangement.
         return Promise.resolve(conversion);
     })
-    .then(testSchemaProcessor.arrangeTestMigration.bind(testSchemaProcessor));
+    .then(testSchemaProcessor.arrangeTestMigration.bind(testSchemaProcessor))
+    .catch((error: Error) => console.log(`\t--[Main.test] error: ${error}`));

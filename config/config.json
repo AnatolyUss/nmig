@@ -46,18 +46,25 @@
     "max_each_db_connection_pool_size" : 20,
 
     "number_of_simultaneously_running_loader_processes_description": [
-        "Number of data-loader processes that will run simultaneously.",
+        "Number of loader processes that will run simultaneously.",
         "Acceptable values:",
-        "1. 'DEFAULT' - when set to 'DEFAULT', Nmig will run 2 data-loader processes.",
+        "1. 'DEFAULT' - when set to 'DEFAULT', Nmig will run 2 loader processes.",
         "2. Any positive integer.",
         "Note:",
         "1.",
-        "Usually, migration gets accomplished faster with only 2 data-loader processes,",
+        "The 'loader process' is a term referred to a data-transfer (from MySQL to PostgreSQL) procedure.",
+        "Note that each procedure uses two Nodejs processes: 'data-reader' to stream data out of MySQL",
+        "and apply some transformations, and 'data-writer' to stream data to PostgreSQL.",
+        "This way Nmig implements truly parallel streaming pipeline.",
+        "Such an implementation guaranties significant performance boost in comparison with",
+        "a regular, non-parallel streaming pipeline.",
+        "2.",
+        "Usually, migration gets accomplished faster with only 2 loader processes,",
         "even if more CPU cores are available.",
         "Yet, it is worth an effort to 'play' with this parameter prior running migration in production,",
         "to check how many processes work best in your case.",
         "When trying Nmig on your test-database, try both decreasing and increasing this number.",
-        "2.",
+        "3.",
         "'number_of_simultaneously_running_loader_processes' will never be greater",
         "than a number of logical CPU cores of the machine running Nmig.",
         "If greater number chosen - Nmig will run one loader process per each available CPU core."
@@ -65,10 +72,12 @@
     "number_of_simultaneously_running_loader_processes": "DEFAULT",
 
     "loader_max_old_space_size_description" : [
-        "V8 memory limit of the loader process.",
+        "V8 memory limit of the 'loader process'.",
+        "Note, all the 'loader process' params are equally applicable",
+        "to both 'data-reader' and 'data-writer' processes.",
         "Possible values are:",
-        "1. any positive integer, representing memory limit (in MB).",
-        "2. 'DEFAULT', representing V8 default memory limit for your current hardware."
+        "1. Any positive integer, representing memory limit (in MB).",
+        "2. 'DEFAULT', representing V8 default memory limit of your current hardware."
     ],
     "loader_max_old_space_size" : "DEFAULT",
 

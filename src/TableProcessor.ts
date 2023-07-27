@@ -21,10 +21,8 @@
 import { log } from './FsOps';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
-import DBVendors from './DBVendors';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Converts MySQL data types to corresponding PostgreSQL data types.
@@ -32,14 +30,18 @@ import * as extraConfigProcessor from './ExtraConfigProcessor';
  * './config/data_types_map.json' can be customized.
  */
 export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): string => {
-    let retVal: string = '';
+    let retVal = '';
     const arrDataTypeDetails: string[] = mySqlDataType.split(' ');
     mySqlDataType = arrDataTypeDetails[0].toLowerCase();
-    const increaseOriginalSize: boolean = arrDataTypeDetails.indexOf('unsigned') !== -1 || arrDataTypeDetails.indexOf('zerofill') !== -1;
+    const increaseOriginalSize: boolean =
+        arrDataTypeDetails.indexOf('unsigned') !== -1 ||
+        arrDataTypeDetails.indexOf('zerofill') !== -1;
 
     if (mySqlDataType.indexOf('(') === -1) {
         // No parentheses detected.
-        retVal = increaseOriginalSize ? objDataTypesMap[mySqlDataType].increased_size : objDataTypesMap[mySqlDataType].type;
+        retVal = increaseOriginalSize
+            ? objDataTypesMap[mySqlDataType].increased_size
+            : objDataTypesMap[mySqlDataType].type;
     } else {
         // Parentheses detected.
         const arrDataType: string[] = mySqlDataType.split('(');
@@ -49,15 +51,20 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
         if ('enum' === strDataType || 'set' === strDataType) {
             retVal = 'character varying(255)';
         } else if ('decimal' === strDataType || 'numeric' === strDataType) {
-            retVal = `${ objDataTypesMap[strDataType].type }(${ strDataTypeDisplayWidth }`;
-        } else if ('decimal(19,2)' === mySqlDataType || objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen) {
+            retVal = `${objDataTypesMap[strDataType].type}(${strDataTypeDisplayWidth}`;
+        } else if (
+            'decimal(19,2)' === mySqlDataType ||
+            objDataTypesMap[strDataType].mySqlVarLenPgSqlFixedLen
+        ) {
             // Should be converted without a length definition.
-            retVal = increaseOriginalSize ? objDataTypesMap[strDataType].increased_size : objDataTypesMap[strDataType].type;
+            retVal = increaseOriginalSize
+                ? objDataTypesMap[strDataType].increased_size
+                : objDataTypesMap[strDataType].type;
         } else {
             // Should be converted with a length definition.
             retVal = increaseOriginalSize
-                ? `${ objDataTypesMap[strDataType].increased_size }(${ strDataTypeDisplayWidth }`
-                : `${ objDataTypesMap[strDataType].type }(${ strDataTypeDisplayWidth }`;
+                ? `${objDataTypesMap[strDataType].increased_size}(${strDataTypeDisplayWidth}`
+                : `${objDataTypesMap[strDataType].type}(${strDataTypeDisplayWidth}`;
         }
     }
 
@@ -75,16 +82,25 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
  * Migrates structure of a single table to PostgreSql server.
  */
 export const createTable = async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle: string = 'TableProcessor::createTable';
-    log(conversion, `\t--[${ logTitle }] Currently creating table: \`${ tableName }\``, conversion._dicTables[tableName].tableLogPath);
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const params: IDBAccessQueryParams = {
+    const logTitle = 'TableProcessor::createTable';
+    await log(
+        conversion,
+        `\t--[${logTitle}] Currently creating table: \`${tableName}\``,
+        (conversion._dicTables.get(tableName) as Table).tableLogPath,
+    );
+
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: logTitle,
-        sql: `SHOW FULL COLUMNS FROM \`${ originalTableName }\`;`,
+        sql: `SHOW FULL COLUMNS FROM \`${originalTableName}\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const columns: DBAccessQueryResult = await DBAccess.query(params);
@@ -93,26 +109,36 @@ export const createTable = async (conversion: Conversion, tableName: string): Pr
         return;
     }
 
-    conversion._dicTables[tableName].arrTableColumns = columns.data;
+    (conversion._dicTables.get(tableName) as Table).arrTableColumns = columns.data;
 
     if (conversion.shouldMigrateOnlyData()) {
         return;
     }
 
     const columnsDefinition: string = columns.data
-        .map((column: any) => {
-            const colName: string = extraConfigProcessor.getColumnName(conversion, originalTableName, column.Field, false);
+        .map((column: any): string => {
+            const colName: string = extraConfigProcessor.getColumnName(
+                conversion,
+                originalTableName,
+                column.Field,
+                false,
+            );
+
             const colType: string = mapDataTypes(conversion._dataTypesMap, column.Type);
-            return `"${ colName }" ${ colType }`;
+            return `"${colName}" ${colType}`;
         })
         .join(',');
 
-    params.sql = `CREATE TABLE IF NOT EXISTS "${ conversion._schema }"."${ tableName }"(${ columnsDefinition });`;
+    params.sql = `CREATE TABLE IF NOT EXISTS "${conversion._schema}"."${tableName}"(${columnsDefinition});`;
     params.processExitOnError = true;
     params.vendor = DBVendors.PG;
     const createTableResult: DBAccessQueryResult = await DBAccess.query(params);
 
     if (!createTableResult.error) {
-        log(conversion, `\t--[${ logTitle }] Table "${ conversion._schema }"."${ tableName }" is created...`, conversion._dicTables[tableName].tableLogPath);
+        await log(
+            conversion,
+            `\t--[${logTitle}] Table "${conversion._schema}"."${tableName}" is created...`,
+            (conversion._dicTables.get(tableName) as Table).tableLogPath,
+        );
     }
 };

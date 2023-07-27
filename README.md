@@ -21,7 +21,7 @@ from MySQL to PostgreSQL as easy and smooth as possible.</p>
 
 <h3>SYSTEM REQUIREMENTS</h3>
 <ul>
-<li> <b>Node.js 10 or higher</b></li>
+<li> <b>Node.js 18.16.1 (the LTS version, upon Nmig's last major update) or higher</b></li>
 </ul>
 
 <h3>USAGE</h3>
@@ -109,7 +109,7 @@ Or, if you have moved <code>config</code> folder out from Nmig's directory:<br /
 <br /><b>Note:</b> "logs_directory" will be created during script execution.</p>
 
 <h3>VERSION</h3>
-<p>Current version is 5.7.0<br />
+<p>Current version is 6.0.0</p>
 
 <h3>LICENSE</h3>
 <p>NMIG is available under "GNU GENERAL PUBLIC LICENSE" (v. 3) <br />

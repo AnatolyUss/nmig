@@ -27,14 +27,19 @@ import { generateError } from './FsOps';
  * PostgreSQL has a limit of 63 characters for identifier names.
  * This function substitutes a postfix of possibly long identifiers with UUID string to ensure identifier uniqueness.
  */
-export const getUniqueIdentifier = (identifier: string, mandatoryPostfix: string = ''): string => {
-    const MAX_PG_IDENTIFIER_LENGTH: number = 63;
+export const getUniqueIdentifier = (
+    identifier: string,
+    mandatoryPostfix: string = '', // eslint-disable-line @typescript-eslint/no-inferrable-types
+): string => {
+    const MAX_PG_IDENTIFIER_LENGTH = 63;
 
     if (identifier.length > MAX_PG_IDENTIFIER_LENGTH) {
         const mandatoryPostfixLength: number = mandatoryPostfix.length;
-        const uuidSliceStart: number = mandatoryPostfixLength === 0 ? mandatoryPostfixLength : mandatoryPostfixLength - 1;
+        const uuidSliceStart: number =
+            mandatoryPostfixLength === 0 ? mandatoryPostfixLength : mandatoryPostfixLength - 1;
+
         const uuid: string = uuidV4().slice(uuidSliceStart) + mandatoryPostfix;
-        return identifier.slice(0, (MAX_PG_IDENTIFIER_LENGTH - uuid.length)) + uuid;
+        return identifier.slice(0, MAX_PG_IDENTIFIER_LENGTH - uuid.length) + uuid;
     }
 
     return identifier;
@@ -43,10 +48,10 @@ export const getUniqueIdentifier = (identifier: string, mandatoryPostfix: string
 /**
  * Kills a process specified by the pid.
  */
-export const killProcess = (pid: number, conversion: Conversion): void => {
+export const killProcess = async (pid: number, conversion: Conversion): Promise<void> => {
     try {
         process.kill(pid);
     } catch (killError) {
-        generateError(conversion, `\t--[killProcess] ${ killError }`);
+        await generateError(conversion, `\t--[killProcess] pid: ${pid} killError: ${killError}`);
     }
 };

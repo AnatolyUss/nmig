@@ -23,51 +23,62 @@ import arrangeColumnsData from './ColumnsDataArranger';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import Conversion from './Conversion';
 import DBAccess from './DBAccess';
-import DBAccessQueryResult from './DBAccessQueryResult';
-import DBVendors from './DBVendors';
-import IDBAccessQueryParams from './IDBAccessQueryParams';
 import { getDataPoolTableName } from './DataPoolManager';
+import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
  * Prepares an array of tables metadata.
  */
-export default async (conversion: Conversion, tableName: string, haveDataChunksProcessed: boolean): Promise<void> => {
+export default async (
+    conversion: Conversion,
+    tableName: string,
+    haveDataChunksProcessed: boolean,
+): Promise<void> => {
     if (haveDataChunksProcessed) {
         return;
     }
 
-    const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
-    const logTitle: string = 'DataChunksProcessor::default';
+    const originalTableName: string = extraConfigProcessor.getTableName(
+        conversion,
+        tableName,
+        true,
+    );
+    const logTitle = 'DataChunksProcessor::default';
     const selectFieldList: string = arrangeColumnsData(
-        conversion._dicTables[tableName].arrTableColumns,
-        +(conversion._mysqlVersion.split(".").slice(0, 2).join(".")),
+        (conversion._dicTables.get(tableName) as Table).arrTableColumns,
+        +conversion._mysqlVersion.split('.').slice(0, 2).join('.'),
         conversion._encoding,
     );
 
-    const sqlRowsCnt: string = `SELECT COUNT(1) AS rows_count FROM \`${ originalTableName }\`;`;
-    const params: IDBAccessQueryParams = {
+    const sqlRowsCnt = `SELECT COUNT(1) AS rows_count FROM \`${originalTableName}\`;`;
+    const params: DBAccessQueryParams = {
         conversion: conversion,
         caller: 'DataChunksProcessor::default',
         sql: sqlRowsCnt,
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
-        shouldReturnClient: false
+        shouldReturnClient: false,
     };
 
     const countResult: DBAccessQueryResult = await DBAccess.query(params);
     const rowsCnt: number = countResult.data[0].rows_count;
-    const msg: string = `\t--[${ logTitle }] Total rows to insert into "${ conversion._schema }"."${ tableName }": ${ rowsCnt }`;
-    log(conversion, msg, conversion._dicTables[tableName].tableLogPath);
+    const fullTableName = `"${conversion._schema}"."${tableName}"`;
+
+    await log(
+        conversion,
+        `\t--[${logTitle}] Total rows to insert into ${fullTableName}: ${rowsCnt}`,
+        (conversion._dicTables.get(tableName) as Table).tableLogPath,
+    );
+
     const metadata: string = JSON.stringify({
         _tableName: tableName,
         _selectFieldList: selectFieldList,
         _rowsCnt: rowsCnt,
     });
 
-    params.sql = `INSERT INTO ${ getDataPoolTableName(conversion) }("metadata") VALUES ($1);`;
+    params.sql = `INSERT INTO ${getDataPoolTableName(conversion)}("metadata") VALUES ($1);`;
     params.vendor = DBVendors.PG;
     params.client = undefined;
     params.bindings = [metadata];
-
     await DBAccess.query(params);
 };
