@@ -47,6 +47,10 @@ process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
         copyStreamSerializableParams;
 
     const client: PoolClient = await DBAccess.getPgClient(conv);
+    if (conv.shouldMigrateOnlyData()) {
+        await DataPipeManager.disablePgTriggers(conv, client);
+    }
+    
     const copyStream: Writable = client.query(from(sqlCopy));
 
     try {
