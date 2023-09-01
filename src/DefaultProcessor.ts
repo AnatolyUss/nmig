@@ -66,7 +66,6 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         ['LOCALTIME', 'LOCALTIME'],
         ['LOCALTIMESTAMP', 'LOCALTIMESTAMP'],
         ['NULL', 'NULL'],
-        ['null', 'NULL'],
         ['UTC_DATE', "(CURRENT_DATE AT TIME ZONE 'UTC')"],
         ['UTC_TIME', "(CURRENT_TIME AT TIME ZONE 'UTC')"],
         ['UTC_TIMESTAMP', "(NOW() AT TIME ZONE 'UTC')"],
@@ -86,8 +85,9 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
             pgSqlDataType.startsWith(bitType),
         );
 
-        if (sqlReservedValues.has(column.Default)) {
-            sql += sqlReservedValues.get(column.Default);
+        const columnDefaultUpperCase: string = column.Default?.toUpperCase();
+        if (sqlReservedValues.has(columnDefaultUpperCase)) {
+            sql += sqlReservedValues.get(columnDefaultUpperCase);
         } else if (isOfBitType) {
             sql += `${column.Default};`; // bit varying
         } else if (pgSqlBinaryTypes.indexOf(pgSqlDataType) !== -1) {
