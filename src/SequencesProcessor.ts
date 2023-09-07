@@ -69,7 +69,7 @@ export const setSequenceValue = async (
     const sql = `SELECT SETVAL(\'"${conversion._schema}"."${seqName}"\', 
                     GREATEST(
                         COALESCE((SELECT MAX("${columnName}") FROM "${conversion._schema}"."${tableName}"), 0)
-                    , 1)
+                    , 1), false
                 );`;
 
     const params: DBAccessQueryParams = {
@@ -145,7 +145,7 @@ export const createIdentity = async (conversion: Conversion, tableName: string):
     params.sql = `SELECT SETVAL(\'"${conversion._schema}"."${seqName}"\', 
         GREATEST(
             COALESCE((SELECT MAX("${columnName}") FROM ${fullTableName}), 0)
-            , 1)
+            , 1), false
         );`;
 
     const sqlSetSequenceValueResult: DBAccessQueryResult = await DBAccess.query(params);
