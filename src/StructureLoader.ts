@@ -75,7 +75,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
 
     if (conversion._includeTables.length !== 0) {
         const tablesToInclude: string = conversion._includeTables
-            .map((table: string): string => `"${table}"`)
+            .map((table: string): string => `'${table}'`)
             .join(',');
 
         sql += ` AND Tables_in_${conversion._mySqlDbName} IN(${tablesToInclude})`;
@@ -83,7 +83,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
 
     if (conversion._excludeTables.length !== 0) {
         const tablesToExclude: string = conversion._excludeTables
-            .map((table: string): string => `"${table}"`)
+            .map((table: string): string => `'${table}'`)
             .join(',');
 
         sql += ` AND Tables_in_${conversion._mySqlDbName} NOT IN(${tablesToExclude})`;
