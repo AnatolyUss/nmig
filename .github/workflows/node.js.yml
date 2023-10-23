@@ -23,6 +23,7 @@ jobs:
     - name: Set up MySQL
       run: |
         sudo /etc/init.d/mysql start
+        mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '0123456789'"
     - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
