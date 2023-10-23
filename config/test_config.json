@@ -16,7 +16,7 @@
         "supportBigNumbers": true,
         "database"         : "nmig_test_db",
         "user"             : "root",
-        "password"         : ""
+        "password"         : "0123456789"
     },
 
     "target_description" : [
