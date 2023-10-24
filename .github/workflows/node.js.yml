@@ -35,7 +35,12 @@ jobs:
           - 5432:5432
 
     steps:
-    - run: PGPASSWORD=0123456789 psql -l -U postgres -h localhost -p 5432
+    - name: try to log into postgres
+      run: |
+        PGPASSWORD=0123456789 psql -l -h localhost -p 5432
+        psql -l -U postgres -h localhost -p 5432
+      continue-on-error: true
+
     - name: Set up MySQL
       run: |
         sudo /etc/init.d/mysql start
