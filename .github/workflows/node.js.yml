@@ -37,7 +37,7 @@ jobs:
     steps:
     - name: get postgres tables
       run: |
-        PGPASSWORD='0123456789' psql -c 'DROP SCHEMA "nmig_test_db.public"' -h localhost -U postgres -p 5432
+        PGPASSWORD='0123456789' psql -c 'DROP SCHEMA public' -d nmig_test_db -h localhost -U postgres -p 5432
       continue-on-error: true
 
     - name: Set up MySQL
