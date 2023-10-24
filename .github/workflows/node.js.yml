@@ -24,7 +24,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: 0123456789
+          PGPASSWORD: 0123456789
 
     steps:
     - name: Set up MySQL
