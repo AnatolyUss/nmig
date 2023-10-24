@@ -24,7 +24,10 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          PGPASSWORD: 0123456789
+          POSTGRES_PASSWORD: 0123456789
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
 
     steps:
     - name: Set up MySQL
