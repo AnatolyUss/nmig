@@ -25,7 +25,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_PASSWORD: '0123456789'
-          #POSTGRES_USER: postgres
+          POSTGRES_DB: nmig_test_db
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -35,14 +35,9 @@ jobs:
           - 5432:5432
 
     steps:
-    - name: try to log into postgres
+    - name: get postgres tables
       run: |
         PGPASSWORD='0123456789' psql -l -h localhost -U postgres -p 5432
-      continue-on-error: true
-
-    - name: try to log into postgres 2
-      run: |
-        psql -l -U postgres -h localhost -p 5432
       continue-on-error: true
 
     - name: Set up MySQL
