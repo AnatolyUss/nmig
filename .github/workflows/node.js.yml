@@ -34,8 +34,12 @@ jobs:
 
     steps:
     - name: Configure Postgres table
-      run: |
-        PGPASSWORD='0123456789' psql -c 'DROP SCHEMA public' -d nmig_test_db -h localhost -U postgres
+      run: >-
+        PGPASSWORD='0123456789'
+        psql -c 'DROP SCHEMA public'
+        -d nmig_test_db
+        -h localhost
+        -U postgres
     - name: Set up MySQL
       run: |
         sudo /etc/init.d/mysql start
