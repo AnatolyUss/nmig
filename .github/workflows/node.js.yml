@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ "master" ]
 
+env:
+  PG_DB_NAME: nmig_test_db
+
 jobs:
   build:
 
@@ -25,7 +28,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_PASSWORD: '0123456789'
-          POSTGRES_DB: nmig_test_db
+          POSTGRES_DB: $PG_DB_NAME
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
