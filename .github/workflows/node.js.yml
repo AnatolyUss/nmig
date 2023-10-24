@@ -30,7 +30,6 @@ jobs:
           - 5432:5432
 
     steps:
-    - name: test postgres connection
     - run: PGPASSWORD='0123456789' psql -l -U postgres
     - name: Set up MySQL
       run: |
