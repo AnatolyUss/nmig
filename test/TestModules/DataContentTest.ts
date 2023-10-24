@@ -95,7 +95,7 @@ export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Pro
     tape.equal(JSON.stringify(data.json_test_comment), '{"prop1":"First","prop2":2}');
 
     tape.comment('Test year column value');
-    tape.equal(data.year, 1984);
+    tape.equal(data.year, 1985);
 
     tape.comment('Test bigint column value');
     tape.equal(data.bigint, '9223372036854775807');
