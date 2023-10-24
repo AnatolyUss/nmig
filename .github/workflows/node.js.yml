@@ -28,7 +28,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_PASSWORD: '0123456789'
-          POSTGRES_DB: $PG_DB_NAME
+          POSTGRES_DB: "$PG_DB_NAME"
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
