@@ -37,7 +37,7 @@ jobs:
     steps:
     - name: try to log into postgres
       run: |
-        PGPASSWORD='0123456789' psql -l -h localhost -p 5432
+        PGPASSWORD='0123456789' psql -l -h localhost -U postgres -p 5432
       continue-on-error: true
 
     - name: try to log into postgres 2
