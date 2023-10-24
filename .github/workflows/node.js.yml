@@ -42,7 +42,7 @@ jobs:
         -h localhost
         -U postgres
       env:
-        PGPASSWORD: 0123456789
+        PGPASSWORD: '0123456789'
     - name: Set up MySQL
       run: |
         sudo /etc/init.d/mysql start
