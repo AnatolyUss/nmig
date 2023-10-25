@@ -20,13 +20,11 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
-        # [18.x, 20.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [18.x, 20.x]
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres
         env:
           POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
           POSTGRES_DB: ${{ env.PG_TEST_DB_NAME }}
