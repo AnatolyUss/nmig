@@ -36,14 +36,14 @@ jobs:
 
     steps:
     - name: Configure Postgres table
+      env:
+        PGPASSWORD: '0123456789'
       run: >-
         psql -c 'DROP SCHEMA public'
         -d nmig_test_db
         -h localhost
         -U postgres
-      env:
-        PGPASSWORD: '0123456789'
-    - name: Set up MySQL
+    - name: Start MySQL server and set root password
       run: |
         sudo /etc/init.d/mysql start
         mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '0123456789'" -uroot -proot
