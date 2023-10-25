@@ -11,6 +11,7 @@ on:
 
 env:
   PG_TEST_DB_NAME: nmig_test_db
+  DB_PASSWORD: '0123456789'
 
 jobs:
   build:
@@ -27,7 +28,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: '0123456789'
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
           POSTGRES_DB: ${{ env.PG_TEST_DB_NAME }}
         options: >-
           --health-cmd pg_isready
@@ -40,10 +41,10 @@ jobs:
     steps:
     - name: Configure Postgres table
       env:
-        PGPASSWORD: '0123456789'
+        PGPASSWORD: ${{ env.DB_PASSWORD }}
       run: >-
         psql -c 'DROP SCHEMA public'
-        -d nmig_test_db
+        -d ${{ env.PG_TEST_DB_NAME }}
         -h localhost
         -U postgres
     - name: Start MySQL server and set root password
