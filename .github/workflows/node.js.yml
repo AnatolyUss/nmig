@@ -50,7 +50,7 @@ jobs:
     - name: Start MySQL server and set root password
       run: |
         sudo /etc/init.d/mysql start
-        mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY $DB_PASSWORD" -uroot -proot
+        mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_PASSWORD'" -uroot -proot
     - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
