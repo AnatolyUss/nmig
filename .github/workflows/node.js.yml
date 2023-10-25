@@ -44,13 +44,13 @@ jobs:
         PGPASSWORD: ${{ env.DB_PASSWORD }}
       run: >-
         psql -c 'DROP SCHEMA public'
-        -d ${{ env.PG_TEST_DB_NAME }}
+        -d $PG_TEST_DB_NAME
         -h localhost
         -U postgres
     - name: Start MySQL server and set root password
       run: |
         sudo /etc/init.d/mysql start
-        mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '0123456789'" -uroot -proot
+        mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY $DB_PASSWORD" -uroot -proot
     - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
