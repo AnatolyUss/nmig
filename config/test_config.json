@@ -26,7 +26,7 @@
         "Notice, any parameter, acceptable by the node pg module can be placed here."
     ],
     "target" : {
-        "host"     : "localhost",
+        "host"     : "127.0.0.1",
         "port"     : 5432,
         "charset"  : "UTF8",
         "database" : "nmig_test_db",
