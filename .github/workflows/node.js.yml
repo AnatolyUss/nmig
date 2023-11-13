@@ -10,7 +10,7 @@ on:
     branches: [ "master" ]
 
 env:
-  PG_TEST_DB_NAME: nmig_test_db
+  DB_NAME: nmig_test_db
   DB_PASSWORD: '0123456789'
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
-          POSTGRES_DB: ${{ env.PG_TEST_DB_NAME }}
+          POSTGRES_DB: ${{ env.DB_NAME }}
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -50,7 +50,7 @@ jobs:
         PGPASSWORD: ${{ env.DB_PASSWORD }}
       run: >-
         psql -c 'DROP SCHEMA public'
-        -d $PG_TEST_DB_NAME
+        -d $DB_NAME
         -h localhost
         -U postgres
 
