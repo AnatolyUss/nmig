@@ -1,7 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-name: Node.js CI
+name: Build and test with Node.js
 
 on:
   push:
@@ -15,7 +15,6 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -37,6 +36,15 @@ jobs:
           - 5432:5432
 
     steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
     - name: Configure Postgres table
       env:
         PGPASSWORD: ${{ env.DB_PASSWORD }}
@@ -45,16 +53,12 @@ jobs:
         -d $PG_TEST_DB_NAME
         -h localhost
         -U postgres
+
     - name: Start MySQL server and set root password
       run: |
         sudo /etc/init.d/mysql start
         mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_PASSWORD'" -uroot -proot
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
+
     - run: npm ci
     - run: npm run build
     - run: npm test
