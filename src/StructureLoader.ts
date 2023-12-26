@@ -135,5 +135,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
     await log(conversion, message);
     await Promise.all(processTablePromises);
     await migrationStateManager.set(conversion, 'tables_loaded');
+    // make the table dictionary serializable for the DefaultReader
+    conversion._config._dicTables = [...conversion._dicTables];
     return conversion;
 };
