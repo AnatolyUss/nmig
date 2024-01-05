@@ -41,6 +41,7 @@ import {
     MessageToDataReader,
     MessageToDataWriter,
     CopyStreamSerializableParams,
+    Table,
 } from './Types';
 
 /**
@@ -79,7 +80,12 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
     const sql = `SELECT ${strSelectFieldList} FROM \`${originalTableName}\`;`;
     const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
-    const sqlCopy = `COPY "${conv._schema}"."${tableName}" FROM STDIN 
+    // use dicTables to specify column order of data coming in
+    const tableMap = new Map<string, Table>(conv._config._dicTables);
+    let columnNames = '';
+    const table = tableMap.get(tableName);
+    if (table) columnNames = `(${table.arrTableColumns.map(c => `"${c.Field.toLowerCase()}"`).join()})`;
+    const sqlCopy = `COPY "${conv._schema}"."${tableName}" ${columnNames} FROM STDIN 
                              WITH(FORMAT csv, DELIMITER '${conv._delimiter}',
                              ENCODING '${conv._targetConString.charset}');`;
 
