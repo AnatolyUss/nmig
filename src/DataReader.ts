@@ -74,14 +74,14 @@ process.on('message', async (signal: MessageToDataReader): Promise<void> => {
 const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
     const tableName: string = chunk._tableName;
     const strSelectFieldList: string = chunk._selectFieldList;
+    const copyColumnNamesList: string = chunk._copyColumnNamesList;
     const rowsCnt: number = chunk._rowsCnt;
     const dataPoolId: number = chunk._id;
     const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
     const sql = `SELECT ${strSelectFieldList} FROM \`${originalTableName}\`;`;
     const mysqlClient: PoolConnection = await DBAccess.getMysqlClient(conv);
-    const sqlCopy = `COPY "${conv._schema}"."${tableName}" FROM STDIN 
-                             WITH(FORMAT csv, DELIMITER '${conv._delimiter}',
-                             ENCODING '${conv._targetConString.charset}');`;
+    const sqlCopy = `COPY "${conv._schema}"."${tableName}" (${copyColumnNamesList}) FROM STDIN 
+        WITH (FORMAT csv, DELIMITER '${conv._delimiter}', ENCODING '${conv._targetConString.charset}');`;
 
     const client: PoolClient = await DBAccess.getPgClient(conv);
     let originalSessionReplicationRole: string | null = null;
