@@ -44,8 +44,9 @@ export default async (
         true,
     );
     const logTitle = 'DataChunksProcessor::default';
+    const arrTableColumns = (conversion._dicTables.get(tableName) as Table).arrTableColumns;
     const selectFieldList: string = arrangeColumnsData(
-        (conversion._dicTables.get(tableName) as Table).arrTableColumns,
+        arrTableColumns,
         +conversion._mysqlVersion.split('.').slice(0, 2).join('.'),
         conversion._encoding,
     );
@@ -72,8 +73,11 @@ export default async (
 
     const metadata: string = JSON.stringify({
         _tableName: tableName,
-        _selectFieldList: selectFieldList,
         _rowsCnt: rowsCnt,
+        _selectFieldList: selectFieldList,
+        _copyColumnNamesList: arrTableColumns
+            .map((column: any): string => `"${column.Field}"`)
+            .join(','),
     });
 
     params.sql = `INSERT INTO ${getDataPoolTableName(conversion)}("metadata") VALUES ($1);`;

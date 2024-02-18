@@ -187,7 +187,7 @@ export default class DataPipeManager {
                 DataPipeManager.getNumberOfReaderProcesses(conversion);
 
             // !!!Note, invoke the "DataPipeManager.runDataReaderProcess" method sequentially.
-            // DO NOT use ".map(async _ => await DataPipeManager.runDataReaderProcess(..." to avoid race condition.
+            // DO NOT use ".map(async _ => await DataPipeManager.runDataReaderProcess(...))" to avoid race condition.
             for (let i = 0; i < numberOfReaderProcesses; ++i) {
                 await DataPipeManager.runDataReaderProcess(conversion);
             }
