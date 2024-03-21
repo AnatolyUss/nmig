@@ -78,7 +78,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
             .map((table: string): string => `'${table}'`)
             .join(',');
 
-        sql += ` AND Tables_in_${conversion._mySqlDbName} IN (${tablesToInclude})`;
+        sql += ` AND \`Tables_in_${conversion._mySqlDbName}\` IN (${tablesToInclude})`;
     }
 
     if (conversion._excludeTables.length !== 0) {
@@ -86,7 +86,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
             .map((table: string): string => `'${table}'`)
             .join(',');
 
-        sql += ` AND Tables_in_${conversion._mySqlDbName} NOT IN (${tablesToExclude})`;
+        sql += ` AND \`Tables_in_${conversion._mySqlDbName}\` NOT IN (${tablesToExclude})`;
     }
 
     const params: DBAccessQueryParams = {
