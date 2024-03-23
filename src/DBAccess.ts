@@ -21,7 +21,7 @@
 import { Pool as MySQLPool, createPool as createMySQLPool, PoolConnection } from 'mysql2';
 import { Pool as PgPool, PoolClient } from 'pg';
 
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import { log, generateError } from './FsOps';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 

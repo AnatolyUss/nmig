@@ -21,7 +21,7 @@
 import { EventEmitter } from 'node:events';
 
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 
 /**
  * Generates a summary report.

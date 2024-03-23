@@ -21,7 +21,7 @@
 import { PoolClient } from 'pg';
 
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getUniqueIdentifier } from './Utils';

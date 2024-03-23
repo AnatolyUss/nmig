@@ -19,7 +19,7 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { getUniqueIdentifier } from './Utils';
@@ -29,7 +29,8 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table, Index } fro
  * Returns PostgreSQL index type, that correlates to given MySQL index type.
  */
 const getIndexType = (conversion: Conversion, indexType: string): string => {
-    return indexType in conversion._indexTypesMap ? conversion._indexTypesMap[indexType] : 'BTREE';
+    const indexTypesMap = conversion._indexTypesMap as Record<string, any>;
+    return indexType in indexTypesMap ? indexTypesMap[indexType] : 'BTREE';
 };
 
 /**

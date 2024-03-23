@@ -21,7 +21,7 @@
 import { PoolConnection } from 'mysql2';
 import { PoolClient } from 'pg';
 
-import Conversion from './Conversion';
+import Conversion from './conversion';
 
 export type Encoding =
     | 'ascii'

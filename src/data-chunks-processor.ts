@@ -19,11 +19,11 @@
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
 import { log } from './FsOps';
-import arrangeColumnsData from './ColumnsDataArranger';
+import arrangeColumnsData from './columns-data-arranger';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
-import { getDataPoolTableName } from './DataPoolManager';
+import { getDataPoolTableName } from './data-pool-manager';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Types';
 
 /**
@@ -76,7 +76,7 @@ export default async (
         _rowsCnt: rowsCnt,
         _selectFieldList: selectFieldList,
         _copyColumnNamesList: arrTableColumns
-            .map((column: any): string => `"${column.Field}"`)
+            .map((column: Record<string, any>): string => `"${column.Field}"`)
             .join(','),
     });
 

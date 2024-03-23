@@ -20,8 +20,8 @@
  */
 import { Test } from 'tape';
 
-import TestSchemaProcessor from './TestSchemaProcessor';
-import Conversion from '../../src/Conversion';
+import TestSchemaProcessor from './test-schema-processor';
+import Conversion from '../../src/conversion';
 import DBAccess from '../../src/DBAccess';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 

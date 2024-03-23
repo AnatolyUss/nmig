@@ -18,9 +18,9 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
-import { getDataPoolTableName } from './DataPoolManager';
+import { getDataPoolTableName } from './data-pool-manager';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**
@@ -37,7 +37,7 @@ export const dataTransferred = async (
     const sqlGetMetadata = `SELECT metadata AS metadata FROM ${dataPoolTable} WHERE id = ${dataPoolId};`;
     const params: DBAccessQueryParams = {
         conversion: conversion,
-        caller: 'ConsistencyEnforcer::dataTransferred',
+        caller: dataTransferred.name,
         sql: sqlGetMetadata,
         vendor: DBVendors.PG,
         processExitOnError: true,
@@ -45,7 +45,7 @@ export const dataTransferred = async (
     };
 
     const result: DBAccessQueryResult = await DBAccess.query(params);
-    const metadata: any = JSON.parse(result.data.rows[0].metadata);
+    const metadata: Record<string, any> = JSON.parse(result.data.rows[0].metadata);
     const targetTableName = `"${conversion._schema}"."${metadata._tableName}"`;
 
     params.sql = `SELECT * FROM ${targetTableName} LIMIT 1 OFFSET 0;`;

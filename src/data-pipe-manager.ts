@@ -25,12 +25,12 @@ import { ChildProcess, fork, ForkOptions } from 'node:child_process';
 
 import { PoolClient, QueryResult } from 'pg';
 
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
 import { killProcess } from './Utils';
 import { log, generateError } from './FsOps';
-import { getDataPoolTableName } from './DataPoolManager';
-import { processConstraintsPerTable } from './ConstraintsProcessor';
+import { getDataPoolTableName } from './data-pool-manager';
+import { processConstraintsPerTable } from './constraints-processor';
 import * as migrationStateManager from './MigrationStateManager';
 import { MessageToDataReader, MessageToMaster } from './Types';
 
@@ -51,10 +51,10 @@ export default class DataPipeManager {
     private static readonly eventEmitter = new EventEmitter();
 
     /**
-     * A path to the DataReader.js file.
-     * Note, in runtime it points to ../dist/src/DataReader.js and not DataReader.ts
+     * A path to the data-reader.js file.
+     * Note, in runtime it points to ../dist/src/data-reader.js and not data-reader.ts
      */
-    private static readonly dataReaderPath = path.join(__dirname, 'DataReader.js');
+    private static readonly dataReaderPath = path.join(__dirname, 'data-reader.js');
 
     /**
      * Returns the options object, which intended to be used upon creation of the data reader process.
@@ -123,8 +123,8 @@ export default class DataPipeManager {
             // 3. Emit the "tableLoadingFinished" event to start constraints creation for the just loaded table.
             // 4. Call the "runDataReaderProcess" function recursively to transfer data to the next table.
             const msg: string =
-                `\n\t--[NMIG runDataReaderProcess] For now inserted: ${signal.totalRowsToInsert} rows` +
-                `\n\t--[NMIG runDataReaderProcess] Total rows to insert into` +
+                `\n\t--[${DataPipeManager.runDataReaderProcess.name}] For now inserted: ${signal.totalRowsToInsert} rows` +
+                `\n\t--[${DataPipeManager.runDataReaderProcess.name}] Total rows to insert into` +
                 ` "${conversion._schema}"."${signal.tableName}": ${signal.totalRowsToInsert}`;
 
             await log(conversion, msg);
@@ -139,11 +139,17 @@ export default class DataPipeManager {
 
         // Sends a message to current data reader process,
         // which contains configuration info and a metadata of the next data-chunk.
-        const chunk: any = conversion._dataPool.pop();
+        const chunk: Record<string, any> | undefined = conversion._dataPool.pop();
+
+        if (!chunk) {
+            await killProcess(readerProcess.pid as number, conversion);
+            return;
+        }
+
         const fullTableName = `"${conversion._schema}"."${chunk._tableName}"`;
         const msg: string =
-            `\n\t--[NMIG data transfer] ${fullTableName} DATA TRANSFER IN PROGRESS...` +
-            `\n\t--[NMIG data transfer] TIME REQUIRED FOR TRANSFER DEPENDS ON AMOUNT OF DATA...\n`;
+            `\n\t--[${DataPipeManager.runDataReaderProcess.name}] ${fullTableName} DATA TRANSFER IN PROGRESS...` +
+            `\n\t--[${DataPipeManager.runDataReaderProcess.name}] TIME REQUIRED FOR TRANSFER DEPENDS ON AMOUNT OF DATA...\n`;
 
         await log(conversion, msg);
         const messageToDataReader: MessageToDataReader = {
@@ -208,7 +214,11 @@ export default class DataPipeManager {
         try {
             await client.query(sql);
         } catch (error) {
-            await generateError(conversion, `\t--[DataReader::enableTriggers] ${error}`, sql);
+            await generateError(
+                conversion,
+                `\t--[${DataPipeManager.enablePgTriggers.name}] ${error}`,
+                sql,
+            );
         }
     };
 
@@ -229,7 +239,11 @@ export default class DataPipeManager {
             sql = 'SET session_replication_role = replica;';
             await client.query(sql);
         } catch (error) {
-            await generateError(conversion, `\t--[DataReader::disableTriggers] ${error}`, sql);
+            await generateError(
+                conversion,
+                `\t--[${DataPipeManager.disablePgTriggers.name}] ${error}`,
+                sql,
+            );
         }
 
         return originalSessionReplicationRole;
@@ -257,7 +271,11 @@ export default class DataPipeManager {
                 );
             }
         } catch (error) {
-            await generateError(conversion, `\t--[DataReader::deleteChunk] ${error}`, sql);
+            await generateError(
+                conversion,
+                `\t--[${DataPipeManager.deleteChunk.name}] ${error}`,
+                sql,
+            );
         } finally {
             await DBAccess.releaseDbClient(conversion, client);
         }
@@ -266,13 +284,19 @@ export default class DataPipeManager {
     /**
      * Wraps "process.send" method to avoid "cannot invoke an object which is possibly undefined" TypeScript warning.
      */
-    public static processSend = async (message: any, conv: Conversion): Promise<void> => {
+    public static processSend = async (
+        message: MessageToDataReader | MessageToMaster,
+        conv: Conversion,
+    ): Promise<void> => {
         if (process.send) {
             process.send(message);
             return;
         }
 
-        await generateError(conv, '\t--[processSend] Unable to send a message to parent process.');
+        await generateError(
+            conv,
+            `\t--[${DataPipeManager.processSend.name}] Unable to send a message to parent process.`,
+        );
         throw new Error();
     };
 
@@ -289,8 +313,12 @@ export default class DataPipeManager {
         client: PoolClient,
         originalSessionReplicationRole: string | null,
     ): Promise<void> => {
-        await generateError(conv, `\t--[populateTable] ${streamError}`, sqlCopy);
-        const rejectedData = `\t--[populateTable] Error loading table data:\n${sql}\n`;
+        await generateError(
+            conv,
+            `\t--[${DataPipeManager.processDataError.name}] ${streamError}`,
+            sqlCopy,
+        );
+        const rejectedData = `\t--[${DataPipeManager.processDataError.name}] Error loading table data:\n${sql}\n`;
         await log(conv, rejectedData, path.join(conv._logsDirPath, `${tableName}.log`));
         await DataPipeManager.deleteChunk(conv, dataPoolId, client, originalSessionReplicationRole);
         const messageToMaster: MessageToMaster = {

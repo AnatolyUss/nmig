@@ -21,7 +21,7 @@
 import { PoolClient } from 'pg';
 
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
@@ -58,7 +58,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
         return conversion;
     }
 
-    const _cb = async (row: any): Promise<void> => {
+    const _cb = async (row: Record<string, any>): Promise<void> => {
         const tableName: string = row.table_name;
         const columnName: string = row.column_name;
         params.sql = `UPDATE ${conversion._schema}."${tableName}"

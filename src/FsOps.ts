@@ -22,7 +22,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ChildProcess } from 'node:child_process';
 
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import { LogMessage, LogMessageType } from './Types';
 
 /**

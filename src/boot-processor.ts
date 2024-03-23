@@ -20,7 +20,7 @@
  */
 import * as path from 'node:path';
 
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
 import { getStateLogsTableName } from './MigrationStateManager';
 import { generateError, log } from './FsOps';
@@ -33,7 +33,7 @@ export const checkConnection = async (conversion: Conversion): Promise<string> =
     let resultMessage = '';
     const params: DBAccessQueryParams = {
         conversion: conversion,
-        caller: 'BootProcessor::checkConnection',
+        caller: checkConnection.name,
         sql: 'SELECT 1;',
         vendor: DBVendors.MYSQL,
         processExitOnError: false,
@@ -75,10 +75,12 @@ export const getLogo = (): string => {
 export const boot = async (conversion: Conversion): Promise<Conversion> => {
     const connectionErrorMessage = await checkConnection(conversion);
     const logo: string = getLogo();
-    const logTitle = 'BootProcessor::boot';
 
     if (connectionErrorMessage) {
-        await generateError(conversion, `\t--[${logTitle}]\n ${logo} \n ${connectionErrorMessage}`);
+        await generateError(
+            conversion,
+            `\t--[${boot.name}]\n ${logo} \n ${connectionErrorMessage}`,
+        );
         process.exit(1);
     }
 
@@ -89,7 +91,7 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
 
     const params: DBAccessQueryParams = {
         conversion: conversion,
-        caller: 'BootProcessor::boot',
+        caller: boot.name,
         sql: sql,
         vendor: DBVendors.PG,
         processExitOnError: true,
@@ -105,7 +107,7 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
             : '\n\t--[boot] NMIG is starting.'
     } \n`;
 
-    await log(conversion, `\t--[${logTitle}] ${logo}${message}`);
+    await log(conversion, `\t--[${boot.name}] ${logo}${message}`);
     return conversion;
 };
 

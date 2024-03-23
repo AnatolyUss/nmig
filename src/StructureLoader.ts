@@ -20,9 +20,9 @@
  */
 import DBAccess from './DBAccess';
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import { createTable } from './TableProcessor';
-import prepareDataChunks from './DataChunksProcessor';
+import prepareDataChunks from './data-chunks-processor';
 import * as migrationStateManager from './MigrationStateManager';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';

@@ -11,6 +11,14 @@
     "engines": {
         "node": ">=18.16.1"
     },
+    "scripts": {
+        "build": "tsc --incremental -p tsconfig.json",
+        "lint": "npx eslint . --ext .ts",
+        "format": "npx prettier . --ignore-path ./.prettierignore --write && git status",
+        "flb": "npm run format && npm run lint && npm run build",
+        "start": "node dist/src/main.js",
+        "test": "node dist/test/main.test.js"
+    },
     "dependencies": {
         "@types/node": "20.4.4",
         "@types/uuid": "9.0.2",
@@ -30,14 +38,6 @@
         "prettier": "3.0.0",
         "tape": "5.6.6",
         "typescript": "5.1.6"
-    },
-    "scripts": {
-        "build": "tsc --incremental -p tsconfig.json",
-        "lint": "npx eslint . --ext .ts",
-        "format": "npx prettier . --ignore-path ./.prettierignore --write && git status",
-        "flb": "npm run format && npm run lint && npm run build",
-        "start": "node dist/src/Main.js",
-        "test": "node dist/test/Main.test.js"
     },
     "keywords": [
         "db migration",

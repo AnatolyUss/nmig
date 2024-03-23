@@ -20,7 +20,7 @@
  */
 import DBAccess from './DBAccess';
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
 
 /**

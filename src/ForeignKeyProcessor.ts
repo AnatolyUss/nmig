@@ -20,7 +20,7 @@
  */
 import * as migrationStateManager from './MigrationStateManager';
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';

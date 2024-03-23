@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import Conversion from './Conversion';
+import Conversion from './conversion';
 
 /**
  * Retrieves current table's name.

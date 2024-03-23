@@ -22,18 +22,17 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { EventEmitter } from 'node:events';
 
-import Conversion from '../../src/Conversion';
+import Conversion from '../../src/conversion';
 import DBAccess from '../../src/DBAccess';
 import createSchema from '../../src/SchemaProcessor';
 import loadStructureToMigrate from '../../src/StructureLoader';
-import DataPipeManager from '../../src/DataPipeManager';
-import decodeBinaryData from '../../src/BinaryDataDecoder';
+import DataPipeManager from '../../src/data-pipe-manager';
+import decodeBinaryData from '../../src/binary-data-decoder';
 import generateReport from '../../src/ReportGenerator';
-import { dropDataPoolTable } from '../../src/DataPoolManager';
-import { processConstraints } from '../../src/ConstraintsProcessor';
+import { createDataPoolTable, readDataPool, dropDataPoolTable } from '../../src/data-pool-manager';
+import { processConstraints } from '../../src/constraints-processor';
 import { createStateLogsTable, dropStateLogsTable } from '../../src/MigrationStateManager';
-import { createDataPoolTable, readDataPool } from '../../src/DataPoolManager';
-import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/BootProcessor';
+import { checkConnection, getLogo, getConfAndLogsPaths } from '../../src/boot-processor';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/Types';
 import {
     createLogsDirectory,
@@ -49,13 +48,6 @@ export default class TestSchemaProcessor {
      * Instance of class Conversion.
      */
     public conversion?: Conversion;
-
-    /**
-     * TestSchemaProcessor constructor.
-     */
-    public constructor() {
-        this.conversion = undefined;
-    }
 
     /**
      * Stops the process in case of fatal error.
@@ -74,13 +66,12 @@ export default class TestSchemaProcessor {
             return;
         }
 
-        const logTitle = 'TestSchemaProcessor::removeTestResources';
-        const sqlDropMySqlDatabase = `DROP DATABASE ${
+        const sqlDropMySqlDatabase = `DROP DATABASE \`${
             (this.conversion as Conversion)._mySqlDbName
-        };`;
+        }\`;`;
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
-            caller: logTitle,
+            caller: this.removeTestResources.name,
             sql: sqlDropMySqlDatabase,
             vendor: DBVendors.MYSQL,
             processExitOnError: true,
@@ -98,14 +89,12 @@ export default class TestSchemaProcessor {
      * Prevents tests from running if test dbs (both MySQL and PostgreSQL) already exist.
      */
     private _checkResources = async (conversion: Conversion): Promise<Conversion> => {
-        const logTitle = 'TestSchemaProcessor::_checkResources';
-
         const sqlIsMySqlDbExist = `SELECT EXISTS (SELECT schema_name FROM information_schema.schemata 
             WHERE schema_name = '${(this.conversion as Conversion)._mySqlDbName}') AS \`exists\`;`;
 
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
-            caller: logTitle,
+            caller: this._checkResources.name,
             sql: sqlIsMySqlDbExist,
             vendor: DBVendors.MYSQL,
             processExitOnError: true,
@@ -151,8 +140,10 @@ export default class TestSchemaProcessor {
     private _createTestSourceDb = async (conversion: Conversion): Promise<Conversion> => {
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
-            caller: 'TestSchemaProcessor::_createTestSourceDb',
-            sql: `CREATE DATABASE IF NOT EXISTS ${(this.conversion as Conversion)._mySqlDbName};`,
+            caller: this._createTestSourceDb.name,
+            sql: `CREATE DATABASE IF NOT EXISTS \`${
+                (this.conversion as Conversion)._mySqlDbName
+            }\`;`,
             vendor: DBVendors.MYSQL,
             processExitOnError: true,
             shouldReturnClient: false,
@@ -211,7 +202,7 @@ export default class TestSchemaProcessor {
         const sqlBuffer: Buffer = await this._readTestSchema();
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
-            caller: 'TestSchemaProcessor::_loadTestSchema',
+            caller: this._loadTestSchema.name,
             sql: sqlBuffer.toString(),
             vendor: DBVendors.MYSQL,
             processExitOnError: true,
@@ -233,7 +224,7 @@ export default class TestSchemaProcessor {
      * Loads test data into MySQL test database.
      */
     private _loadTestData = async (conversion: Conversion): Promise<Conversion> => {
-        const insertParams: any = {
+        const insertParams: Record<string, any> = {
             id_test_unique_index: 7384,
             id_test_composite_unique_index_1: 125,
             id_test_composite_unique_index_2: 234,
@@ -270,7 +261,7 @@ export default class TestSchemaProcessor {
         )}) VALUES(${valuesToInsert});`;
         const params: DBAccessQueryParams = {
             conversion: this.conversion as Conversion,
-            caller: 'TestSchemaProcessor::_loadTestData',
+            caller: this._loadTestData.name,
             sql: sql,
             vendor: DBVendors.MYSQL,
             processExitOnError: true,
@@ -288,8 +279,12 @@ export default class TestSchemaProcessor {
      */
     public initializeConversion = async (): Promise<Conversion> => {
         const { confPath, logsPath } = getConfAndLogsPaths();
-        const config: any = await readConfig(confPath, logsPath, 'test_config.json');
-        const fullConfig: any = await readExtraConfig(config, confPath);
+        const config: Record<string, any> = await readConfig(
+            confPath,
+            logsPath,
+            'test_config.json',
+        );
+        const fullConfig: Record<string, any> = await readExtraConfig(config, confPath);
         this.conversion = await Conversion.initializeConversion(fullConfig);
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();

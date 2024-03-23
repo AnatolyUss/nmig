@@ -24,10 +24,10 @@ import processEnum from './EnumProcessor';
 import processNull from './NullProcessor';
 import processDefault from './DefaultProcessor';
 import processIndexAndKey from './IndexAndKeyProcessor';
-import processComments from './CommentsProcessor';
+import processComments from './comments-processor';
 import processForeignKey from './ForeignKeyProcessor';
 import processViews from './ViewGenerator';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 
 /**
  * Continues migration process after data loading.

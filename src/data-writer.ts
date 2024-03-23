@@ -26,9 +26,9 @@ import { from } from 'pg-copy-streams';
 
 import { log } from './FsOps';
 import { MessageToDataWriter } from './Types';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
-import DataPipeManager from './DataPipeManager';
+import DataPipeManager from './data-pipe-manager';
 
 /**
  * After accepting the message, initializes data streaming from current process stdin into PostgreSQL (via COPY).
@@ -41,7 +41,7 @@ process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
     const conv: Conversion = new Conversion(config, avoidLogger);
 
     const fullTableName = `"${conv._schema}"."${chunk._tableName}"`;
-    await log(conv, `\t--[NMIG DataWriter] Loading the data into ${fullTableName} table...`);
+    await log(conv, `\t--[NMIG data-writer] Loading the data into ${fullTableName} table...`);
 
     const { sqlCopy, sql, tableName, dataPoolId, originalSessionReplicationRole } =
         copyStreamSerializableParams;

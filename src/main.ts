@@ -18,18 +18,17 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import createSchema from './SchemaProcessor';
 import loadStructureToMigrate from './StructureLoader';
-import DataPipeManager from './DataPipeManager';
-import decodeBinaryData from './BinaryDataDecoder';
+import DataPipeManager from './data-pipe-manager';
+import decodeBinaryData from './binary-data-decoder';
 import generateReport from './ReportGenerator';
 import DBAccess from './DBAccess';
-import { dropDataPoolTable } from './DataPoolManager';
-import { processConstraints } from './ConstraintsProcessor';
-import { getConfAndLogsPaths, boot } from './BootProcessor';
+import { dropDataPoolTable, createDataPoolTable, readDataPool } from './data-pool-manager';
+import { processConstraints } from './constraints-processor';
+import { getConfAndLogsPaths, boot } from './boot-processor';
 import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
-import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import {
     readConfig,
     readExtraConfig,

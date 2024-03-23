@@ -22,7 +22,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { log } from './FsOps';
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import * as migrationStateManager from './MigrationStateManager';
 import DBAccess from './DBAccess';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';

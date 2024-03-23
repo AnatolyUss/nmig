@@ -28,10 +28,10 @@ import { PoolConnection } from 'mysql2';
 const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
 
 import { log } from './FsOps';
-import { dataTransferred } from './ConsistencyEnforcer';
+import { dataTransferred } from './consistency-enforcer';
 import * as extraConfigProcessor from './ExtraConfigProcessor';
-import DataPipeManager from './DataPipeManager';
-import Conversion from './Conversion';
+import DataPipeManager from './data-pipe-manager';
+import Conversion from './conversion';
 import DBAccess from './DBAccess';
 import {
     DBAccessQueryParams,
@@ -71,7 +71,7 @@ process.on('message', async (signal: MessageToDataReader): Promise<void> => {
 /**
  * Initializes data transfer for the table, related to given "chunk".
  */
-const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
+const populateTable = async (conv: Conversion, chunk: Record<string, any>): Promise<void> => {
     const tableName: string = chunk._tableName;
     const strSelectFieldList: string = chunk._selectFieldList;
     const copyColumnNamesList: string = chunk._copyColumnNamesList;
@@ -138,11 +138,11 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
  * Spawns the data-writer child-process and returns its instance.
  */
 const getDataWriter = (conv: Conversion): ChildProcess => {
-    // Note, in runtime it points to ../dist/src/DataWriter.js and not DataWriter.ts
-    const cliArgs: string[] = [path.join(__dirname, 'DataWriter.js')];
+    // Note, in runtime it points to ../dist/src/data-writer.js and not data-writer.ts
+    const cliArgs: string[] = [path.join(__dirname, 'data-writer.js')];
 
     if (conv._readerMaxOldSpaceSize !== 'DEFAULT') {
-        // Note, all the child-process params are equally applicable to both "DataReader" and "DataWriter" processes.
+        // Note, all the child-process params are equally applicable to both "data-reader" and "data-writer" processes.
         cliArgs.push(`--max-old-space-size=${conv._readerMaxOldSpaceSize}`);
     }
 
@@ -162,10 +162,10 @@ const getDataWriterOnExitCallback = (
     rowsCnt: number,
 ): ((code: number) => Promise<void>) => {
     return async (code: number): Promise<void> => {
-        // Note, no need to "kill" the DataWriter, since it has already exited successfully.
+        // Note, no need to "kill" the data-writer, since it has already exited successfully.
         await log(
             conv,
-            `\t--[NMIG loadData] DataWriter process (table "${tableName}") exited with code ${code}`,
+            `\t--[${getDataWriterOnExitCallback.name}] data-writer process (table "${tableName}") exited with code ${code}`,
         );
 
         // COPY FROM STDIN does not return the number of rows inserted.
@@ -190,7 +190,7 @@ const getJson2csvStream = async (
 ): Promise<DuplexStream> => {
     const params: DBAccessQueryParams = {
         conversion: conversion,
-        caller: 'DataReader::populateTable',
+        caller: getJson2csvStream.name,
         sql: `SHOW COLUMNS FROM \`${originalTableName}\`;`,
         vendor: DBVendors.MYSQL,
         processExitOnError: true,
@@ -199,13 +199,13 @@ const getJson2csvStream = async (
 
     const tableColumnsResult: DBAccessQueryResult = await DBAccess.query(params);
 
-    const options: any = {
+    const options: Record<string, any> = {
         delimiter: conversion._delimiter,
         header: false,
-        fields: tableColumnsResult.data.map((column: any) => column.Field),
+        fields: tableColumnsResult.data.map((column: Record<string, any>) => column.Field),
     };
 
-    const streamTransformOptions: any = {
+    const streamTransformOptions: Record<string, any> = {
         highWaterMark: conversion._streamsHighWaterMark,
         objectMode: true,
         encoding: conversion._encoding,

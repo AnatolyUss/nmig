@@ -20,7 +20,7 @@
  */
 import { v4 as uuidV4 } from 'uuid';
 
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import { generateError } from './FsOps';
 
 /**

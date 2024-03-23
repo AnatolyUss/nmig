@@ -18,7 +18,7 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
-import Conversion from './Conversion';
+import Conversion from './conversion';
 import { logInBackground, generateErrorInBackground } from './FsOps';
 import { LogMessage, LogMessageType } from './Types';
 

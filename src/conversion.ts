@@ -31,17 +31,17 @@ export default class Conversion {
     /**
      * Parsed Nmig's configuration object.
      */
-    public readonly _config: any;
+    public readonly _config: Record<string, any>;
 
     /**
      * An object, representing source (MySQL) db connection details.
      */
-    public readonly _sourceConString: any;
+    public readonly _sourceConString: Record<string, any>;
 
     /**
      * An object, representing target (PostgreSQL) db connection details.
      */
-    public readonly _targetConString: any;
+    public readonly _targetConString: Record<string, any>;
 
     /**
      * V8 memory limit of the reader process.
@@ -136,7 +136,7 @@ export default class Conversion {
     /**
      * An object, representing additional configuration options.
      */
-    public readonly _extraConfig: any;
+    public readonly _extraConfig: Record<string, any>;
 
     /**
      * A list of tables, that should be migrated.
@@ -166,7 +166,7 @@ export default class Conversion {
     /**
      * An array of data chunks.
      */
-    public readonly _dataPool: object[];
+    public readonly _dataPool: Record<string, any>[];
 
     /**
      * A flag, that indicates if Nmig currently runs in test mode.
@@ -191,12 +191,12 @@ export default class Conversion {
     /**
      * The data types map.
      */
-    public _dataTypesMap: any;
+    public _dataTypesMap?: Record<string, any>;
 
     /**
      * The index types map.
      */
-    public _indexTypesMap: any;
+    public _indexTypesMap?: Record<string, any>;
 
     /**
      * Buffer level when stream.write() starts returning false.
@@ -219,7 +219,7 @@ export default class Conversion {
      * Constructor.
      */
     public constructor(
-        config: any,
+        config: Record<string, any>,
         avoidLogger: boolean = false, // eslint-disable-line @typescript-eslint/no-inferrable-types
     ) {
         this._config = config;
@@ -313,7 +313,7 @@ export default class Conversion {
     /**
      * Initializes Conversion instance.
      */
-    public static initializeConversion = (config: any): Promise<Conversion> =>
+    public static initializeConversion = (config: Record<string, any>): Promise<Conversion> =>
         Promise.resolve(new Conversion(config));
 
     /**
