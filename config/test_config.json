@@ -1,48 +1,48 @@
 {
-    "README" : [
+    "README": [
         "This JSON document represents the test configuration options."
     ],
 
-    "source_description" : [
+    "source_description": [
         "Connection parameters to your MySQL database",
         "Please ensure, that you have defined all parameters properly.",
         "Ensure, that details like 'charset' are included (if necessary).",
-        "Notice, any parameter, acceptable by the node mysql module can be placed here."
+        "Notice, any parameter, acceptable by the node mysql2 module can be placed here."
     ],
-    "source" : {
-        "host"             : "127.0.0.1",
-        "port"             : 3306,
-        "charset"          : "utf8mb4",
+    "source": {
+        "host": "127.0.0.1",
+        "port": 3306,
+        "charset": "utf8mb4",
         "supportBigNumbers": true,
-        "database"         : "nmig_test_db",
-        "user"             : "root",
-        "password"         : "0123456789"
+        "database": "nmig_test-db",
+        "user": "root",
+        "password": "0123456789"
     },
 
-    "target_description" : [
+    "target_description": [
         "Connection parameters to your PostgreSQL database",
         "Please ensure, that you have defined all parameters properly.",
         "Ensure, that details like 'charset' are included (if necessary). nmig_test_db",
         "Notice, any parameter, acceptable by the node pg module can be placed here."
     ],
-    "target" : {
-        "host"     : "127.0.0.1",
-        "port"     : 5432,
-        "charset"  : "UTF8",
-        "database" : "nmig_test_db",
-        "user"     : "postgres",
-        "password" : "0123456789"
+    "target": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "client_encoding": "utf8",
+        "database": "nmig_test-db",
+        "user": "postgres",
+        "password": "0123456789"
     },
 
-    "schema_description" : [
+    "schema_description": [
         "A name of the schema, that will contain all migrated tables.",
         "If not supplied, then a new schema will be created automatically."
     ],
-    "schema" : "public",
+    "schema": "public",
 
-    "remove_test_resources_description" : [
+    "remove_test_resources_description": [
         "If true, then all resources created by test scripts will be removed.",
         "Default - true."
     ],
-    "remove_test_resources" : true
+    "remove_test_resources": true
 }

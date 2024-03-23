@@ -1,5 +1,5 @@
 {
-    "README" : [
+    "README": [
         "This JSON document represents a correct index-types map between MySQL and PostgreSQL.",
         "If you wish to customize (not recommended) this map - you can.",
         "Map explanation:",

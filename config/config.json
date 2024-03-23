@@ -1,49 +1,49 @@
 {
-    "README" : [
+    "README": [
         "This JSON document represents the main configuration options.",
         "Please, be mindful, read each option's description before setting its value."
     ],
 
-    "source_description" : [
+    "source_description": [
         "Connection parameters to your MySQL database",
         "Please ensure, that you have defined all parameters properly.",
         "Ensure, that details like 'charset' are included (if necessary).",
-        "Note, any parameter, acceptable by the node mysql module can be placed here.",
+        "Note, any parameter, acceptable by the node mysql2 module can be placed here.",
         "Check the 'source.host' parameter, that can be either '127.0.0.1' or 'localhost', depends on your setup."
     ],
     "source" : {
-        "host"             : "127.0.0.1",
-        "port"             : 3306,
-        "database"         : "test_db",
-        "charset"          : "utf8mb4",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "database": "test_db",
+        "charset": "utf8mb4",
         "supportBigNumbers": true,
-        "user"             : "root",
-        "password"         : "0123456789"
+        "user": "root",
+        "password": "0123456789"
     },
 
-    "target_description" : [
+    "target_description": [
         "Connection parameters to your PostgreSQL database",
         "Please ensure, that you have defined all parameters properly.",
         "Ensure, that details like 'charset' are included (if necessary).",
         "Note, any parameter, acceptable by the node pg module can be placed here.",
         "Check the 'target.host' parameter, that can be either '127.0.0.1' or 'localhost', depends on your setup."
     ],
-    "target" : {
-        "host"     : "127.0.0.1",
-        "port"     : 5432,
-        "database" : "test_db",
-        "charset"  : "UTF8",
-        "user"     : "postgres",
-        "password" : "0123456789"
+    "target": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "database": "test_db",
+        "client_encoding": "utf8",
+        "user": "postgres",
+        "password": "0123456789"
     },
 
-    "max_each_db_connection_pool_size_description" : [
+    "max_each_db_connection_pool_size_description": [
         "Maximal amount of simultaneous connections to your MySQL and PostgreSQL servers each.",
         "Example: 20 means, that Nmig will create a pool of 20 connections to the source MySQL server",
         "and 20 connections to the target PostgreSQL server.",
         "40 connections to both servers."
     ],
-    "max_each_db_connection_pool_size" : 20,
+    "max_each_db_connection_pool_size": 20,
 
     "number_of_simultaneously_running_loader_processes_description": [
         "Number of loader processes that will run simultaneously.",
@@ -71,7 +71,7 @@
     ],
     "number_of_simultaneously_running_loader_processes": "DEFAULT",
 
-    "loader_max_old_space_size_description" : [
+    "loader_max_old_space_size_description": [
         "V8 memory limit of the 'loader process'.",
         "Note, all the 'loader process' params are equally applicable",
         "to both 'data-reader' and 'data-writer' processes.",
@@ -79,7 +79,7 @@
         "1. Any positive integer, representing memory limit (in MB).",
         "2. 'DEFAULT', representing V8 default memory limit of your current hardware."
     ],
-    "loader_max_old_space_size" : "DEFAULT",
+    "loader_max_old_space_size": "DEFAULT",
 
     "streams_high_water_mark_description": [
         "Buffer level when stream.write() starts returning false.",
@@ -87,17 +87,17 @@
     ],
     "streams_high_water_mark": 16384,
 
-    "encoding_description" : [
+    "encoding_description": [
         "JavaScript encoding type.",
         "If not supplied, then utf8 will be used as a default."
     ],
-    "encoding" : "utf8",
+    "encoding": "utf8",
 
-    "schema_description" : [
+    "schema_description": [
         "A name of the schema, that will contain all migrated tables.",
         "If not supplied, then a new schema will be created automatically."
     ],
-    "schema" : "public",
+    "schema": "public",
 
     "exclude_tables_description": [
         "List (Array) of tables, that will not be migrated.",
@@ -111,22 +111,22 @@
     ],
     "include_tables": [],
 
-    "migrate_only_data_description" : [
+    "migrate_only_data_description": [
         "In order to skip schema migration, and just migrate data into a preset tables",
         " - set this parameter true."
     ],
-    "migrate_only_data" : false,
+    "migrate_only_data": false,
 
-    "delimiter_description" : [
+    "delimiter_description": [
         "Specifies the character, that separates columns within each record.",
         "This must be a single one-byte character.",
         "The default is comma."
     ],
-    "delimiter" : ",",
+    "delimiter": ",",
 
-    "enable_extra_config_description" : [
+    "enable_extra_config_description": [
         "In order to enable the additional configuration options, placed at extra_config.json",
         " - set this parameter true."
     ],
-    "enable_extra_config" : false
+    "enable_extra_config": false
 }
