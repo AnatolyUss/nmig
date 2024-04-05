@@ -44,5 +44,18 @@
         "If true, then all resources created by test scripts will be removed.",
         "Default - true."
     ],
-    "remove_test_resources": true
+    "remove_test_resources": true,
+
+    "number_of_records_description": [
+        "nmig can generate simple test database (MySQL) to measure performance.",
+        "For that matter, run '$ npm run generate' command.",
+        "The DB schema appears in '/nmig-path/test/test-schema.sql'.",
+        "The DB will contain only one table - 'table_a', found in test-schema.sql",
+        "The goal is to create one, possibly large table, with tens of columns of various types, to be able to measure nmig performance.",
+        "Note, prior running nmig to migrate database, you should set 'number_of_simultaneously_running_loader_processes' to appropriate number,",
+        "hence, allow nmig to migrate multiple tables in parallel.",
+        "For example, migration of one large table will take nmig roughly the same time as migration of two or even more large tables, depends on various factors.",
+        "Param below is a number of records to generate in that DB, in the 'table_a' table."
+    ],
+    "number_of_records": 10
 }

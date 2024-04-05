@@ -32,7 +32,7 @@ import generateReport from '../src/report-generator';
 import { createDataPoolTable, readDataPool, dropDataPoolTable } from '../src/data-pool-manager';
 import { processConstraints } from '../src/constraints-processor';
 import { createStateLogsTable, dropStateLogsTable } from '../src/migration-state-manager';
-import { checkConnection, getLogo, getConfAndLogsPaths } from '../src/boot-processor';
+import { checkConnection, getLogo, getDirectoriesPaths } from '../src/boot-processor';
 import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../src/types';
 import {
     createLogsDirectory,
@@ -190,7 +190,7 @@ export default class TestSchemaProcessor {
             '..',
             '..',
             'test',
-            'test_schema.sql',
+            'test-schema.sql',
         );
         return await this._readFile(testSchemaFilePath);
     };
@@ -278,7 +278,7 @@ export default class TestSchemaProcessor {
      * Initializes Conversion instance.
      */
     public initializeConversion = async (): Promise<Conversion> => {
-        const { confPath, logsPath } = getConfAndLogsPaths();
+        const { confPath, logsPath } = getDirectoriesPaths();
         const config: Record<string, any> = await readConfig(
             confPath,
             logsPath,
@@ -288,17 +288,19 @@ export default class TestSchemaProcessor {
         this.conversion = await Conversion.initializeConversion(fullConfig);
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();
-        const logo: string = getLogo();
-        console.log(logo);
+        console.log(getLogo());
         delete this.conversion._sourceConString.database;
         return this.conversion;
     };
 
     /**
-     * Arranges test migration.
-     * "migrationCompleted" event will fire on completion.
+     * Arranges test activities.
+     * "migrationCompleted" event will fire on completion, when running test-suites.
      */
-    public arrangeTestMigration = async (conversion: Conversion): Promise<void> => {
+    public arrange = async (
+        conversion: Conversion,
+        dataGenerationMode: boolean = false, // eslint-disable-line @typescript-eslint/no-inferrable-types
+    ): Promise<void> => {
         const connectionErrorMessage: string = await checkConnection(conversion);
 
         if (connectionErrorMessage) {
@@ -306,26 +308,34 @@ export default class TestSchemaProcessor {
             process.exit(1);
         }
 
-        Promise.resolve(conversion)
+        conversion = await Promise.resolve(conversion)
             .then(this._checkResources.bind(this))
             .then(this._createTestSourceDb.bind(this))
             .then(this._updateMySqlConnection.bind(this))
             .then(this._loadTestSchema.bind(this))
-            .then(this._loadTestData.bind(this))
-            .then(readDataAndIndexTypesMap)
-            .then(createLogsDirectory)
-            .then(createSchema)
-            .then(createStateLogsTable)
-            .then(createDataPoolTable)
-            .then(loadStructureToMigrate)
-            .then(readDataPool)
-            .then(DataPipeManager.runDataPipe)
-            .then(decodeBinaryData)
-            .then(processConstraints)
-            .then(dropDataPoolTable)
-            .then(dropStateLogsTable)
+            .then(this._loadTestData.bind(this));
+
+        if (dataGenerationMode) {
+            // TODO: implement.
+        } else {
+            conversion = await Promise.resolve(conversion)
+                .then(readDataAndIndexTypesMap)
+                .then(createLogsDirectory)
+                .then(createSchema)
+                .then(createStateLogsTable)
+                .then(createDataPoolTable)
+                .then(loadStructureToMigrate)
+                .then(readDataPool)
+                .then(DataPipeManager.runDataPipe)
+                .then(decodeBinaryData)
+                .then(processConstraints)
+                .then(dropDataPoolTable)
+                .then(dropStateLogsTable);
+        }
+
+        Promise.resolve(conversion)
             .then(DbAccess.closeConnectionPools)
             .then(generateReport)
-            .catch((error: Error) => console.log(`\t--[arrangeTestMigration] error: ${error}`));
+            .catch((error: Error) => console.log(`\t--[${this.arrange.name}] error: ${error}`));
     };
 }

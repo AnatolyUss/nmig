@@ -214,7 +214,7 @@ export const readConfig = async (
     confPath: string,
     logsPath: string,
     configFileName: string = 'config.json', // eslint-disable-line @typescript-eslint/no-inferrable-types
-): Promise<any> => {
+): Promise<Record<string, any>> => {
     const pathToConfig: string = path.join(confPath, configFileName);
     const config: Record<string, any> = await readAndParseJsonFile(pathToConfig);
     config.logsDirPath = path.join(logsPath, 'logs_directory');

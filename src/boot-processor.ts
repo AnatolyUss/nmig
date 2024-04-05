@@ -113,13 +113,16 @@ export const boot = async (conversion: Conversion): Promise<Conversion> => {
 
 /**
  * Parses CLI input arguments, if given.
- * Returns an object containing paths to configuration files and to logs directory.
+ * Returns an object containing paths to configuration files, to logs directory and to test data directory.
  *
  * Sample:
  * npm start -- --conf-dir='C:\Users\u\Docs\projects\nmig_config' --logs-dir='C:\Users\u\Docs\projects\nmig_logs'
  * npm test -- --conf-dir='C:\Users\u\Docs\projects\nmig_config' --logs-dir='C:\Users\u\Docs\projects\nmig_logs'
+ * npm run generate -- --conf-dir='C:\Users\u\Docs\projects\nmig_config' \
+ *                     --logs-dir='C:\Users\u\Docs\projects\nmig_logs' \
+ *                     --test-data-dir='C:\Users\u\Docs\projects\nmig_test_data'
  */
-export const getConfAndLogsPaths = (): ConfAndLogsPaths => {
+export const getDirectoriesPaths = (): ConfAndLogsPaths => {
     const baseDir: string = path.join(__dirname, '..', '..');
     const _parseInputArguments = (paramName: string): string | undefined => {
         const _path: string | undefined = process.argv.find((arg: string): boolean =>
@@ -131,5 +134,6 @@ export const getConfAndLogsPaths = (): ConfAndLogsPaths => {
     return {
         confPath: _parseInputArguments('--conf-dir') || path.join(baseDir, 'config'),
         logsPath: _parseInputArguments('--logs-dir') || baseDir,
+        testDataPath: _parseInputArguments('--test-data-dir') || baseDir,
     };
 };

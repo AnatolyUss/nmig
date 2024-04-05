@@ -70,5 +70,5 @@ const runTestSuitesOnDbArrangementCompleted = async (
 testSchemaProcessor
     .initializeConversion()
     .then(runTestSuitesOnDbArrangementCompleted)
-    .then(testSchemaProcessor.arrangeTestMigration.bind(testSchemaProcessor))
+    .then(testSchemaProcessor.arrange.bind(testSchemaProcessor))
     .catch((error: Error) => console.log(`\t--[Main.test] error: ${error}`));

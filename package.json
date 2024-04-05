@@ -17,7 +17,8 @@
         "format": "npx prettier . --ignore-path ./.prettierignore --write && git status",
         "flb": "npm run format && npm run lint && npm run build",
         "start": "node dist/src/main.js",
-        "test": "node dist/test/main.test.js"
+        "test": "node dist/test/main.test.js",
+        "generate": "node dist/test/main.db-generator.js"
     },
     "dependencies": {
         "@types/node": "20.4.4",

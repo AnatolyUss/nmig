@@ -38,7 +38,7 @@ export default class DbAccess {
             if (!pool) {
                 await generateError(
                     conversion,
-                    '\t--[getMysqlConnection] Cannot connect to MySQL server...',
+                    `\t--[${DbAccess._getMysqlConnection.name}] Cannot connect to MySQL server...`,
                 );
 
                 process.exit(1);
@@ -59,7 +59,7 @@ export default class DbAccess {
             if (!pool) {
                 await generateError(
                     conversion,
-                    '\t--[getPgConnection] Cannot connect to PostgreSQL server...',
+                    `\t--[${DbAccess._getPgConnection.name}] Cannot connect to PostgreSQL server...`,
                 );
 
                 process.exit(1);

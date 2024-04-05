@@ -25,6 +25,8 @@ import Conversion from './conversion';
 
 export interface PgPoolConfig extends PoolConfig {
     // Unfortunately, client_encoding is missing in the original PoolConfig, yet exists in pg module's code.
+    // Note, PgPoolConfig is declared here as an interface,
+    // because at that time, the original PoolConfig was declared as an interface (in the "pg" module).
     client_encoding?: string;
 }
 
@@ -106,6 +108,7 @@ export type DBAccessQueryResult = {
 export type ConfAndLogsPaths = {
     readonly confPath: string;
     readonly logsPath: string;
+    readonly testDataPath?: string;
 };
 
 export type Table = {
