@@ -104,6 +104,11 @@ export default class Conversion {
     public readonly _notCreatedViewsPath: string;
 
     /**
+     * A path to the test-data directory.
+     */
+    public testDataPath?: string;
+
+    /**
      * List of tables, that will not be migrated.
      */
     public readonly _excludeTables: string[];
@@ -177,6 +182,11 @@ export default class Conversion {
      * A flag, that indicates if test resources created by Nmig should be removed.
      */
     public readonly _removeTestResources: boolean;
+
+    /**
+     * A number of records to generate in test DB, in the 'table_a' table (MySQL) to measure performance.
+     */
+    public readonly numberOfRecords: number;
 
     /**
      * "migrationCompleted" event.
@@ -272,6 +282,8 @@ export default class Conversion {
         this._runsInTestMode = false;
         this._eventEmitter = null;
         this._migrationCompletedEvent = 'migrationCompleted';
+        this.numberOfRecords =
+            this._config.number_of_records === undefined ? 10 : +this._config.number_of_records;
 
         this._removeTestResources =
             this._config.remove_test_resources === undefined

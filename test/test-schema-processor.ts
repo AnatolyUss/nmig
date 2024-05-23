@@ -18,9 +18,15 @@
  *
  * @author Anatoly Khaytovich <anatolyuss@gmail.com>
  */
+import { EOL } from 'node:os'; // TODO: check if necessary.
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { EventEmitter } from 'node:events';
+import { Readable, Writable, Duplex as DuplexStream } from 'node:stream';
+import * as streamPromises from 'node:stream/promises';
+
+import { faker } from '@faker-js/faker';
+const { Transform: Json2CsvTransform } = require('json2csv'); // No declaration file for module "json2csv".
 
 import Conversion from '../src/conversion';
 import DbAccess from '../src/db-access';
@@ -188,10 +194,10 @@ export default class TestSchemaProcessor {
             __dirname,
             '..',
             '..',
-            '..',
             'test',
             'test-schema.sql',
         );
+
         return await this._readFile(testSchemaFilePath);
     };
 
@@ -218,6 +224,207 @@ export default class TestSchemaProcessor {
      */
     public getTestBlob = (conversion: Conversion): Buffer => {
         return Buffer.from('Automated tests development is in progress.', conversion._encoding);
+    };
+
+    /**
+     * Creates a test-data CSV file, which will be eventually loaded into MySQL.
+     * TODO: cleanup.
+     */
+    private createTestDataFile = async (conversion: Conversion): Promise<void> => {
+        const streamOptions: Record<string, any> = {
+            highWaterMark: conversion._streamsHighWaterMark,
+            objectMode: true,
+            encoding: conversion._encoding,
+        };
+
+        const dataGenerator = this.getDataGenerator(conversion);
+        const dataGeneratorStream = Readable.from(dataGenerator(), streamOptions);
+
+        // TODO: remove asap.
+        // let x = '';
+        // for await (const chunk of dataGeneratorStream) {
+        //     x += chunk;
+        // }
+        // console.log(x);
+
+        const json2csvStream = this.getJson2csvStream(streamOptions);
+        const fileWriterStream = this.getFileWriterStream(conversion, streamOptions);
+        // await streamPromises.pipeline(dataGeneratorStream, json2csvStream, fileWriterStream);
+        try {
+            await streamPromises.pipeline(dataGeneratorStream, fileWriterStream);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    /**
+     * Returns file writer stream.
+     */
+    private getFileWriterStream = (
+        conversion: Conversion,
+        streamOptions: Record<string, any>,
+    ): Writable => {
+        return fs.createWriteStream(
+            path.join(
+                conversion.testDataPath as string,
+                `test-data_${conversion.numberOfRecords}.csv`,
+            ),
+            {
+                ...streamOptions,
+                flags: 'w', // Note, the file is truncated, if it exists.
+            },
+        );
+    };
+
+    /**
+     * Returns stream, transforming JSON to CSV.
+     */
+    private getJson2csvStream = (streamOptions: Record<string, any>): DuplexStream => {
+        const options: Record<string, any> = {
+            delimiter: ',',
+            header: false,
+            // TODO: find a way to initialize fields dynamically, if needed.
+            fields: [
+                'id_test_unique_index',
+                'id_test_composite_unique_index_1',
+                'id_test_composite_unique_index_2',
+                'id_test_index',
+                'int_test_not_null',
+                'id_test_composite_index_1',
+                'id_test_composite_index_2',
+                'json_test_comment',
+                'bit',
+                'year',
+                'bigint',
+                'float',
+                'double',
+                'numeric',
+                'decimal',
+                'char_5',
+                'varchar_5',
+                'date',
+                'time',
+                'timestamp',
+                'enum',
+                'set',
+                'text',
+                'blob',
+            ],
+        };
+
+        return new Json2CsvTransform(options, streamOptions);
+    };
+
+    /**
+     * Returns a test data generator.
+     */
+    private getDataGenerator = (conversion: Conversion): (() => Generator<Record<string, any>>) => {
+        return function* (): Generator<Record<string, any>> {
+            const getRandomFloat = (min: number, max: number): number =>
+                Math.random() < 0.5
+                    ? (1 - Math.random()) * (max - min) + min
+                    : Math.random() * (max - min) + min;
+
+            const getRandomInt = (min: number, max: number): number =>
+                Math.floor(getRandomFloat(min, max));
+
+            const enumValue = ['e1', 'e2'][getRandomInt(0, 1)];
+            const setValue = ['s1', 's2'][getRandomInt(0, 1)];
+
+            for (let i = 0; i < conversion.numberOfRecords; ++i) {
+                const record: Record<string, any> = {
+                    id_test_unique_index: i + 1,
+                    id_test_composite_unique_index_1: i + 2,
+                    id_test_composite_unique_index_2: i + 3,
+                    id_test_index: i + 4,
+                    int_test_not_null: i,
+                    id_test_composite_index_1: i + 1,
+                    id_test_composite_index_2: i + 2,
+                    json_test_comment: `{"prop1${i}":"${faker.lorem.word()}","prop2${i}":${getRandomInt(
+                        4,
+                        999,
+                    )}}`,
+                    bit: getRandomInt(0, 1),
+                    year: getRandomInt(1934, 2024),
+                    bigint: `${getRandomInt(1934, 20242347)}` + `${getRandomInt(1934, 20242347)}`,
+                    float: +getRandomFloat(12.43, 27836.21).toFixed(2),
+                    double: +getRandomFloat(1223.43, 278362344.21).toFixed(2),
+                    numeric: `${getRandomFloat(1223.43, 278362344.21)}`,
+                    decimal:
+                        `${getRandomInt(1934, 20242347)}` +
+                        `${getRandomInt(1934, 20242347)}.` +
+                        `${getRandomInt(1934, 20242347)}` +
+                        `${getRandomInt(1934, 20242347)}`,
+
+                    char_5: faker.lorem.word({ strategy: 'shortest', length: { min: 1, max: 5 } }),
+                    varchar_5: faker.lorem.word({
+                        strategy: 'shortest',
+                        length: { min: 1, max: 5 },
+                    }),
+
+                    date: faker.date
+                        .between({
+                            from: '2000-01-01T00:00:00.000Z',
+                            to: '2030-01-01T00:00:00.000Z',
+                        })
+                        .toISOString()
+                        .split('T')[0],
+
+                    time: faker.date
+                        .between({
+                            from: '2000-01-01T00:00:00.000Z',
+                            to: '2030-01-01T00:00:00.000Z',
+                        })
+                        .toISOString()
+                        .split('T')[1]
+                        .split('.')[0],
+
+                    timestamp: faker.date
+                        .between({
+                            from: '2000-01-01T00:00:00.000Z',
+                            to: '2030-01-01T00:00:00.000Z',
+                        })
+                        .toISOString(),
+
+                    enum: enumValue,
+                    set: setValue,
+                    text: faker.lorem.sentences({ min: 100, max: 1000 }),
+                    blob: Buffer.from(
+                        faker.lorem.sentences({ min: 100, max: 1000 }),
+                        conversion._encoding,
+                    ),
+                };
+
+                // TODO: cleanup.
+                yield `${i}`;
+                //
+                // const buffer = Buffer.from(Object.values(`${i}`).join(','));
+                // const arrayBuffer = new ArrayBuffer(buffer.length);
+                // const view = new Uint8Array(arrayBuffer);
+                // for (let x = 0; x < buffer.length; ++x) {
+                //     view[x] = buffer[x];
+                // }
+                // yield arrayBuffer;
+                //
+                // yield record;
+                //
+                // yield Buffer.from(Object.values(record).join(','));
+                //
+                // const buffer = Buffer.from(Object.values(record).join(','));
+                // const arrayBuffer = new ArrayBuffer(buffer.length);
+                // const view = new Uint8Array(arrayBuffer);
+                // for (let x = 0; x < buffer.length; ++x) {
+                //     view[x] = buffer[x];
+                // }
+                // yield arrayBuffer;
+                //
+                // yield Buffer.from(Object.values(record).join(','), conversion._encoding);
+                // const buf = Buffer.from(Object.values(record).join(','), conversion._encoding);
+                //
+                // const buf = Object.values(record).join(',') + EOL;
+                // yield buf;
+            }
+        };
     };
 
     /**
@@ -278,14 +485,16 @@ export default class TestSchemaProcessor {
      * Initializes Conversion instance.
      */
     public initializeConversion = async (): Promise<Conversion> => {
-        const { confPath, logsPath } = getDirectoriesPaths();
+        const { confPath, logsPath, testDataPath } = getDirectoriesPaths();
         const config: Record<string, any> = await readConfig(
             confPath,
             logsPath,
             'test_config.json',
         );
+
         const fullConfig: Record<string, any> = await readExtraConfig(config, confPath);
         this.conversion = await Conversion.initializeConversion(fullConfig);
+        this.conversion.testDataPath = testDataPath;
         this.conversion._runsInTestMode = true;
         this.conversion._eventEmitter = new EventEmitter();
         console.log(getLogo());
@@ -313,14 +522,14 @@ export default class TestSchemaProcessor {
             .then(this._createTestSourceDb.bind(this))
             .then(this._updateMySqlConnection.bind(this))
             .then(this._loadTestSchema.bind(this))
-            .then(this._loadTestData.bind(this));
+            .then(this._loadTestData.bind(this))
+            .then(readDataAndIndexTypesMap)
+            .then(createLogsDirectory);
 
         if (dataGenerationMode) {
-            // TODO: implement.
+            await this.createTestDataFile(conversion);
         } else {
             conversion = await Promise.resolve(conversion)
-                .then(readDataAndIndexTypesMap)
-                .then(createLogsDirectory)
                 .then(createSchema)
                 .then(createStateLogsTable)
                 .then(createDataPoolTable)

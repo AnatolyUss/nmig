@@ -22,9 +22,9 @@
     },
     "dependencies": {
         "@types/node": "20.4.4",
-        "@types/uuid": "9.0.2",
         "@types/pg": "8.10.2",
         "@types/pg-copy-streams": "1.2.2",
+        "@types/uuid": "9.0.2",
         "json2csv": "5.0.7",
         "mysql2": "3.5.2",
         "pg": "8.11.1",
@@ -32,6 +32,7 @@
         "uuid": "9.0.0"
     },
     "devDependencies": {
+        "@faker-js/faker": "8.4.1",
         "@types/tape": "5.6.0",
         "@typescript-eslint/eslint-plugin": "5.61.0",
         "@typescript-eslint/parser": "5.61.0",

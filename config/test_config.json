@@ -57,5 +57,11 @@
         "For example, migration of one large table will take nmig roughly the same time as migration of two or even more large tables, depends on various factors.",
         "Param below is a number of records to generate in that DB, in the 'table_a' table."
     ],
-    "number_of_records": 10
+    "number_of_records": 10,
+
+    "streams_high_water_mark_description": [
+        "Buffer level when stream.write() starts returning false.",
+        "This number is a number of JavaScript objects."
+    ],
+    "streams_high_water_mark": 16384
 }

@@ -23,5 +23,6 @@ import TestSchemaProcessor from './test-schema-processor';
 (async (): Promise<void> => {
     const tsp = new TestSchemaProcessor();
     const conversion = await tsp.initializeConversion();
-    await tsp.arrange(conversion);
-})().catch((error: Error) => console.log(`\t--[db-generator] error: ${error}`));
+    const dataGenerationMode = true;
+    await tsp.arrange(conversion, dataGenerationMode);
+})().catch((error: Error) => console.error(`\t--[db-generator] error: ${JSON.stringify(error)}`));
