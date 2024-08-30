@@ -50,9 +50,6 @@ export const getTableName = (
  *
  * !!!Note, 're-namings' defined in extra-config under 'tables' -> 'columns'
  * will take precedence over 'lowerCaseAllColumnNames: true'.
- * Above condition, "colName === column.Field", shows that no re-naming configured for given column.
- * Hence, if the extra-config is enabled and 'lowerCaseAllColumnNames' is set true
- * - we can safely lowercase current column name.
  */
 export const getColumnName = (
     conversion: Conversion,
