@@ -47,6 +47,12 @@ export const getTableName = (
 
 /**
  * Retrieves current column's name.
+ *
+ * !!!Note, 're-namings' defined in extra-config under 'tables' -> 'columns'
+ * will take precedence over 'lowerCaseAllColumnNames: true'.
+ * Above condition, "colName === column.Field", shows that no re-naming configured for given column.
+ * Hence, if the extra-config is enabled and 'lowerCaseAllColumnNames' is set true
+ * - we can safely lowercase current column name.
  */
 export const getColumnName = (
     conversion: Conversion,
@@ -54,26 +60,25 @@ export const getColumnName = (
     currentColumnName: string,
     shouldGetOriginal: boolean,
 ): string => {
-    let retVal: string = currentColumnName;
-
-    if (conversion._extraConfig !== null) {
+    if (conversion._extraConfig) {
         if ('tables' in conversion._extraConfig) {
             for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
-                const isOriginal: boolean =
+                const tableFound: boolean =
                     conversion._extraConfig.tables[i].name.original === originalTableName &&
                     'columns' in conversion._extraConfig.tables[i];
 
-                if (isOriginal) {
+                if (tableFound) {
                     for (
                         let columnsCount = 0;
                         columnsCount < conversion._extraConfig.tables[i].columns.length;
                         ++columnsCount
                     ) {
-                        if (
+                        const columnFound: boolean =
                             conversion._extraConfig.tables[i].columns[columnsCount].original ===
-                            currentColumnName
-                        ) {
-                            retVal = shouldGetOriginal
+                            currentColumnName;
+
+                        if (columnFound) {
+                            return shouldGetOriginal
                                 ? conversion._extraConfig.tables[i].columns[columnsCount].original
                                 : conversion._extraConfig.tables[i].columns[columnsCount].new;
                         }
@@ -82,12 +87,12 @@ export const getColumnName = (
             }
         }
 
-        if (conversion._extraConfig.lowerCaseAllColumnNames && !shouldGetOriginal) {
-            retVal = retVal.toLowerCase();
+        if (conversion._extraConfig.lowerCaseAllColumnNames) {
+            return currentColumnName.toLowerCase();
         }
     }
 
-    return retVal;
+    return currentColumnName;
 };
 
 /**

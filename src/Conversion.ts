@@ -232,32 +232,21 @@ export default class Conversion {
         this._allLogsPath = path.join(this._logsDirPath, 'all.log');
         this._errorLogsPath = path.join(this._logsDirPath, 'errors-only.log');
         this._notCreatedViewsPath = path.join(this._logsDirPath, 'not_created_views');
-        this._excludeTables =
-            this._config.exclude_tables === undefined ? [] : this._config.exclude_tables;
-        this._includeTables =
-            this._config.include_tables === undefined ? [] : this._config.include_tables;
+        this._excludeTables = this._config.exclude_tables || [];
+        this._includeTables = this._config.include_tables || [];
         this._timeBegin = new Date();
-        this._encoding = this._config.encoding === undefined ? 'utf8' : this._config.encoding;
+        this._encoding = this._config.encoding || 'utf8';
         this._0777 = '0777';
         this._mysqlVersion = '5.6.21'; // Simply a default value.
-        this._extraConfig =
-            this._config.extraConfig === undefined ? false : this._config.extraConfig;
+        this._extraConfig = this._config.extraConfig;
         this._tablesToMigrate = [];
         this._viewsToMigrate = [];
         this._dataPool = [];
         this._dicTables = new Map<string, Table>();
         this._mySqlDbName = this._sourceConString.database;
+        this._streamsHighWaterMark = +(this._config.streams_high_water_mark || 16384);
 
-        this._streamsHighWaterMark =
-            this._config.streams_high_water_mark === undefined
-                ? 16384
-                : +this._config.streams_high_water_mark;
-
-        this._schema =
-            this._config.schema === undefined || this._config.schema === ''
-                ? this._mySqlDbName
-                : this._config.schema;
-
+        this._schema = this._config.schema || this._mySqlDbName;
         const isValidMaxEachDbConnectionPoolSize: boolean =
             this._config.max_each_db_connection_pool_size !== undefined &&
             Conversion._isIntNumeric(this._config.max_each_db_connection_pool_size);
