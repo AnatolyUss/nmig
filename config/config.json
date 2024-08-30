@@ -14,7 +14,7 @@
     "source" : {
         "host"             : "127.0.0.1",
         "port"             : 3306,
-        "database"         : "test_db",
+        "database"         : "sample_stuff",
         "charset"          : "utf8mb4",
         "supportBigNumbers": true,
         "user"             : "root",
@@ -31,7 +31,7 @@
     "target" : {
         "host"     : "127.0.0.1",
         "port"     : 5432,
-        "database" : "test_db",
+        "database" : "sample_stuff",
         "charset"  : "UTF8",
         "user"     : "postgres",
         "password" : "0123456789"

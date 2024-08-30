@@ -21,6 +21,13 @@
         "If you don't need to rename neither tables nor columns, then remove the 'tables' section."
     ],
 
+    "README_lowerCaseAllColumnNames": [
+        "'lowerCaseAllColumnNames', once set true, instructs nmig to rename/lowercase all columns in all tables.",
+        "By default, 'lowerCaseAllColumnNames' is false.",
+        "Note, 're-namings' defined below under 'tables' -> 'columns' will take precedence over 'lowerCaseAllColumnNames: true'."
+    ],
+    "lowerCaseAllColumnNames": false,
+
     "tables" : [
         {
             "name" : {

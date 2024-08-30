@@ -43,6 +43,7 @@ export default async (
         tableName,
         true,
     );
+
     const logTitle = 'DataChunksProcessor::default';
     const arrTableColumns = (conversion._dicTables.get(tableName) as Table).arrTableColumns;
     const selectFieldList: string = arrangeColumnsData(
@@ -76,7 +77,16 @@ export default async (
         _rowsCnt: rowsCnt,
         _selectFieldList: selectFieldList,
         _copyColumnNamesList: arrTableColumns
-            .map((column: any): string => `"${column.Field}"`)
+            .map((column: any): string => {
+                const columnName = extraConfigProcessor.getColumnName(
+                    conversion,
+                    originalTableName,
+                    column.Field,
+                    false,
+                );
+
+                return `"${columnName}"`;
+            })
             .join(','),
     });
 
