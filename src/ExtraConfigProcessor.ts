@@ -41,7 +41,8 @@ export const getTableName = (
             }
         }
     } else if (conversion._extraConfig !== null && conversion._extraConfig.lowerCaseAllTableNames && !('tables' in conversion._extraConfig)) {
-      return currentTableName.toLowerCase();
+      return shouldGetOriginal
+        ? currentTableName : currentTableName.toLowerCase()
     }
 
     return currentTableName;
