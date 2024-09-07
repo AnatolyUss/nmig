@@ -28,6 +28,13 @@
     ],
     "lowerCaseAllColumnNames": false,
 
+    "README_lowerCaseAllTableNames": [
+        "'lowerCaseAllTableNames', once set true, instructs nmig to rename/lowercase all tables.",
+        "By default, 'lowerCaseAllTableNames' is false.",
+        "Note, 're-namings' defined below under 'tables' will take precedence over 'lowerCaseAllTableNames: true'."
+    ],
+    "lowerCaseAllTableNames": false,
+
     "tables" : [
         {
             "name" : {

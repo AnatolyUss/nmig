@@ -40,6 +40,8 @@ export const getTableName = (
                     : conversion._extraConfig.tables[i].name.new;
             }
         }
+    } else if (conversion._extraConfig !== null && conversion._extraConfig.lowerCaseAllTableNames && !('tables' in conversion._extraConfig)) {
+      return currentTableName.toLowerCase();
     }
 
     return currentTableName;
