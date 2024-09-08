@@ -69,6 +69,7 @@ export default async (conversion: Conversion, tableName: string): Promise<void> 
         ['UTC_DATE', "(CURRENT_DATE AT TIME ZONE 'UTC')"],
         ['UTC_TIME', "(CURRENT_TIME AT TIME ZONE 'UTC')"],
         ['UTC_TIMESTAMP', "(NOW() AT TIME ZONE 'UTC')"],
+        ['UTC_TIMESTAMP()', "(NOW() AT TIME ZONE 'UTC')"],
     ]);
 
     const _cb = async (column: any): Promise<void> => {
