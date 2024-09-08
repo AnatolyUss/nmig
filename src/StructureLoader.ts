@@ -110,7 +110,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
             row.Table_type === 'BASE TABLE' &&
             conversion._excludeTables.indexOf(relationName) === -1
         ) {
-            relationName = extraConfigProcessor.getTableName(conversion, relationName, false);
+            relationName = extraConfigProcessor.getTableName(conversion, relationName, true);
             conversion._tablesToMigrate.push(relationName);
 
             conversion._dicTables.set(relationName, {
