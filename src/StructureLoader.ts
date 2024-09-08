@@ -110,7 +110,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
             row.Table_type === 'BASE TABLE' &&
             conversion._excludeTables.indexOf(relationName) === -1
         ) {
-            relationName = extraConfigProcessor.getTableName(conversion, relationName, true);
+            relationName = extraConfigProcessor.getTableName(conversion, relationName, false);
             conversion._tablesToMigrate.push(relationName);
 
             conversion._dicTables.set(relationName, {
@@ -118,6 +118,7 @@ export default async (conversion: Conversion): Promise<Conversion> => {
                 arrTableColumns: [],
             });
 
+            console.log(`Creating table: ${relationName} `)
             processTablePromises.push(
                 processTableBeforeDataLoading(conversion, relationName, haveTablesLoaded),
             );
