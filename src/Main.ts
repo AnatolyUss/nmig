@@ -31,30 +31,30 @@ import { getConfAndLogsPaths, boot } from './BootProcessor';
 import { createStateLogsTable, dropStateLogsTable } from './MigrationStateManager';
 import { createDataPoolTable, readDataPool } from './DataPoolManager';
 import {
-    readConfig,
-    readExtraConfig,
-    createLogsDirectory,
-    readDataAndIndexTypesMap,
+  readConfig,
+  readExtraConfig,
+  createLogsDirectory,
+  readDataAndIndexTypesMap,
 } from './FsOps';
 
 const { confPath, logsPath } = getConfAndLogsPaths();
 
 readConfig(confPath, logsPath)
-    .then(config => readExtraConfig(config, confPath))
-    .then(Conversion.initializeConversion)
-    .then(createLogsDirectory)
-    .then(readDataAndIndexTypesMap)
-    .then(boot)
-    .then(createSchema)
-    .then(createStateLogsTable)
-    .then(createDataPoolTable)
-    .then(loadStructureToMigrate)
-    .then(readDataPool)
-    .then(DataPipeManager.runDataPipe)
-    .then(decodeBinaryData)
-    .then(processConstraints)
-    .then(dropDataPoolTable)
-    .then(dropStateLogsTable)
-    .then(DBAccess.closeConnectionPools)
-    .then(generateReport)
-    .catch((error: Error) => console.log(`\t--[Main] error: ${error}`));
+  .then(config => readExtraConfig(config, confPath))
+  .then(Conversion.initializeConversion)
+  .then(createLogsDirectory)
+  .then(readDataAndIndexTypesMap)
+  .then(boot)
+  .then(createSchema)
+  .then(createStateLogsTable)
+  .then(createDataPoolTable)
+  .then(loadStructureToMigrate)
+  .then(readDataPool)
+  .then(DataPipeManager.runDataPipe)
+  .then(decodeBinaryData)
+  .then(processConstraints)
+  .then(dropDataPoolTable)
+  .then(dropStateLogsTable)
+  .then(DBAccess.closeConnectionPools)
+  .then(generateReport)
+  .catch((error: Error) => console.log(`\t--[Main] error: ${error}`));

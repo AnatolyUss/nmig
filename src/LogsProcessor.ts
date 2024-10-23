@@ -31,23 +31,23 @@ let conv: Conversion;
  * Process incoming logs in a context of logger process.
  */
 process.on('message', async (logMessage: LogMessage): Promise<void> => {
-    try {
-        if (logMessage.type === LogMessageType.CONFIG) {
-            // Create Conversion instance, but avoid recursion,
-            // which might lead to redundant logger processes creation.
-            const avoidLogger = true;
-            conv = conv || new Conversion(logMessage.config, avoidLogger);
-        } else if (logMessage.type === LogMessageType.LOG) {
-            await logInBackground(conv, logMessage.message as string, logMessage.tableLogPath);
-        } else if (logMessage.type === LogMessageType.ERROR) {
-            await generateErrorInBackground(conv, logMessage.message as string, logMessage.sql);
-        } else if (logMessage.type === LogMessageType.EXIT) {
-            // Migration has been just finished.
-            // All resources must be released.
-            await logInBackground(conv, logMessage.message as string, logMessage.tableLogPath);
-            process.exit(0);
-        }
-    } catch (error) {
-        console.log(`\n\t--[LogsProcessor] Logger error: ${JSON.stringify(error)}\n`);
+  try {
+    if (logMessage.type === LogMessageType.CONFIG) {
+      // Create Conversion instance, but avoid recursion,
+      // which might lead to redundant logger processes creation.
+      const avoidLogger = true;
+      conv = conv || new Conversion(logMessage.config, avoidLogger);
+    } else if (logMessage.type === LogMessageType.LOG) {
+      await logInBackground(conv, logMessage.message as string, logMessage.tableLogPath);
+    } else if (logMessage.type === LogMessageType.ERROR) {
+      await generateErrorInBackground(conv, logMessage.message as string, logMessage.sql);
+    } else if (logMessage.type === LogMessageType.EXIT) {
+      // Migration has been just finished.
+      // All resources must be released.
+      await logInBackground(conv, logMessage.message as string, logMessage.tableLogPath);
+      process.exit(0);
     }
+  } catch (error) {
+    console.log(`\n\t--[LogsProcessor] Logger error: ${JSON.stringify(error)}\n`);
+  }
 });

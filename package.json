@@ -1,6 +1,6 @@
 {
     "name": "nmig",
-    "version": "6.1.1",
+    "version": "6.2.0",
     "description": "The database migration app",
     "author": "Anatoly Khaytovich<anatolyuss@gmail.com>",
     "license": "GPL-3.0",
@@ -24,10 +24,10 @@
     },
     "devDependencies": {
         "@types/tape": "5.6.4",
-        "@typescript-eslint/eslint-plugin": "5.61.0",
-        "@typescript-eslint/parser": "5.61.0",
-        "eslint": "8.44.0",
-        "prettier": "3.0.0",
+        "@typescript-eslint/eslint-plugin": "8.0.1",
+        "@typescript-eslint/parser": "8.0.1",
+        "eslint": "8.57.0",
+        "prettier": "3.3.3",
         "tape": "5.8.1",
         "typescript": "5.5.4"
     },

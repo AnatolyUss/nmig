@@ -27,24 +27,24 @@ import Conversion from './Conversion';
  * Generates a summary report.
  */
 export default async (conversion: Conversion): Promise<void> => {
-    if (conversion._runsInTestMode) {
-        (conversion._eventEmitter as EventEmitter).emit(conversion._migrationCompletedEvent);
-        return;
-    }
+  if (conversion._runsInTestMode) {
+    (conversion._eventEmitter as EventEmitter).emit(conversion._migrationCompletedEvent);
+    return;
+  }
 
-    let differenceSec = (new Date().getTime() - (conversion._timeBegin as Date).getTime()) / 1000;
-    const seconds = Math.floor(differenceSec % 60);
-    differenceSec = differenceSec / 60;
-    const minutes = Math.floor(differenceSec % 60);
-    const hours = Math.floor(differenceSec / 60);
-    const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-    const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
-    const formattedSeconds = seconds < 10 ? `0${seconds}` : `${seconds}`;
-    const endMsg = 'NMIG migration is accomplished.';
-    const output = `\t--[generateReport] ${endMsg}
+  let differenceSec = (new Date().getTime() - (conversion._timeBegin as Date).getTime()) / 1000;
+  const seconds = Math.floor(differenceSec % 60);
+  differenceSec = differenceSec / 60;
+  const minutes = Math.floor(differenceSec % 60);
+  const hours = Math.floor(differenceSec / 60);
+  const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+  const formattedSeconds = seconds < 10 ? `0${seconds}` : `${seconds}`;
+  const endMsg = 'NMIG migration is accomplished.';
+  const output = `\t--[generateReport] ${endMsg}
         \n\t--[generateReport] Total time: ${formattedHours}:${formattedMinutes}:${formattedSeconds}
         \n\t--[generateReport] (hours:minutes:seconds)`;
 
-    await log(conversion, output, undefined, true);
-    process.exit(0);
+  await log(conversion, output, undefined, true);
+  process.exit(0);
 };

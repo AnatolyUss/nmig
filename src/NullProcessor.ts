@@ -29,48 +29,44 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Ty
  * Sets an appropriate constraint, if needed.
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle = 'NullProcessor::default';
-    const fullTableName = `"${conversion._schema}"."${tableName}"`;
-    const msg = `\t--[${logTitle}] Defines "NOT NULLs" for table: ${fullTableName}`;
-    await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
-    const originalTableName: string = extraConfigProcessor.getTableName(
+  const logTitle = 'NullProcessor::default';
+  const fullTableName = `"${conversion._schema}"."${tableName}"`;
+  const msg = `\t--[${logTitle}] Defines "NOT NULLs" for table: ${fullTableName}`;
+  await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
+  const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+
+  const _cb = async (column: any): Promise<void> => {
+    if (column.Null.toLowerCase() === 'no') {
+      const columnName: string = extraConfigProcessor.getColumnName(
         conversion,
-        tableName,
-        true,
-    );
+        originalTableName,
+        column.Field,
+        false,
+      );
 
-    const _cb = async (column: any): Promise<void> => {
-        if (column.Null.toLowerCase() === 'no') {
-            const columnName: string = extraConfigProcessor.getColumnName(
-                conversion,
-                originalTableName,
-                column.Field,
-                false,
-            );
+      const params: DBAccessQueryParams = {
+        conversion: conversion,
+        caller: logTitle,
+        sql: `ALTER TABLE ${fullTableName} ALTER COLUMN "${columnName}" SET NOT NULL;`,
+        vendor: DBVendors.PG,
+        processExitOnError: false,
+        shouldReturnClient: false,
+      };
 
-            const params: DBAccessQueryParams = {
-                conversion: conversion,
-                caller: logTitle,
-                sql: `ALTER TABLE ${fullTableName} ALTER COLUMN "${columnName}" SET NOT NULL;`,
-                vendor: DBVendors.PG,
-                processExitOnError: false,
-                shouldReturnClient: false,
-            };
+      const result: DBAccessQueryResult = await DBAccess.query(params);
 
-            const result: DBAccessQueryResult = await DBAccess.query(params);
+      if (!result.error) {
+        await log(
+          conversion,
+          `\t--[${logTitle}] Set NOT NULL for ${fullTableName}."${columnName}"...`,
+          (conversion._dicTables.get(tableName) as Table).tableLogPath,
+        );
+      }
+    }
+  };
 
-            if (!result.error) {
-                await log(
-                    conversion,
-                    `\t--[${logTitle}] Set NOT NULL for ${fullTableName}."${columnName}"...`,
-                    (conversion._dicTables.get(tableName) as Table).tableLogPath,
-                );
-            }
-        }
-    };
-
-    const promises: Promise<void>[] = (
-        conversion._dicTables.get(tableName) as Table
-    ).arrTableColumns.map(_cb);
-    await Promise.all(promises);
+  const promises: Promise<void>[] = (
+    conversion._dicTables.get(tableName) as Table
+  ).arrTableColumns.map(_cb);
+  await Promise.all(promises);
 };

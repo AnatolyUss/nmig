@@ -32,61 +32,57 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Ty
  * Note, "{table_name}_{column_name}_seq" is a standard PostgreSQL's template to generate sequence names.
  */
 const getSequenceName = (tableName: string, columnName: string): string => {
-    const sequenceName = `${tableName}_${columnName}_seq`;
-    return getUniqueIdentifier(sequenceName, '_seq');
+  const sequenceName = `${tableName}_${columnName}_seq`;
+  return getUniqueIdentifier(sequenceName, '_seq');
 };
 
 /**
  * Sets sequence value.
  */
 export const setSequenceValue = async (
-    conversion: Conversion,
-    tableName: string,
+  conversion: Conversion,
+  tableName: string,
 ): Promise<void> => {
-    const originalTableName: string = extraConfigProcessor.getTableName(
-        conversion,
-        tableName,
-        true,
-    );
-    const conversionTable: Table = conversion._dicTables.get(tableName) as Table;
-    const _isAutoIncremented = (column: any): boolean => column.Extra === 'auto_increment';
-    const autoIncrementedColumn: any = conversionTable.arrTableColumns.find(_isAutoIncremented);
+  const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+  const conversionTable: Table = conversion._dicTables.get(tableName) as Table;
+  const _isAutoIncremented = (column: any): boolean => column.Extra === 'auto_increment';
+  const autoIncrementedColumn: any = conversionTable.arrTableColumns.find(_isAutoIncremented);
 
-    if (!autoIncrementedColumn) {
-        // No auto-incremented column found.
-        return;
-    }
+  if (!autoIncrementedColumn) {
+    // No auto-incremented column found.
+    return;
+  }
 
-    const logTitle = 'SequencesProcessor::setSequenceValue';
-    const columnName: string = extraConfigProcessor.getColumnName(
-        conversion,
-        originalTableName,
-        autoIncrementedColumn.Field,
-        false,
-    );
+  const logTitle = 'SequencesProcessor::setSequenceValue';
+  const columnName: string = extraConfigProcessor.getColumnName(
+    conversion,
+    originalTableName,
+    autoIncrementedColumn.Field,
+    false,
+  );
 
-    const seqName: string = getSequenceName(tableName, columnName);
-    const sql = `SELECT SETVAL(\'"${conversion._schema}"."${seqName}"\', 
+  const seqName: string = getSequenceName(tableName, columnName);
+  const sql = `SELECT SETVAL(\'"${conversion._schema}"."${seqName}"\', 
                 (SELECT MAX("${columnName}") FROM "${conversion._schema}"."${tableName}"));`;
 
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: sql,
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: sql,
+    vendor: DBVendors.PG,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
 
-    const result: DBAccessQueryResult = await DBAccess.query(params);
+  const result: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (!result.error) {
-        await log(
-            conversion,
-            `\t--[${logTitle}] Sequence "${conversion._schema}"."${seqName}" value is set...`,
-            conversionTable.tableLogPath,
-        );
-    }
+  if (!result.error) {
+    await log(
+      conversion,
+      `\t--[${logTitle}] Sequence "${conversion._schema}"."${seqName}" value is set...`,
+      conversionTable.tableLogPath,
+    );
+  }
 };
 
 /**
@@ -94,58 +90,54 @@ export const setSequenceValue = async (
  * Creates an appropriate identity.
  */
 export const createIdentity = async (conversion: Conversion, tableName: string): Promise<void> => {
-    const conversionTable: Table = conversion._dicTables.get(tableName) as Table;
-    const originalTableName: string = extraConfigProcessor.getTableName(
-        conversion,
-        tableName,
-        true,
-    );
-    const _cb = (column: any): boolean => column.Extra === 'auto_increment';
-    const autoIncrementedColumn: any = conversionTable.arrTableColumns.find(_cb);
+  const conversionTable: Table = conversion._dicTables.get(tableName) as Table;
+  const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+  const _cb = (column: any): boolean => column.Extra === 'auto_increment';
+  const autoIncrementedColumn: any = conversionTable.arrTableColumns.find(_cb);
 
-    if (!autoIncrementedColumn) {
-        // No auto-incremented column found.
-        return;
-    }
+  if (!autoIncrementedColumn) {
+    // No auto-incremented column found.
+    return;
+  }
 
-    const columnName: string = extraConfigProcessor.getColumnName(
-        conversion,
-        originalTableName,
-        autoIncrementedColumn.Field,
-        false,
-    );
+  const columnName: string = extraConfigProcessor.getColumnName(
+    conversion,
+    originalTableName,
+    autoIncrementedColumn.Field,
+    false,
+  );
 
-    const logTitle = 'SequencesProcessor::createIdentity';
-    const seqName = getSequenceName(tableName, columnName);
-    const fullTableName = `"${conversion._schema}"."${tableName}"`;
-    const sql = `ALTER TABLE ${fullTableName} ALTER COLUMN "${columnName}" 
+  const logTitle = 'SequencesProcessor::createIdentity';
+  const seqName = getSequenceName(tableName, columnName);
+  const fullTableName = `"${conversion._schema}"."${tableName}"`;
+  const sql = `ALTER TABLE ${fullTableName} ALTER COLUMN "${columnName}" 
         ADD GENERATED BY DEFAULT AS IDENTITY;`;
 
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: sql,
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: true,
-    };
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: sql,
+    vendor: DBVendors.PG,
+    processExitOnError: false,
+    shouldReturnClient: true,
+  };
 
-    const createSequenceResult: DBAccessQueryResult = await DBAccess.query(params);
+  const createSequenceResult: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (createSequenceResult.error) {
-        await DBAccess.releaseDbClient(conversion, createSequenceResult.client as PoolClient);
-        return;
-    }
+  if (createSequenceResult.error) {
+    await DBAccess.releaseDbClient(conversion, createSequenceResult.client as PoolClient);
+    return;
+  }
 
-    params.client = createSequenceResult.client;
-    params.shouldReturnClient = false;
-    params.sql = `SELECT SETVAL(\'"${conversion._schema}"."${seqName}"\', 
+  params.client = createSequenceResult.client;
+  params.shouldReturnClient = false;
+  params.sql = `SELECT SETVAL(\'"${conversion._schema}"."${seqName}"\', 
         (SELECT MAX("${columnName}") FROM ${fullTableName}));`;
 
-    const sqlSetSequenceValueResult: DBAccessQueryResult = await DBAccess.query(params);
+  const sqlSetSequenceValueResult: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (!sqlSetSequenceValueResult.error) {
-        const successMsg = `\t--[${logTitle}] Added IDENTITY for ${fullTableName}."${columnName}"...`;
-        await log(conversion, successMsg, conversionTable.tableLogPath);
-    }
+  if (!sqlSetSequenceValueResult.error) {
+    const successMsg = `\t--[${logTitle}] Added IDENTITY for ${fullTableName}."${columnName}"...`;
+    await log(conversion, successMsg, conversionTable.tableLogPath);
+  }
 };

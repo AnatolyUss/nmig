@@ -29,36 +29,36 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/T
  * Checks if the schema exists.
  */
 const hasSchemaCreated = async (testSchemaProcessor: TestSchemaProcessor): Promise<boolean> => {
-    const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
+  const sql = `SELECT EXISTS(SELECT schema_name FROM information_schema.schemata
          WHERE schema_name = '${(testSchemaProcessor.conversion as Conversion)._schema}');`;
 
-    const params: DBAccessQueryParams = {
-        conversion: testSchemaProcessor.conversion as Conversion,
-        caller: 'SchemaProcessorTest::hasSchemaCreated',
-        sql: sql,
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
+  const params: DBAccessQueryParams = {
+    conversion: testSchemaProcessor.conversion as Conversion,
+    caller: 'SchemaProcessorTest::hasSchemaCreated',
+    sql: sql,
+    vendor: DBVendors.PG,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
 
-    const result: DBAccessQueryResult = await DBAccess.query(params);
+  const result: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (result.error) {
-        await testSchemaProcessor.processFatalError(result.error);
-    }
+  if (result.error) {
+    await testSchemaProcessor.processFatalError(result.error);
+  }
 
-    return !!result.data.rows[0].exists;
+  return !!result.data.rows[0].exists;
 };
 
 /**
  * Tests schema creation.
  */
 export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
-    const schemaExists: boolean = await hasSchemaCreated(testSchemaProcessor);
-    const numberOfPlannedAssertions = 1;
-    const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
+  const schemaExists: boolean = await hasSchemaCreated(testSchemaProcessor);
+  const numberOfPlannedAssertions = 1;
+  const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
 
-    tape.plan(numberOfPlannedAssertions);
-    tape.timeoutAfter(autoTimeoutMs);
-    tape.equal(schemaExists, true);
+  tape.plan(numberOfPlannedAssertions);
+  tape.timeoutAfter(autoTimeoutMs);
+  tape.equal(schemaExists, true);
 };

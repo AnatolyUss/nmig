@@ -29,53 +29,49 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table } from './Ty
  * Sets an appropriate constraint, if needed.
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle = 'EnumProcessor::default';
-    const fullTableName = `"${conversion._schema}"."${tableName}"`;
-    const msg = `\t--[${logTitle}] Defines "ENUMs" for table ${fullTableName}`;
-    await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
-    const originalTableName: string = extraConfigProcessor.getTableName(
-        conversion,
-        tableName,
-        true,
-    );
+  const logTitle = 'EnumProcessor::default';
+  const fullTableName = `"${conversion._schema}"."${tableName}"`;
+  const msg = `\t--[${logTitle}] Defines "ENUMs" for table ${fullTableName}`;
+  await log(conversion, msg, (conversion._dicTables.get(tableName) as Table).tableLogPath);
+  const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 
-    const _cb = async (column: any): Promise<void> => {
-        if (column.Type.indexOf('(') !== -1) {
-            const arrType: string[] = column.Type.split('(');
+  const _cb = async (column: any): Promise<void> => {
+    if (column.Type.indexOf('(') !== -1) {
+      const arrType: string[] = column.Type.split('(');
 
-            if (arrType[0] === 'enum') {
-                const columnName: string = extraConfigProcessor.getColumnName(
-                    conversion,
-                    originalTableName,
-                    column.Field,
-                    false,
-                );
+      if (arrType[0] === 'enum') {
+        const columnName: string = extraConfigProcessor.getColumnName(
+          conversion,
+          originalTableName,
+          column.Field,
+          false,
+        );
 
-                const params: DBAccessQueryParams = {
-                    conversion: conversion,
-                    caller: logTitle,
-                    sql: `ALTER TABLE ${fullTableName} ADD CHECK ("${columnName}" IN (${arrType[1]});`,
-                    vendor: DBVendors.PG,
-                    processExitOnError: false,
-                    shouldReturnClient: false,
-                };
+        const params: DBAccessQueryParams = {
+          conversion: conversion,
+          caller: logTitle,
+          sql: `ALTER TABLE ${fullTableName} ADD CHECK ("${columnName}" IN (${arrType[1]});`,
+          vendor: DBVendors.PG,
+          processExitOnError: false,
+          shouldReturnClient: false,
+        };
 
-                const result: DBAccessQueryResult = await DBAccess.query(params);
+        const result: DBAccessQueryResult = await DBAccess.query(params);
 
-                if (!result.error) {
-                    await log(
-                        conversion,
-                        `\t--[${logTitle}] Set "ENUM" for ${fullTableName}."${columnName}"...`,
-                        (conversion._dicTables.get(tableName) as Table).tableLogPath,
-                    );
-                }
-            }
+        if (!result.error) {
+          await log(
+            conversion,
+            `\t--[${logTitle}] Set "ENUM" for ${fullTableName}."${columnName}"...`,
+            (conversion._dicTables.get(tableName) as Table).tableLogPath,
+          );
         }
-    };
+      }
+    }
+  };
 
-    const processEnumPromises: Promise<void>[] = (
-        conversion._dicTables.get(tableName) as Table
-    ).arrTableColumns.map(_cb);
+  const processEnumPromises: Promise<void>[] = (
+    conversion._dicTables.get(tableName) as Table
+  ).arrTableColumns.map(_cb);
 
-    await Promise.all(processEnumPromises);
+  await Promise.all(processEnumPromises);
 };
