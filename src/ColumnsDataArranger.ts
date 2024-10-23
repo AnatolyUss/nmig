@@ -24,19 +24,19 @@ import { Encoding } from './Types';
  * Defines if given type is one of MySQL spacial types.
  */
 const isSpacial = (type: string): boolean => {
-    return (
-        type.indexOf('geometry') !== -1 ||
-        type.indexOf('point') !== -1 ||
-        type.indexOf('linestring') !== -1 ||
-        type.indexOf('polygon') !== -1
-    );
+  return (
+    type.indexOf('geometry') !== -1 ||
+    type.indexOf('point') !== -1 ||
+    type.indexOf('linestring') !== -1 ||
+    type.indexOf('polygon') !== -1
+  );
 };
 
 /**
  * Defines if given type is one of MySQL binary types.
  */
 const isBinary = (type: string): boolean =>
-    type.indexOf('blob') !== -1 || type.indexOf('binary') !== -1;
+  type.indexOf('blob') !== -1 || type.indexOf('binary') !== -1;
 
 /**
  * Defines if given type is one of MySQL bit types.
@@ -47,20 +47,20 @@ const isBit = (type: string): boolean => type.indexOf('bit') !== -1;
  * Defines if given type is one of MySQL date-time types.
  */
 const isDateTime = (type: string): boolean =>
-    type.indexOf('timestamp') !== -1 || type.indexOf('date') !== -1;
+  type.indexOf('timestamp') !== -1 || type.indexOf('date') !== -1;
 
 /**
  * Defines if given type is one of MySQL numeric types.
  */
 const isNumeric = (type: string): boolean => {
-    return (
-        type.indexOf('decimal') !== -1 ||
-        type.indexOf('numeric') !== -1 ||
-        type.indexOf('double') !== -1 ||
-        type.indexOf('float') !== -1 ||
-        type.indexOf('int') !== -1 ||
-        type.indexOf('point') !== -1
-    );
+  return (
+    type.indexOf('decimal') !== -1 ||
+    type.indexOf('numeric') !== -1 ||
+    type.indexOf('double') !== -1 ||
+    type.indexOf('float') !== -1 ||
+    type.indexOf('int') !== -1 ||
+    type.indexOf('point') !== -1
+  );
 };
 
 /**
@@ -75,30 +75,30 @@ const getSanitizedType = (type: string): string => type.split('(')[0];
  * Arranges columns data before loading.
  */
 export default (arrTableColumns: any[], mysqlVersion: number, encoding: Encoding): string => {
-    let strRetVal = '';
-    const wkbFunc = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
+  let strRetVal = '';
+  const wkbFunc = mysqlVersion >= 5.76 ? 'ST_AsWKB' : 'AsWKB';
 
-    arrTableColumns.forEach((column: any) => {
-        const field: string = column.Field;
-        const type: string = getSanitizedType(column.Type);
+  arrTableColumns.forEach((column: any) => {
+    const field: string = column.Field;
+    const type: string = getSanitizedType(column.Type);
 
-        if (isSpacial(type)) {
-            // Apply HEX(ST_AsWKB(...)) due to the issue, described at https://bugs.mysql.com/bug.php?id=69798
-            strRetVal += `HEX(${wkbFunc}(\`${field}\`)) AS \`${field}\`,`;
-        } else if (isBinary(type)) {
-            strRetVal += `HEX(\`${field}\`) AS \`${field}\`,`;
-        } else if (isBit(type)) {
-            strRetVal += `BIN(\`${field}\`) AS \`${field}\`,`;
-        } else if (isDateTime(type)) {
-            strRetVal += `IF(\`${field}\` IN('0000-00-00', '0000-00-00 00:00:00'), '-INFINITY', CAST(\`${field}\` AS CHAR)) AS \`${field}\`,`;
-        } else if (isNumeric(type)) {
-            strRetVal += `\`${field}\` AS \`${field}\`,`;
-        } else if (encoding === 'utf-8' || encoding === 'utf8') {
-            strRetVal += `REPLACE(\`${field}\`, '\0', '') AS \`${field}\`,`;
-        } else {
-            strRetVal += `\`${field}\` AS \`${field}\`,`;
-        }
-    });
+    if (isSpacial(type)) {
+      // Apply HEX(ST_AsWKB(...)) due to the issue, described at https://bugs.mysql.com/bug.php?id=69798
+      strRetVal += `HEX(${wkbFunc}(\`${field}\`)) AS \`${field}\`,`;
+    } else if (isBinary(type)) {
+      strRetVal += `HEX(\`${field}\`) AS \`${field}\`,`;
+    } else if (isBit(type)) {
+      strRetVal += `BIN(\`${field}\`) AS \`${field}\`,`;
+    } else if (isDateTime(type)) {
+      strRetVal += `IF(\`${field}\` IN('0000-00-00', '0000-00-00 00:00:00'), '-INFINITY', CAST(\`${field}\` AS CHAR)) AS \`${field}\`,`;
+    } else if (isNumeric(type)) {
+      strRetVal += `\`${field}\` AS \`${field}\`,`;
+    } else if (encoding === 'utf-8' || encoding === 'utf8') {
+      strRetVal += `REPLACE(\`${field}\`, '\0', '') AS \`${field}\`,`;
+    } else {
+      strRetVal += `\`${field}\` AS \`${field}\`,`;
+    }
+  });
 
-    return strRetVal.slice(0, -1);
+  return strRetVal.slice(0, -1);
 };

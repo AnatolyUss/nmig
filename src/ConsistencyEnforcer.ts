@@ -30,28 +30,28 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
  * In case of rerunning Nmig after unexpected failure - it is absolutely mandatory.
  */
 export const dataTransferred = async (
-    conversion: Conversion,
-    dataPoolId: number,
+  conversion: Conversion,
+  dataPoolId: number,
 ): Promise<boolean> => {
-    const dataPoolTable: string = getDataPoolTableName(conversion);
-    const sqlGetMetadata = `SELECT metadata AS metadata FROM ${dataPoolTable} WHERE id = ${dataPoolId};`;
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: 'ConsistencyEnforcer::dataTransferred',
-        sql: sqlGetMetadata,
-        vendor: DBVendors.PG,
-        processExitOnError: true,
-        shouldReturnClient: true,
-    };
+  const dataPoolTable: string = getDataPoolTableName(conversion);
+  const sqlGetMetadata = `SELECT metadata AS metadata FROM ${dataPoolTable} WHERE id = ${dataPoolId};`;
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: 'ConsistencyEnforcer::dataTransferred',
+    sql: sqlGetMetadata,
+    vendor: DBVendors.PG,
+    processExitOnError: true,
+    shouldReturnClient: true,
+  };
 
-    const result: DBAccessQueryResult = await DBAccess.query(params);
-    const metadata: any = JSON.parse(result.data.rows[0].metadata);
-    const targetTableName = `"${conversion._schema}"."${metadata._tableName}"`;
+  const result: DBAccessQueryResult = await DBAccess.query(params);
+  const metadata: any = JSON.parse(result.data.rows[0].metadata);
+  const targetTableName = `"${conversion._schema}"."${metadata._tableName}"`;
 
-    params.sql = `SELECT * FROM ${targetTableName} LIMIT 1 OFFSET 0;`;
-    params.shouldReturnClient = false;
-    params.client = result.client;
+  params.sql = `SELECT * FROM ${targetTableName} LIMIT 1 OFFSET 0;`;
+  params.shouldReturnClient = false;
+  params.client = result.client;
 
-    const probe: DBAccessQueryResult = await DBAccess.query(params);
-    return probe.data.rows.length !== 0;
+  const probe: DBAccessQueryResult = await DBAccess.query(params);
+  return probe.data.rows.length !== 0;
 };

@@ -29,98 +29,98 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from '../../src/T
  * Returns `table_a` column types.
  */
 const getColumnTypes = async (testSchemaProcessor: TestSchemaProcessor): Promise<any[]> => {
-    const sql = `SELECT column_name, data_type  
+  const sql = `SELECT column_name, data_type  
         FROM information_schema.columns
         WHERE table_catalog = '${
-            (testSchemaProcessor.conversion as Conversion)._targetConString.database
+          (testSchemaProcessor.conversion as Conversion)._targetConString.database
         }' 
             AND table_schema = '${(testSchemaProcessor.conversion as Conversion)._schema}' 
             AND table_name = 'table_a';`;
 
-    const params: DBAccessQueryParams = {
-        conversion: testSchemaProcessor.conversion as Conversion,
-        caller: 'ColumnTypesTest::getColumnTypes',
-        sql: sql,
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
+  const params: DBAccessQueryParams = {
+    conversion: testSchemaProcessor.conversion as Conversion,
+    caller: 'ColumnTypesTest::getColumnTypes',
+    sql: sql,
+    vendor: DBVendors.PG,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
 
-    const result: DBAccessQueryResult = await DBAccess.query(params);
+  const result: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (result.error) {
-        await testSchemaProcessor.processFatalError(result.error);
-    }
+  if (result.error) {
+    await testSchemaProcessor.processFatalError(result.error);
+  }
 
-    return result.data.rows;
+  return result.data.rows;
 };
 
 /**
  * Returns expected column types map.
  */
 const getExpectedColumnTypes = (): Map<string, string> => {
-    return new Map<string, string>([
-        ['id_test_sequence', 'bigint'],
-        ['id_test_unique_index', 'integer'],
-        ['id_test_composite_unique_index_1', 'integer'],
-        ['id_test_composite_unique_index_2', 'integer'],
-        ['id_test_index', 'integer'],
-        ['int_test_not_null', 'integer'],
-        ['id_test_composite_index_1', 'integer'],
-        ['id_test_composite_index_2', 'integer'],
-        ['json_test_comment', 'json'],
-        ['bit', 'bit varying'],
-        ['year', 'smallint'],
-        ['tinyint_test_default', 'smallint'],
-        ['smallint', 'smallint'],
-        ['mediumint', 'integer'],
-        ['bigint', 'bigint'],
-        ['float', 'real'],
-        ['double', 'double precision'],
-        ['double_precision', 'double precision'],
-        ['numeric', 'numeric'],
-        ['decimal', 'numeric'],
-        ['decimal_19_2', 'numeric'],
-        ['char_5', 'character'],
-        ['varchar_5', 'character varying'],
-        ['date', 'date'],
-        ['time', 'time without time zone'],
-        ['datetime', 'timestamp without time zone'],
-        ['timestamp', 'timestamp without time zone'],
-        ['enum', 'character varying'],
-        ['set', 'character varying'],
-        ['tinytext', 'text'],
-        ['mediumtext', 'text'],
-        ['longtext', 'text'],
-        ['text', 'text'],
-        ['blob', 'bytea'],
-        ['longblob', 'bytea'],
-        ['mediumblob', 'bytea'],
-        ['tinyblob', 'bytea'],
-        ['varbinary', 'bytea'],
-        ['binary', 'bytea'],
-        ['null_char_in_varchar', 'character varying'],
-    ]);
+  return new Map<string, string>([
+    ['id_test_sequence', 'bigint'],
+    ['id_test_unique_index', 'integer'],
+    ['id_test_composite_unique_index_1', 'integer'],
+    ['id_test_composite_unique_index_2', 'integer'],
+    ['id_test_index', 'integer'],
+    ['int_test_not_null', 'integer'],
+    ['id_test_composite_index_1', 'integer'],
+    ['id_test_composite_index_2', 'integer'],
+    ['json_test_comment', 'json'],
+    ['bit', 'bit varying'],
+    ['year', 'smallint'],
+    ['tinyint_test_default', 'smallint'],
+    ['smallint', 'smallint'],
+    ['mediumint', 'integer'],
+    ['bigint', 'bigint'],
+    ['float', 'real'],
+    ['double', 'double precision'],
+    ['double_precision', 'double precision'],
+    ['numeric', 'numeric'],
+    ['decimal', 'numeric'],
+    ['decimal_19_2', 'numeric'],
+    ['char_5', 'character'],
+    ['varchar_5', 'character varying'],
+    ['date', 'date'],
+    ['time', 'time without time zone'],
+    ['datetime', 'timestamp without time zone'],
+    ['timestamp', 'timestamp without time zone'],
+    ['enum', 'character varying'],
+    ['set', 'character varying'],
+    ['tinytext', 'text'],
+    ['mediumtext', 'text'],
+    ['longtext', 'text'],
+    ['text', 'text'],
+    ['blob', 'bytea'],
+    ['longblob', 'bytea'],
+    ['mediumblob', 'bytea'],
+    ['tinyblob', 'bytea'],
+    ['varbinary', 'bytea'],
+    ['binary', 'bytea'],
+    ['null_char_in_varchar', 'character varying'],
+  ]);
 };
 
 /**
  * The data content testing.
  */
 export default async (testSchemaProcessor: TestSchemaProcessor, tape: Test): Promise<void> => {
-    const data: any[] = await getColumnTypes(testSchemaProcessor);
-    const expectedColumnTypesMap: Map<string, string> = getExpectedColumnTypes();
-    const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
-    const numberOfPlannedAssertions: number = data.length;
+  const data: any[] = await getColumnTypes(testSchemaProcessor);
+  const expectedColumnTypesMap: Map<string, string> = getExpectedColumnTypes();
+  const autoTimeoutMs: number = 3 * 1000; // 3 seconds.
+  const numberOfPlannedAssertions: number = data.length;
 
-    tape.plan(numberOfPlannedAssertions);
-    tape.timeoutAfter(autoTimeoutMs);
+  tape.plan(numberOfPlannedAssertions);
+  tape.timeoutAfter(autoTimeoutMs);
 
-    for (let i = 0; i < numberOfPlannedAssertions; ++i) {
-        const columnName: string = data[i].column_name;
-        const actualColumnType: string = data[i].data_type;
-        const expectedColumnType: string = expectedColumnTypesMap.get(columnName) as string;
+  for (let i = 0; i < numberOfPlannedAssertions; ++i) {
+    const columnName: string = data[i].column_name;
+    const actualColumnType: string = data[i].data_type;
+    const expectedColumnType: string = expectedColumnTypesMap.get(columnName) as string;
 
-        tape.comment(`Test ${columnName} column type`);
-        tape.equal(actualColumnType, expectedColumnType);
-    }
+    tape.comment(`Test ${columnName} column type`);
+    tape.equal(actualColumnType, expectedColumnType);
+  }
 };

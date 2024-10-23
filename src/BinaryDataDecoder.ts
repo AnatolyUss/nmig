@@ -29,45 +29,45 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
  * Decodes binary data from textual representation in string.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle = 'BinaryDataDecoder::decodeBinaryData';
-    await log(
-        conversion,
-        `\t--[${logTitle}] Decodes binary data from textual representation in string.`,
-    );
+  const logTitle = 'BinaryDataDecoder::decodeBinaryData';
+  await log(
+    conversion,
+    `\t--[${logTitle}] Decodes binary data from textual representation in string.`,
+  );
 
-    const sql = `SELECT table_name, column_name 
+  const sql = `SELECT table_name, column_name 
         FROM information_schema.columns
         WHERE table_catalog = '${conversion._targetConString.database}' 
           AND table_schema = '${conversion._schema}' 
           AND data_type IN ('bytea', 'geometry');`;
 
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: sql,
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: sql,
+    vendor: DBVendors.PG,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
 
-    const result: DBAccessQueryResult = await DBAccess.query(params);
+  const result: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (result.error) {
-        // No need to continue if no 'bytea' or 'geometry' columns found.
-        await DBAccess.releaseDbClient(conversion, result.client as PoolClient);
-        return conversion;
-    }
+  if (result.error) {
+    // No need to continue if no 'bytea' or 'geometry' columns found.
+    await DBAccess.releaseDbClient(conversion, result.client as PoolClient);
+    return conversion;
+  }
 
-    const _cb = async (row: any): Promise<void> => {
-        const tableName: string = row.table_name;
-        const columnName: string = row.column_name;
-        params.sql = `UPDATE ${conversion._schema}."${tableName}"
+  const _cb = async (row: any): Promise<void> => {
+    const tableName: string = row.table_name;
+    const columnName: string = row.column_name;
+    params.sql = `UPDATE ${conversion._schema}."${tableName}"
                 SET "${columnName}" = DECODE(ENCODE("${columnName}", 'escape'), 'hex');`;
 
-        await DBAccess.query(params);
-    };
+    await DBAccess.query(params);
+  };
 
-    const decodePromises: Promise<void>[] = result.data.rows.map(_cb);
-    await Promise.all(decodePromises);
-    return conversion;
+  const decodePromises: Promise<void>[] = result.data.rows.map(_cb);
+  await Promise.all(decodePromises);
+  return conversion;
 };

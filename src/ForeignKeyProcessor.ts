@@ -29,126 +29,116 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
  * Creates foreign keys for given table.
  */
 const processForeignKeyWorker = async (
-    conversion: Conversion,
-    tableName: string,
-    rows: any[],
+  conversion: Conversion,
+  tableName: string,
+  rows: any[],
 ): Promise<void> => {
-    const objConstraints: any = Object.create(null);
-    const originalTableName: string = extraConfigProcessor.getTableName(
-        conversion,
-        tableName,
-        true,
+  const objConstraints: any = Object.create(null);
+  const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+  const logTitle = 'ForeignKeyProcessor::processForeignKeyWorker';
+
+  rows.forEach((row: any) => {
+    const currentColumnName: string = extraConfigProcessor.getColumnName(
+      conversion,
+      originalTableName,
+      row.COLUMN_NAME,
+      false,
     );
-    const logTitle = 'ForeignKeyProcessor::processForeignKeyWorker';
 
-    rows.forEach((row: any) => {
-        const currentColumnName: string = extraConfigProcessor.getColumnName(
-            conversion,
-            originalTableName,
-            row.COLUMN_NAME,
-            false,
-        );
+    const currentReferencedTableName: string = extraConfigProcessor.getTableName(
+      conversion,
+      row.REFERENCED_TABLE_NAME,
+      false,
+    );
 
-        const currentReferencedTableName: string = extraConfigProcessor.getTableName(
-            conversion,
-            row.REFERENCED_TABLE_NAME,
-            false,
-        );
+    const originalReferencedTableName: string = extraConfigProcessor.getTableName(
+      conversion,
+      row.REFERENCED_TABLE_NAME,
+      true,
+    );
 
-        const originalReferencedTableName: string = extraConfigProcessor.getTableName(
-            conversion,
-            row.REFERENCED_TABLE_NAME,
-            true,
-        );
+    const currentReferencedColumnName: string = extraConfigProcessor.getColumnName(
+      conversion,
+      originalReferencedTableName,
+      row.REFERENCED_COLUMN_NAME,
+      false,
+    );
 
-        const currentReferencedColumnName: string = extraConfigProcessor.getColumnName(
-            conversion,
-            originalReferencedTableName,
-            row.REFERENCED_COLUMN_NAME,
-            false,
-        );
+    if (row.CONSTRAINT_NAME in objConstraints) {
+      objConstraints[row.CONSTRAINT_NAME].column_name.add(`"${currentColumnName}"`);
+      objConstraints[row.CONSTRAINT_NAME].referenced_column_name.add(
+        `"${currentReferencedColumnName}"`,
+      );
+      return;
+    }
 
-        if (row.CONSTRAINT_NAME in objConstraints) {
-            objConstraints[row.CONSTRAINT_NAME].column_name.add(`"${currentColumnName}"`);
-            objConstraints[row.CONSTRAINT_NAME].referenced_column_name.add(
-                `"${currentReferencedColumnName}"`,
-            );
-            return;
-        }
+    objConstraints[row.CONSTRAINT_NAME] = Object.create(null);
+    objConstraints[row.CONSTRAINT_NAME].column_name = new Set<string>([`"${currentColumnName}"`]);
+    objConstraints[row.CONSTRAINT_NAME].referenced_column_name = new Set<string>([
+      `"${currentReferencedColumnName}"`,
+    ]);
 
-        objConstraints[row.CONSTRAINT_NAME] = Object.create(null);
-        objConstraints[row.CONSTRAINT_NAME].column_name = new Set<string>([
-            `"${currentColumnName}"`,
-        ]);
-        objConstraints[row.CONSTRAINT_NAME].referenced_column_name = new Set<string>([
-            `"${currentReferencedColumnName}"`,
-        ]);
+    objConstraints[row.CONSTRAINT_NAME].referenced_table_name = currentReferencedTableName;
+    objConstraints[row.CONSTRAINT_NAME].update_rule = row.UPDATE_RULE;
+    objConstraints[row.CONSTRAINT_NAME].delete_rule = row.DELETE_RULE;
+  });
 
-        objConstraints[row.CONSTRAINT_NAME].referenced_table_name = currentReferencedTableName;
-        objConstraints[row.CONSTRAINT_NAME].update_rule = row.UPDATE_RULE;
-        objConstraints[row.CONSTRAINT_NAME].delete_rule = row.DELETE_RULE;
-    });
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: '',
+    vendor: DBVendors.PG,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
 
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: '',
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
-
-    const _cb = async (attr: string): Promise<void> => {
-        params.sql = `ALTER TABLE "${conversion._schema}"."${tableName}" 
+  const _cb = async (attr: string): Promise<void> => {
+    params.sql = `ALTER TABLE "${conversion._schema}"."${tableName}" 
             ADD FOREIGN KEY (${[...objConstraints[attr].column_name].join(',')}) 
             REFERENCES "${conversion._schema}"."${objConstraints[attr].referenced_table_name}" 
             (${[...objConstraints[attr].referenced_column_name].join(',')}) 
             ON UPDATE ${objConstraints[attr].update_rule} 
             ON DELETE ${objConstraints[attr].delete_rule};`;
 
-        await DBAccess.query(params);
-    };
+    await DBAccess.query(params);
+  };
 
-    const constraintsPromises: Promise<void>[] = Object.keys(objConstraints).map(_cb);
-    await Promise.all(constraintsPromises);
+  const constraintsPromises: Promise<void>[] = Object.keys(objConstraints).map(_cb);
+  await Promise.all(constraintsPromises);
 };
 
 /**
  * Starts a process of foreign keys creation.
  */
 export default async (conversion: Conversion): Promise<void> => {
-    const logTitle = 'ForeignKeyProcessor::default';
-    const isForeignKeysProcessed: boolean = await migrationStateManager.get(
-        conversion,
-        'foreign_keys_loaded',
+  const logTitle = 'ForeignKeyProcessor::default';
+  const isForeignKeysProcessed: boolean = await migrationStateManager.get(
+    conversion,
+    'foreign_keys_loaded',
+  );
+
+  if (isForeignKeysProcessed) {
+    return;
+  }
+
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: '',
+    vendor: DBVendors.MYSQL,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
+
+  const _cb = async (tableName: string): Promise<void> => {
+    await log(
+      conversion,
+      `\t--[${logTitle}] Search foreign keys for table "${conversion._schema}"."${tableName}"...`,
     );
 
-    if (isForeignKeysProcessed) {
-        return;
-    }
+    const colsTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
 
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: '',
-        vendor: DBVendors.MYSQL,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
-
-    const _cb = async (tableName: string): Promise<void> => {
-        await log(
-            conversion,
-            `\t--[${logTitle}] Search foreign keys for table "${conversion._schema}"."${tableName}"...`,
-        );
-
-        const colsTableName: string = extraConfigProcessor.getTableName(
-            conversion,
-            tableName,
-            true,
-        );
-
-        params.sql = `
+    params.sql = `
             SELECT 
                 cols.COLUMN_NAME, refs.REFERENCED_TABLE_NAME, refs.REFERENCED_COLUMN_NAME,
                 cRefs.UPDATE_RULE, cRefs.DELETE_RULE, cRefs.CONSTRAINT_NAME 
@@ -171,21 +161,21 @@ export default async (conversion: Conversion): Promise<void> => {
                     AND cLinks.CONSTRAINT_NAME = links.CONSTRAINT_NAME 
             WHERE cols.TABLE_SCHEMA = '${conversion._mySqlDbName}' AND cols.TABLE_NAME = '${colsTableName}';`;
 
-        const result: DBAccessQueryResult = await DBAccess.query(params);
+    const result: DBAccessQueryResult = await DBAccess.query(params);
 
-        if (result.error) {
-            return;
-        }
+    if (result.error) {
+      return;
+    }
 
-        const extraRows: any[] = extraConfigProcessor.parseForeignKeys(conversion, tableName);
-        const fullRows: any[] = (result.data || []).concat(extraRows); // Prevent failure if "result.data" is undefined.
-        await processForeignKeyWorker(conversion, tableName, fullRows);
-        await log(
-            conversion,
-            `\t--[${logTitle}] Foreign keys for table "${conversion._schema}"."${tableName}" are set...`,
-        );
-    };
+    const extraRows: any[] = extraConfigProcessor.parseForeignKeys(conversion, tableName);
+    const fullRows: any[] = (result.data || []).concat(extraRows); // Prevent failure if "result.data" is undefined.
+    await processForeignKeyWorker(conversion, tableName, fullRows);
+    await log(
+      conversion,
+      `\t--[${logTitle}] Foreign keys for table "${conversion._schema}"."${tableName}" are set...`,
+    );
+  };
 
-    const fkPromises: Promise<void>[] = conversion._tablesToMigrate.map(_cb);
-    await Promise.all(fkPromises);
+  const fkPromises: Promise<void>[] = conversion._tablesToMigrate.map(_cb);
+  await Promise.all(fkPromises);
 };

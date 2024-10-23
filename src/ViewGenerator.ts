@@ -31,101 +31,98 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
  * Attempts to convert MySQL view to PostgreSQL view.
  */
 const generateView = (schema: string, viewName: string, mysqlViewCode: string): string => {
-    mysqlViewCode = mysqlViewCode.split('`').join('"');
-    const queryStart: number = mysqlViewCode.indexOf('AS');
-    mysqlViewCode = mysqlViewCode.slice(queryStart);
-    const arrMysqlViewCode: string[] = mysqlViewCode.split(' ');
+  mysqlViewCode = mysqlViewCode.split('`').join('"');
+  const queryStart: number = mysqlViewCode.indexOf('AS');
+  mysqlViewCode = mysqlViewCode.slice(queryStart);
+  const arrMysqlViewCode: string[] = mysqlViewCode.split(' ');
 
-    arrMysqlViewCode.forEach((str: string, index: number) => {
-        if (
-            str.toLowerCase() === 'from' ||
-            (str.toLowerCase() === 'join' && index + 1 < arrMysqlViewCode.length)
-        ) {
-            arrMysqlViewCode[index + 1] = `"${schema}".${arrMysqlViewCode[index + 1]}`;
-        }
-    });
+  arrMysqlViewCode.forEach((str: string, index: number) => {
+    if (
+      str.toLowerCase() === 'from' ||
+      (str.toLowerCase() === 'join' && index + 1 < arrMysqlViewCode.length)
+    ) {
+      arrMysqlViewCode[index + 1] = `"${schema}".${arrMysqlViewCode[index + 1]}`;
+    }
+  });
 
-    return `CREATE OR REPLACE VIEW "${schema}"."${viewName}" ${arrMysqlViewCode.join(' ')};`;
+  return `CREATE OR REPLACE VIEW "${schema}"."${viewName}" ${arrMysqlViewCode.join(' ')};`;
 };
 
 /**
  * Writes a log, containing a view code.
  */
 const logNotCreatedView = (
-    conversion: Conversion,
-    viewName: string,
-    sql: string,
+  conversion: Conversion,
+  viewName: string,
+  sql: string,
 ): Promise<void> => {
-    return new Promise<void>(resolve => {
-        const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${viewName}.sql`);
-        fs.open(
-            viewFilePath,
-            'w',
-            conversion._0777,
-            async (error: NodeJS.ErrnoException | null, fd: number): Promise<void> => {
-                if (error) {
-                    await log(conversion, error);
-                    return resolve();
-                }
+  return new Promise<void>(resolve => {
+    const viewFilePath: string = path.join(conversion._notCreatedViewsPath, `${viewName}.sql`);
+    fs.open(
+      viewFilePath,
+      'w',
+      conversion._0777,
+      async (error: NodeJS.ErrnoException | null, fd: number): Promise<void> => {
+        if (error) {
+          await log(conversion, error);
+          return resolve();
+        }
 
-                const buffer: Buffer = Buffer.from(sql, conversion._encoding);
-                fs.write(fd, buffer, 0, buffer.length, null, () => {
-                    fs.close(fd, () => {
-                        return resolve();
-                    });
-                });
-            },
-        );
-    });
+        const buffer: Buffer = Buffer.from(sql, conversion._encoding);
+        fs.write(fd, buffer, 0, buffer.length, null, () => {
+          fs.close(fd, () => {
+            return resolve();
+          });
+        });
+      },
+    );
+  });
 };
 
 /**
  * Attempts to convert MySQL view to PostgreSQL view.
  */
 export default async (conversion: Conversion): Promise<void> => {
-    const hasViewsLoaded: boolean = await migrationStateManager.get(conversion, 'views_loaded');
+  const hasViewsLoaded: boolean = await migrationStateManager.get(conversion, 'views_loaded');
 
-    if (hasViewsLoaded) {
-        return;
-    }
+  if (hasViewsLoaded) {
+    return;
+  }
 
-    const logTitle = 'ViewGenerator::default';
+  const logTitle = 'ViewGenerator::default';
 
-    const _cb = async (view: string): Promise<void> => {
-        const params: DBAccessQueryParams = {
-            conversion: conversion,
-            caller: logTitle,
-            sql: `SHOW CREATE VIEW \`${view}\`;`,
-            vendor: DBVendors.MYSQL,
-            processExitOnError: false,
-            shouldReturnClient: false,
-        };
-
-        const showCreateViewResult: DBAccessQueryResult = await DBAccess.query(params);
-
-        if (showCreateViewResult.error) {
-            return;
-        }
-
-        params.sql = generateView(
-            conversion._schema,
-            view,
-            showCreateViewResult.data[0]['Create View'],
-        );
-        params.vendor = DBVendors.PG;
-        const createPgViewResult: DBAccessQueryResult = await DBAccess.query(params);
-
-        if (createPgViewResult.error) {
-            await logNotCreatedView(conversion, view, params.sql);
-            return;
-        }
-
-        await log(
-            conversion,
-            `\t--[${logTitle}] View "${conversion._schema}"."${view}" is created...`,
-        );
+  const _cb = async (view: string): Promise<void> => {
+    const params: DBAccessQueryParams = {
+      conversion: conversion,
+      caller: logTitle,
+      sql: `SHOW CREATE VIEW \`${view}\`;`,
+      vendor: DBVendors.MYSQL,
+      processExitOnError: false,
+      shouldReturnClient: false,
     };
 
-    const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(_cb);
-    await Promise.all(createViewPromises);
+    const showCreateViewResult: DBAccessQueryResult = await DBAccess.query(params);
+
+    if (showCreateViewResult.error) {
+      return;
+    }
+
+    params.sql = generateView(
+      conversion._schema,
+      view,
+      showCreateViewResult.data[0]['Create View'],
+    );
+    params.vendor = DBVendors.PG;
+    const createPgViewResult: DBAccessQueryResult = await DBAccess.query(params);
+
+    if (createPgViewResult.error) {
+      await logNotCreatedView(conversion, view, params.sql);
+      return;
+    }
+
+    await log(conversion, `\t--[${logTitle}] View "${conversion._schema}"."${view}" is created...`);
+  };
+
+  const createViewPromises: Promise<void>[] = conversion._viewsToMigrate.map(_cb);
+  await Promise.all(createViewPromises);
 };

@@ -29,85 +29,81 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors, Table, Index } fro
  * Returns PostgreSQL index type, that correlates to given MySQL index type.
  */
 const getIndexType = (conversion: Conversion, indexType: string): string => {
-    return indexType in conversion._indexTypesMap ? conversion._indexTypesMap[indexType] : 'BTREE';
+  return indexType in conversion._indexTypesMap ? conversion._indexTypesMap[indexType] : 'BTREE';
 };
 
 /**
  * Creates primary key and indices.
  */
 export default async (conversion: Conversion, tableName: string): Promise<void> => {
-    const logTitle = 'IndexAndKeyProcessor::default';
-    const originalTableName: string = extraConfigProcessor.getTableName(
-        conversion,
-        tableName,
-        true,
+  const logTitle = 'IndexAndKeyProcessor::default';
+  const originalTableName: string = extraConfigProcessor.getTableName(conversion, tableName, true);
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: `SHOW INDEX FROM \`${originalTableName}\`;`,
+    vendor: DBVendors.MYSQL,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
+
+  const showIndexResult: DBAccessQueryResult = await DBAccess.query(params);
+
+  if (showIndexResult.error) {
+    return;
+  }
+
+  const pgIndices = new Map<string, Index>();
+
+  showIndexResult.data.forEach((index: any) => {
+    const pgColumnName: string = extraConfigProcessor.getColumnName(
+      conversion,
+      originalTableName,
+      index.Column_name,
+      false,
     );
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: `SHOW INDEX FROM \`${originalTableName}\`;`,
-        vendor: DBVendors.MYSQL,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
 
-    const showIndexResult: DBAccessQueryResult = await DBAccess.query(params);
-
-    if (showIndexResult.error) {
-        return;
+    if (pgIndices.has(index.Key_name)) {
+      (pgIndices.get(index.Key_name) as Index).column_name.push(`"${pgColumnName}"`);
+      return; // Continue to the next iteration.
     }
 
-    const pgIndices = new Map<string, Index>();
-
-    showIndexResult.data.forEach((index: any) => {
-        const pgColumnName: string = extraConfigProcessor.getColumnName(
-            conversion,
-            originalTableName,
-            index.Column_name,
-            false,
-        );
-
-        if (pgIndices.has(index.Key_name)) {
-            (pgIndices.get(index.Key_name) as Index).column_name.push(`"${pgColumnName}"`);
-            return; // Continue to the next iteration.
-        }
-
-        pgIndices.set(index.Key_name, {
-            is_unique: index.Non_unique === 0,
-            column_name: [`"${pgColumnName}"`],
-            index_type: ` USING ${getIndexType(conversion, index.Index_type)}`,
-        });
+    pgIndices.set(index.Key_name, {
+      is_unique: index.Non_unique === 0,
+      column_name: [`"${pgColumnName}"`],
+      index_type: ` USING ${getIndexType(conversion, index.Index_type)}`,
     });
+  });
 
-    const _cb = async (index: string): Promise<void> => {
-        let sqlAddIndex = '';
-        const currentIndex: Index = pgIndices.get(index) as Index;
+  const _cb = async (index: string): Promise<void> => {
+    let sqlAddIndex = '';
+    const currentIndex: Index = pgIndices.get(index) as Index;
 
-        if (index.toLowerCase() === 'primary') {
-            sqlAddIndex = `ALTER TABLE "${conversion._schema}"."${tableName}" 
+    if (index.toLowerCase() === 'primary') {
+      sqlAddIndex = `ALTER TABLE "${conversion._schema}"."${tableName}" 
                 ADD PRIMARY KEY(${currentIndex.column_name.join(',')});`;
-        } else {
-            const columnName: string = currentIndex.column_name
-                .map((colName: string) => colName.slice(1, -1))
-                .join('_');
+    } else {
+      const columnName: string = currentIndex.column_name
+        .map((colName: string) => colName.slice(1, -1))
+        .join('_');
 
-            const indexName: string = getUniqueIdentifier(`${tableName}_${columnName}_idx`, '_idx');
+      const indexName: string = getUniqueIdentifier(`${tableName}_${columnName}_idx`, '_idx');
 
-            sqlAddIndex = `CREATE ${currentIndex.is_unique ? 'UNIQUE' : ''} INDEX "${indexName}" 
+      sqlAddIndex = `CREATE ${currentIndex.is_unique ? 'UNIQUE' : ''} INDEX "${indexName}" 
             ON "${conversion._schema}"."${tableName}" 
             ${currentIndex.index_type} (${currentIndex.column_name.join(',')});`;
-        }
+    }
 
-        params.vendor = DBVendors.PG;
-        params.sql = sqlAddIndex;
-        await DBAccess.query(params);
-    };
+    params.vendor = DBVendors.PG;
+    params.sql = sqlAddIndex;
+    await DBAccess.query(params);
+  };
 
-    const addIndexPromises: Promise<void>[] = Array.from(pgIndices.keys()).map(_cb);
-    await Promise.all(addIndexPromises);
-    await log(
-        conversion,
-        `\t--[${logTitle}] "${conversion._schema}"."${tableName}": PK/indices are successfully set...`,
-        (conversion._dicTables.get(tableName) as Table).tableLogPath,
-    );
+  const addIndexPromises: Promise<void>[] = Array.from(pgIndices.keys()).map(_cb);
+  await Promise.all(addIndexPromises);
+  await log(
+    conversion,
+    `\t--[${logTitle}] "${conversion._schema}"."${tableName}": PK/indices are successfully set...`,
+    (conversion._dicTables.get(tableName) as Table).tableLogPath,
+  );
 };

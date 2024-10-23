@@ -34,40 +34,40 @@ import DataPipeManager from './DataPipeManager';
  * After accepting the message, initializes data streaming from current process stdin into PostgreSQL (via COPY).
  */
 process.on('message', async (signal: MessageToDataWriter): Promise<void> => {
-    const { config, chunk, copyStreamSerializableParams } = signal;
+  const { config, chunk, copyStreamSerializableParams } = signal;
 
-    // Create Conversion instance, but avoid creating a separate logger process.
-    const avoidLogger = true;
-    const conv: Conversion = new Conversion(config, avoidLogger);
+  // Create Conversion instance, but avoid creating a separate logger process.
+  const avoidLogger = true;
+  const conv: Conversion = new Conversion(config, avoidLogger);
 
-    const fullTableName = `"${conv._schema}"."${chunk._tableName}"`;
-    await log(conv, `\t--[NMIG DataWriter] Loading the data into ${fullTableName} table...`);
+  const fullTableName = `"${conv._schema}"."${chunk._tableName}"`;
+  await log(conv, `\t--[NMIG DataWriter] Loading the data into ${fullTableName} table...`);
 
-    const { sqlCopy, sql, tableName, dataPoolId, originalSessionReplicationRole } =
-        copyStreamSerializableParams;
+  const { sqlCopy, sql, tableName, dataPoolId, originalSessionReplicationRole } =
+    copyStreamSerializableParams;
 
-    const client: PoolClient = await DBAccess.getPgClient(conv);
+  const client: PoolClient = await DBAccess.getPgClient(conv);
 
-    if (conv.shouldMigrateOnlyData()) {
-        await DataPipeManager.disablePgTriggers(conv, client);
-    }
+  if (conv.shouldMigrateOnlyData()) {
+    await DataPipeManager.disablePgTriggers(conv, client);
+  }
 
-    const copyStream: Writable = client.query(from(sqlCopy));
+  const copyStream: Writable = client.query(from(sqlCopy));
 
-    try {
-        await streamPromises.pipeline(process.stdin, copyStream);
-    } catch (pipelineError) {
-        await DataPipeManager.processDataError(
-            conv,
-            pipelineError as string,
-            sql,
-            sqlCopy,
-            tableName,
-            dataPoolId,
-            client,
-            originalSessionReplicationRole,
-        );
-    }
+  try {
+    await streamPromises.pipeline(process.stdin, copyStream);
+  } catch (pipelineError) {
+    await DataPipeManager.processDataError(
+      conv,
+      pipelineError as string,
+      sql,
+      sqlCopy,
+      tableName,
+      dataPoolId,
+      client,
+      originalSessionReplicationRole,
+    );
+  }
 
-    process.exit(0);
+  process.exit(0);
 });

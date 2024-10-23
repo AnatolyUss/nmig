@@ -24,25 +24,25 @@ import Conversion from './Conversion';
  * Retrieves current table's name.
  */
 export const getTableName = (
-    conversion: Conversion,
-    currentTableName: string,
-    shouldGetOriginal: boolean,
+  conversion: Conversion,
+  currentTableName: string,
+  shouldGetOriginal: boolean,
 ): string => {
-    if (conversion._extraConfig !== null && 'tables' in conversion._extraConfig) {
-        for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
-            const tableName: string = shouldGetOriginal
-                ? conversion._extraConfig.tables[i].name.new
-                : conversion._extraConfig.tables[i].name.original;
+  if (conversion._extraConfig !== null && 'tables' in conversion._extraConfig) {
+    for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
+      const tableName: string = shouldGetOriginal
+        ? conversion._extraConfig.tables[i].name.new
+        : conversion._extraConfig.tables[i].name.original;
 
-            if (tableName === currentTableName) {
-                return shouldGetOriginal
-                    ? conversion._extraConfig.tables[i].name.original
-                    : conversion._extraConfig.tables[i].name.new;
-            }
-        }
+      if (tableName === currentTableName) {
+        return shouldGetOriginal
+          ? conversion._extraConfig.tables[i].name.original
+          : conversion._extraConfig.tables[i].name.new;
+      }
     }
+  }
 
-    return currentTableName;
+  return currentTableName;
 };
 
 /**
@@ -52,44 +52,44 @@ export const getTableName = (
  * will take precedence over 'lowerCaseAllColumnNames: true'.
  */
 export const getColumnName = (
-    conversion: Conversion,
-    originalTableName: string,
-    currentColumnName: string,
-    shouldGetOriginal: boolean,
+  conversion: Conversion,
+  originalTableName: string,
+  currentColumnName: string,
+  shouldGetOriginal: boolean,
 ): string => {
-    if (conversion._extraConfig) {
-        if ('tables' in conversion._extraConfig) {
-            for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
-                const tableFound: boolean =
-                    conversion._extraConfig.tables[i].name.original === originalTableName &&
-                    'columns' in conversion._extraConfig.tables[i];
+  if (conversion._extraConfig) {
+    if ('tables' in conversion._extraConfig) {
+      for (let i = 0; i < conversion._extraConfig.tables.length; ++i) {
+        const tableFound: boolean =
+          conversion._extraConfig.tables[i].name.original === originalTableName &&
+          'columns' in conversion._extraConfig.tables[i];
 
-                if (tableFound) {
-                    for (
-                        let columnsCount = 0;
-                        columnsCount < conversion._extraConfig.tables[i].columns.length;
-                        ++columnsCount
-                    ) {
-                        const columnFound: boolean =
-                            conversion._extraConfig.tables[i].columns[columnsCount].original ===
-                            currentColumnName;
+        if (tableFound) {
+          for (
+            let columnsCount = 0;
+            columnsCount < conversion._extraConfig.tables[i].columns.length;
+            ++columnsCount
+          ) {
+            const columnFound: boolean =
+              conversion._extraConfig.tables[i].columns[columnsCount].original ===
+              currentColumnName;
 
-                        if (columnFound) {
-                            return shouldGetOriginal
-                                ? conversion._extraConfig.tables[i].columns[columnsCount].original
-                                : conversion._extraConfig.tables[i].columns[columnsCount].new;
-                        }
-                    }
-                }
+            if (columnFound) {
+              return shouldGetOriginal
+                ? conversion._extraConfig.tables[i].columns[columnsCount].original
+                : conversion._extraConfig.tables[i].columns[columnsCount].new;
             }
+          }
         }
-
-        if (conversion._extraConfig.lowerCaseAllColumnNames) {
-            return currentColumnName.toLowerCase();
-        }
+      }
     }
 
-    return currentColumnName;
+    if (conversion._extraConfig.lowerCaseAllColumnNames) {
+      return currentColumnName.toLowerCase();
+    }
+  }
+
+  return currentColumnName;
 };
 
 /**
@@ -97,23 +97,22 @@ export const getColumnName = (
  * an output array required by ForeignKeyProcessor::processForeignKeyWorker.
  */
 export const parseForeignKeys = (conversion: Conversion, tableName: string): any[] => {
-    const retVal: any[] = [];
+  const retVal: any[] = [];
 
-    if (conversion._extraConfig !== null && 'foreign_keys' in conversion._extraConfig) {
-        for (let i = 0; i < conversion._extraConfig.foreign_keys.length; ++i) {
-            if (conversion._extraConfig.foreign_keys[i].table_name === tableName) {
-                // There may be several FKs in a single table.
-                const objFk: any = Object.create(null);
+  if (conversion._extraConfig !== null && 'foreign_keys' in conversion._extraConfig) {
+    for (let i = 0; i < conversion._extraConfig.foreign_keys.length; ++i) {
+      if (conversion._extraConfig.foreign_keys[i].table_name === tableName) {
+        // There may be several FKs in a single table.
+        const objFk: any = Object.create(null);
 
-                for (const attribute of conversion._extraConfig.foreign_keys[i]) {
-                    objFk[attribute.toUpperCase()] =
-                        conversion._extraConfig.foreign_keys[i][attribute];
-                }
-
-                retVal.push(objFk);
-            }
+        for (const attribute of conversion._extraConfig.foreign_keys[i]) {
+          objFk[attribute.toUpperCase()] = conversion._extraConfig.foreign_keys[i][attribute];
         }
-    }
 
-    return retVal;
+        retVal.push(objFk);
+      }
+    }
+  }
+
+  return retVal;
 };

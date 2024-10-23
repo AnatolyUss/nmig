@@ -26,23 +26,23 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
  * Creates a new PostgreSQL schema if it does not exist yet.
  */
 export default async (conversion: Conversion): Promise<Conversion> => {
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: 'SchemaProcessor::createSchema',
-        sql: `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${conversion._schema}';`,
-        vendor: DBVendors.PG,
-        processExitOnError: true,
-        shouldReturnClient: true,
-    };
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: 'SchemaProcessor::createSchema',
+    sql: `SELECT schema_name FROM information_schema.schemata WHERE schema_name = '${conversion._schema}';`,
+    vendor: DBVendors.PG,
+    processExitOnError: true,
+    shouldReturnClient: true,
+  };
 
-    const result: DBAccessQueryResult = await DBAccess.query(params);
+  const result: DBAccessQueryResult = await DBAccess.query(params);
 
-    if (result.data.rows.length === 0) {
-        params.sql = `CREATE SCHEMA "${conversion._schema}";`;
-        params.shouldReturnClient = false;
-        params.client = result.client;
-        await DBAccess.query(params);
-    }
+  if (result.data.rows.length === 0) {
+    params.sql = `CREATE SCHEMA "${conversion._schema}";`;
+    params.shouldReturnClient = false;
+    params.client = result.client;
+    await DBAccess.query(params);
+  }
 
-    return conversion;
+  return conversion;
 };

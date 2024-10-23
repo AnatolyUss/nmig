@@ -27,73 +27,73 @@ import { DBAccessQueryParams, DBAccessQueryResult, DBVendors } from './Types';
  * Returns the data pool table name.
  */
 export const getDataPoolTableName = (conversion: Conversion): string => {
-    return `"${conversion._schema}"."data_pool_${conversion._schema}${conversion._mySqlDbName}"`;
+  return `"${conversion._schema}"."data_pool_${conversion._schema}${conversion._mySqlDbName}"`;
 };
 
 /**
  * Creates the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
 export const createDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle = 'DataPoolManager::createDataPoolTable';
-    const table: string = getDataPoolTableName(conversion);
-    const sql = `CREATE TABLE IF NOT EXISTS ${table}("id" BIGSERIAL, "metadata" TEXT);`;
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: sql,
-        vendor: DBVendors.PG,
-        processExitOnError: true,
-        shouldReturnClient: false,
-    };
+  const logTitle = 'DataPoolManager::createDataPoolTable';
+  const table: string = getDataPoolTableName(conversion);
+  const sql = `CREATE TABLE IF NOT EXISTS ${table}("id" BIGSERIAL, "metadata" TEXT);`;
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: sql,
+    vendor: DBVendors.PG,
+    processExitOnError: true,
+    shouldReturnClient: false,
+  };
 
-    await DBAccess.query(params);
-    await log(conversion, `\t--[${logTitle}] table ${table} is created...`);
-    return conversion;
+  await DBAccess.query(params);
+  await log(conversion, `\t--[${logTitle}] table ${table} is created...`);
+  return conversion;
 };
 
 /**
  * Drops the "{schema}"."data_pool_{self._schema + self._mySqlDbName}" temporary table.
  */
 export const dropDataPoolTable = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle = 'DataPoolManager::dropDataPoolTable';
-    const table: string = getDataPoolTableName(conversion);
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: `DROP TABLE ${table};`,
-        vendor: DBVendors.PG,
-        processExitOnError: false,
-        shouldReturnClient: false,
-    };
+  const logTitle = 'DataPoolManager::dropDataPoolTable';
+  const table: string = getDataPoolTableName(conversion);
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: `DROP TABLE ${table};`,
+    vendor: DBVendors.PG,
+    processExitOnError: false,
+    shouldReturnClient: false,
+  };
 
-    await DBAccess.query(params);
-    await log(conversion, `\t--[${logTitle}] table ${table} is dropped...`);
-    return conversion;
+  await DBAccess.query(params);
+  await log(conversion, `\t--[${logTitle}] table ${table} is dropped...`);
+  return conversion;
 };
 
 /**
  * Reads temporary table, and generates Data-pool.
  */
 export const readDataPool = async (conversion: Conversion): Promise<Conversion> => {
-    const logTitle = 'DataPoolManager::readDataPool';
-    const table: string = getDataPoolTableName(conversion);
-    const params: DBAccessQueryParams = {
-        conversion: conversion,
-        caller: logTitle,
-        sql: `SELECT id AS id, metadata AS metadata FROM ${table};`,
-        vendor: DBVendors.PG,
-        processExitOnError: true,
-        shouldReturnClient: false,
-    };
+  const logTitle = 'DataPoolManager::readDataPool';
+  const table: string = getDataPoolTableName(conversion);
+  const params: DBAccessQueryParams = {
+    conversion: conversion,
+    caller: logTitle,
+    sql: `SELECT id AS id, metadata AS metadata FROM ${table};`,
+    vendor: DBVendors.PG,
+    processExitOnError: true,
+    shouldReturnClient: false,
+  };
 
-    const result: DBAccessQueryResult = await DBAccess.query(params);
+  const result: DBAccessQueryResult = await DBAccess.query(params);
 
-    result.data.rows.forEach((row: any) => {
-        const obj: any = JSON.parse(row.metadata);
-        obj._id = row.id;
-        conversion._dataPool.push(obj);
-    });
+  result.data.rows.forEach((row: any) => {
+    const obj: any = JSON.parse(row.metadata);
+    obj._id = row.id;
+    conversion._dataPool.push(obj);
+  });
 
-    await log(conversion, `\t--[${logTitle}] Data-Pool is loaded...`);
-    return conversion;
+  await log(conversion, `\t--[${logTitle}] Data-Pool is loaded...`);
+  return conversion;
 };
