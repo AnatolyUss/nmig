@@ -1,116 +1,116 @@
 {
-    "README" : [
-        "This JSON document represents an additional configuration options.",
-        "Currently, following options are available:",
-        "1. tables and columns renaming 'on the fly'.",
-        "2. generating foreign keys 'on the fly'.",
-        "These options will be applied during migration if, and only if",
-        "the 'enable_extra_config' attribute from 'config.json' is set true.",
-        "By default the 'enable_extra_config' is false, hence the options",
-        "described here will not take effect."
-    ],
+  "README": [
+    "This JSON document represents an additional configuration options.",
+    "Currently, following options are available:",
+    "1. tables and columns renaming 'on the fly'.",
+    "2. generating foreign keys 'on the fly'.",
+    "These options will be applied during migration if, and only if",
+    "the 'enable_extra_config' attribute from 'config.json' is set true.",
+    "By default the 'enable_extra_config' is false, hence the options",
+    "described here will not take effect."
+  ],
 
-    "README_RENAMING" : [
-        "Following lines are an example of expected renaming format.",
-        "Feel free to modify them.",
-        "Note, the 'name' attribute is mandatory.",
-        "'columns' attribute is optional.",
-        "If you don't need to rename columns, then remove the 'columns' attribute.",
-        "If you don't need to rename tables,",
-        "then set both 'name' object's attributes ('original' and 'new') to an actual table's name.",
-        "If you don't need to rename neither tables nor columns, then remove the 'tables' section."
-    ],
+  "README_RENAMING": [
+    "Following lines are an example of expected renaming format.",
+    "Feel free to modify them.",
+    "Note, the 'name' attribute is mandatory.",
+    "'columns' attribute is optional.",
+    "If you don't need to rename columns, then remove the 'columns' attribute.",
+    "If you don't need to rename tables,",
+    "then set both 'name' object's attributes ('original' and 'new') to an actual table's name.",
+    "If you don't need to rename neither tables nor columns, then remove the 'tables' section."
+  ],
 
-    "README_lowerCaseAllColumnNames": [
-        "'lowerCaseAllColumnNames', once set true, instructs nmig to rename/lowercase all columns in all tables.",
-        "By default, 'lowerCaseAllColumnNames' is false.",
-        "Note, 're-namings' defined below under 'tables' -> 'columns' will take precedence over 'lowerCaseAllColumnNames: true'."
-    ],
-    "lowerCaseAllColumnNames": false,
+  "README_lowerCaseAllColumnNames": [
+    "'lowerCaseAllColumnNames', once set true, instructs nmig to rename/lowercase all columns in all tables.",
+    "By default, 'lowerCaseAllColumnNames' is false.",
+    "Note, 're-namings' defined below under 'tables' -> 'columns' will take precedence over 'lowerCaseAllColumnNames: true'."
+  ],
+  "lowerCaseAllColumnNames": false,
 
-    "tables" : [
+  "tables": [
+    {
+      "name": {
+        "original": "salary",
+        "new": "renamed_salary"
+      },
+
+      "columns": [
         {
-            "name" : {
-                "original" : "salary",
-                "new" : "renamed_salary"
-            },
-
-            "columns" : [
-                {
-                    "original" : "id",
-                    "new" : "renamed_id"
-                },
-
-                {
-                    "original" : "employee_id",
-                    "new" : "renamed_employee_id"
-                }
-            ]
+          "original": "id",
+          "new": "renamed_id"
         },
 
         {
-            "name" : {
-                "original" : "contract",
-                "new" : "renamed_contract"
-            },
-
-            "columns" : [
-                {
-                    "original" : "id",
-                    "new" : "renamed_id"
-                }
-            ]
+          "original": "employee_id",
+          "new": "renamed_employee_id"
         }
-    ],
+      ]
+    },
 
-    "README_FKs" : [
-        "Following lines are an example of expected foreign keys format.",
-        "Feel free to modify them.",
-        "Note, if one of the following: 'column_name', 'referenced_table_name', 'referenced_column_name'",
-        "has been renamed, then a new name must be used.",
-        "Note, possible values for 'update_rule' and 'delete_rule' are 'restrict' or 'cascade'.",
-        "If you don't need to create foreign keys 'on the fly', then remove the 'foreign_keys' section."
-    ],
+    {
+      "name": {
+        "original": "contract",
+        "new": "renamed_contract"
+      },
 
-    "foreign_keys" : [
+      "columns": [
         {
-            "constraint_name" : "renamed_admins_renamed_group_id_foreign",
-            "table_name" : "renamed_admins",
-            "column_name" : "renamed_group_id",
-            "referenced_table_name" : "renamed_groups",
-            "referenced_column_name" : "renamed_id",
-            "update_rule" : "restrict",
-            "delete_rule" : "restrict"
-        },
-
-        {
-            "constraint_name" : "logs_test_3_merchant_id_foreign",
-            "table_name" : "logs_test_3",
-            "column_name" : "merchant_id",
-            "referenced_table_name" : "merchants",
-            "referenced_column_name" : "id",
-            "update_rule" : "restrict",
-            "delete_rule" : "cascade"
-        },
-
-        {
-            "constraint_name" : "composite_foreign_key_example",
-            "table_name" : "logs_test-6",
-            "column_name" : "id1",
-            "referenced_table_name" : "logs_test_4",
-            "referenced_column_name" : "id1",
-            "update_rule" : "cascade",
-            "delete_rule" : "cascade"
-        },
-
-        {
-            "constraint_name" : "composite_foreign_key_example",
-            "table_name" : "logs_test-6",
-            "column_name" : "id2",
-            "referenced_table_name" : "logs_test_4",
-            "referenced_column_name" : "id2",
-            "update_rule" : "cascade",
-            "delete_rule" : "cascade"
+          "original": "id",
+          "new": "renamed_id"
         }
-    ]
+      ]
+    }
+  ],
+
+  "README_FKs": [
+    "Following lines are an example of expected foreign keys format.",
+    "Feel free to modify them.",
+    "Note, if one of the following: 'column_name', 'referenced_table_name', 'referenced_column_name'",
+    "has been renamed, then a new name must be used.",
+    "Note, possible values for 'update_rule' and 'delete_rule' are 'restrict' or 'cascade'.",
+    "If you don't need to create foreign keys 'on the fly', then remove the 'foreign_keys' section."
+  ],
+
+  "foreign_keys": [
+    {
+      "constraint_name": "renamed_admins_renamed_group_id_foreign",
+      "table_name": "renamed_admins",
+      "column_name": "renamed_group_id",
+      "referenced_table_name": "renamed_groups",
+      "referenced_column_name": "renamed_id",
+      "update_rule": "restrict",
+      "delete_rule": "restrict"
+    },
+
+    {
+      "constraint_name": "logs_test_3_merchant_id_foreign",
+      "table_name": "logs_test_3",
+      "column_name": "merchant_id",
+      "referenced_table_name": "merchants",
+      "referenced_column_name": "id",
+      "update_rule": "restrict",
+      "delete_rule": "cascade"
+    },
+
+    {
+      "constraint_name": "composite_foreign_key_example",
+      "table_name": "logs_test-6",
+      "column_name": "id1",
+      "referenced_table_name": "logs_test_4",
+      "referenced_column_name": "id1",
+      "update_rule": "cascade",
+      "delete_rule": "cascade"
+    },
+
+    {
+      "constraint_name": "composite_foreign_key_example",
+      "table_name": "logs_test-6",
+      "column_name": "id2",
+      "referenced_table_name": "logs_test_4",
+      "referenced_column_name": "id2",
+      "update_rule": "cascade",
+      "delete_rule": "cascade"
+    }
+  ]
 }

@@ -1,37 +1,27 @@
 {
-    "compilerOptions": {
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "strictPropertyInitialization": true,
-        "noImplicitThis": true,
-        "alwaysStrict": true,
-        "strict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "noImplicitReturns": true,
-        "removeComments": true,
-        "allowJs": true,
-        "sourceMap": true,
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "target": "es2017",
-        "outDir": "./dist",
-        "types": [
-            "node",
-            "pg",
-            "uuid",
-            "pg-copy-streams",
-            "tape"
-        ]
-    },
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "incremental": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "removeComments": true,
+    "allowJs": true,
+    "sourceMap": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2017",
+    "outDir": "./dist",
+    "types": ["node", "pg", "uuid", "pg-copy-streams", "tape"]
+  },
 
-    "exclude": [
-        "node_modules"
-    ],
+  "exclude": ["node_modules"],
 
-    "include": [
-        "src/**/*",
-        "test/**/*"
-    ]
+  "include": ["src/**/*", "test/**/*"]
 }
