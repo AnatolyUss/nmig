@@ -1,21 +1,17 @@
 node_modules
 dist
-config
 logs_directory
+logo.png
 
 **/.git
 **/.svn
 **/.hg
 **/node_modules
 
-.eslintrc.js
 .eslintignore
 .gitignore
 .idea
-tsconfig.json
 tsconfig.tsbuildinfo
-package.json
 package-lock.json
 README.md
 LICENSE.md
-logo.png

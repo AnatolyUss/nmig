@@ -109,7 +109,7 @@ Or, if you have moved <code>config</code> folder out from Nmig's directory:<br /
 <br /><b>Note:</b> "logs_directory" will be created during script execution.</p>
 
 <h3>VERSION</h3>
-<p>Current version is 6.2.0</p>
+<p>Current version is 6.3.0</p>
 
 <h3>LICENSE</h3>
 <p>NMIG is available under "GNU GENERAL PUBLIC LICENSE" (v. 3) <br />
