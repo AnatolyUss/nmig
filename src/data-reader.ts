@@ -81,7 +81,7 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
   const originalTableName: string = extraConfigProcessor.getTableName(conv, tableName, true);
   const sql = `SELECT ${strSelectFieldList} FROM \`${originalTableName}\`;`;
   const mysqlClient: PoolConnection = await DbAccess.getMysqlClient(conv);
-  const sqlCopy = `COPY "${conv._schema}"."${tableName}" (${copyColumnNamesList}) FROM STDIN 
+  const sqlCopy = `COPY "${conv._schema}"."${tableName}" (${copyColumnNamesList}) FROM STDIN
         WITH (FORMAT csv, DELIMITER '${conv._delimiter}', ENCODING '${conv._targetConString.charset}');`;
 
   const client: PoolClient = await DbAccess.getPgClient(conv);
@@ -135,8 +135,8 @@ const populateTable = async (conv: Conversion, chunk: any): Promise<void> => {
  * Spawns the data-writer child-process and returns its instance.
  */
 const getDataWriter = (conv: Conversion): ChildProcess => {
-  // Note, in runtime it points to ../dist/src/DataWriter.js and not DataWriter.ts
-  const cliArgs: string[] = [path.join(__dirname, 'DataWriter.js')];
+  // Note, in runtime it points to ../dist/src/data-writer.js and not data-writer.ts
+  const cliArgs: string[] = [path.join(__dirname, 'data-writer.js')];
 
   if (conv._readerMaxOldSpaceSize !== 'DEFAULT') {
     // Note, all the child-process params are equally applicable to both "DataReader" and "DataWriter" processes.
