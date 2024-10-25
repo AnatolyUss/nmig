@@ -306,8 +306,8 @@ export default class Conversion {
    */
   private _setLogger = (): ChildProcess => {
     // A path to the FsOps.js file.
-    // Note, in runtime it points to ../dist/src/LogsProcessor.js and not LogsProcessor.ts
-    const loggerPath: string = path.join(__dirname, 'LogsProcessor.js');
+    // Note, in runtime it points to ../dist/src/logs-processor.js and not logs-processor.ts
+    const loggerPath: string = path.join(__dirname, 'logs-processor.js');
 
     const logger: ChildProcess = fork(loggerPath)
       .on('error', (err: Error) => console.log(`\t--[_setLogger] Error: ${JSON.stringify(err)}`))
