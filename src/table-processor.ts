@@ -61,9 +61,23 @@ export const mapDataTypes = (objDataTypesMap: any, mySqlDataType: string): strin
         : objDataTypesMap[strDataType].type;
     } else {
       // Should be converted with a length definition.
-      retVal = increaseOriginalSize
-        ? `${objDataTypesMap[strDataType].increased_size}(${strDataTypeDisplayWidth}`
-        : `${objDataTypesMap[strDataType].type}(${strDataTypeDisplayWidth}`;
+      // Check if the "type" or the "increased_size" of the current data type
+      // from the "data_types_map.json" contains length definition.
+      // If contains - convert the type using provided definition
+      // instead of the original one (taken from the original MySQL DB).
+      const mapToPgTypeWithLengthDefinition: boolean = increaseOriginalSize
+        ? objDataTypesMap[strDataType].increased_size.indexOf('(') !== -1
+        : objDataTypesMap[strDataType].type.indexOf('(') !== -1;
+
+      if (mapToPgTypeWithLengthDefinition) {
+        retVal = increaseOriginalSize
+          ? `${objDataTypesMap[strDataType].increased_size}`
+          : `${objDataTypesMap[strDataType].type}`;
+      } else {
+        retVal = increaseOriginalSize
+          ? `${objDataTypesMap[strDataType].increased_size}(${strDataTypeDisplayWidth}`
+          : `${objDataTypesMap[strDataType].type}(${strDataTypeDisplayWidth}`;
+      }
     }
   }
 

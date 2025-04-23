@@ -1,0 +1,41 @@
+# Create local environment:
+# {/usr/local/bin/}docker compose -f {/path/to}/nmig/docker-compose.yml -p nmig up -d
+version: '3.8'
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      # MYSQL_DATABASE: ${MYSQL_DATABASE_NAME}
+      MYSQL_USER: root_user
+      MYSQL_PASSWORD: secret
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:16.4
+    container_name: postgres-container
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=postgres
+    networks:
+      - app-network
+    volumes:
+      - postgres_16_data:/var/lib/postgresql/data
+
+volumes:
+  mysql-data:
+  postgres_16_data:
+
+networks:
+  app-network:
+    driver: bridge

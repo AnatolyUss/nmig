@@ -14,7 +14,7 @@
     "supportBigNumbers": true,
     "database": "nmig_test_db",
     "user": "root",
-    "password": "0123456789"
+    "password": "secret"
   },
 
   "target_description": [
@@ -27,9 +27,9 @@
     "host": "127.0.0.1",
     "port": 5432,
     "charset": "UTF8",
-    "database": "nmig_test_db",
+    "database": "postgres",
     "user": "postgres",
-    "password": "0123456789"
+    "password": "secret"
   },
 
   "schema_description": [
