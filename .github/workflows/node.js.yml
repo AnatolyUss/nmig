@@ -1,0 +1,64 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Build and test with Node.js
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  DB_NAME: nmig_test_db
+  DB_PASSWORD: '0123456789'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+          POSTGRES_DB: ${{ env.DB_NAME }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Configure Postgres table
+      env:
+        PGPASSWORD: ${{ env.DB_PASSWORD }}
+      run: >-
+        psql -c 'DROP SCHEMA public'
+        -d $DB_NAME
+        -h localhost
+        -U postgres
+
+    - name: Start MySQL server and set root password
+      run: |
+        sudo /etc/init.d/mysql start
+        mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$DB_PASSWORD'" -uroot -proot
+
+    - run: npm ci
+    - run: npm run build
+    - run: npm test
